@@ -26,7 +26,7 @@ const fade = (delay = 0) => ({
   initial: { opacity: 0, y: 20 },
   whileInView: { opacity: 1, y: 0 },
   viewport: { once: true, margin: "-80px" },
-  transition: { duration: 0.6, delay, ease: [0.4, 0, 0.2, 1] },
+  transition: { duration: 0.6, delay, ease: "easeOut" as const },
 });
 
 const features = [

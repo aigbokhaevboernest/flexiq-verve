@@ -17,7 +17,7 @@ export const RotatingWord = () => {
           initial={{ y: 24, opacity: 0, filter: "blur(8px)" }}
           animate={{ y: 0, opacity: 1, filter: "blur(0px)" }}
           exit={{ y: -24, opacity: 0, filter: "blur(8px)" }}
-          transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
           className="text-gradient inline-block"
         >
           {words[i]}
