@@ -166,7 +166,7 @@ const SendMoney = () => {
                   <Select value={form.country} onValueChange={(v) => set("country", v)}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent className="max-h-72">
-                      {countries.map((c) => <SelectItem key={c.code} value={c.code}>{c.name}</SelectItem>)}
+                      {countries.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
