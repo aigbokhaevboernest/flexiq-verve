@@ -7,6 +7,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Link, useNavigate } from "react-router-dom";
 import { countries } from "@/lib/countries";
 import { currencies } from "@/lib/currencies";
+import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 
 const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
   <div className="space-y-2">
@@ -17,6 +20,57 @@ const Field = ({ label, children }: { label: string; children: React.ReactNode }
 
 const Signup = () => {
   const navigate = useNavigate();
+  const [submitting, setSubmitting] = useState(false);
+  const [form, setForm] = useState({
+    first_name: "",
+    last_name: "",
+    email: "",
+    phone: "",
+    country: "",
+    currency: "",
+    account_type: "",
+    address: "",
+    city: "",
+    postal_code: "",
+    password: "",
+    confirm_password: "",
+  });
+
+  const update = (k: keyof typeof form) => (v: string) => setForm((f) => ({ ...f, [k]: v }));
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (form.password !== form.confirm_password) {
+      toast({ title: "Passwords don't match", variant: "destructive" });
+      return;
+    }
+    setSubmitting(true);
+    const { error } = await supabase.auth.signUp({
+      email: form.email,
+      password: form.password,
+      options: {
+        emailRedirectTo: `${window.location.origin}/dashboard`,
+        data: {
+          first_name: form.first_name,
+          last_name: form.last_name,
+          phone: form.phone,
+          country: form.country,
+          currency: form.currency,
+          account_type: form.account_type,
+          address: form.address,
+          city: form.city,
+          postal_code: form.postal_code,
+        },
+      },
+    });
+    setSubmitting(false);
+    if (error) {
+      toast({ title: "Signup failed", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Account created", description: "Welcome to Norvex!" });
+    navigate("/dashboard");
+  };
 
   return (
     <AuthLayout
@@ -29,22 +83,24 @@ const Signup = () => {
         </>
       }
     >
-      <form
-        className="space-y-5"
-        onSubmit={(e) => {
-          e.preventDefault();
-          navigate("/pin");
-        }}
-      >
+      <form className="space-y-5" onSubmit={handleSubmit}>
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Full name"><Input required placeholder="Jane Doe" /></Field>
-          <Field label="Username"><Input required placeholder="janedoe" /></Field>
+          <Field label="First name">
+            <Input required placeholder="Jane" value={form.first_name} onChange={(e) => update("first_name")(e.target.value)} />
+          </Field>
+          <Field label="Last name">
+            <Input required placeholder="Doe" value={form.last_name} onChange={(e) => update("last_name")(e.target.value)} />
+          </Field>
 
-          <Field label="Email"><Input type="email" required placeholder="jane@email.com" /></Field>
-          <Field label="Phone"><Input type="tel" required placeholder="+1 555 123 4567" /></Field>
+          <Field label="Email">
+            <Input type="email" required placeholder="jane@email.com" value={form.email} onChange={(e) => update("email")(e.target.value)} />
+          </Field>
+          <Field label="Phone">
+            <Input type="tel" required placeholder="+1 555 123 4567" value={form.phone} onChange={(e) => update("phone")(e.target.value)} />
+          </Field>
 
           <Field label="Country">
-            <Select required>
+            <Select required value={form.country} onValueChange={update("country")}>
               <SelectTrigger><SelectValue placeholder="Select country" /></SelectTrigger>
               <SelectContent className="max-h-64">
                 {countries.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
@@ -52,20 +108,8 @@ const Signup = () => {
             </Select>
           </Field>
 
-          <Field label="Gender">
-            <Select required>
-              <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="female">Female</SelectItem>
-                <SelectItem value="male">Male</SelectItem>
-                <SelectItem value="nonbinary">Non-binary</SelectItem>
-                <SelectItem value="other">Prefer not to say</SelectItem>
-              </SelectContent>
-            </Select>
-          </Field>
-
           <Field label="Account type">
-            <Select required>
+            <Select required value={form.account_type} onValueChange={update("account_type")}>
               <SelectTrigger><SelectValue placeholder="Choose account" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="personal">Personal</SelectItem>
@@ -77,7 +121,7 @@ const Signup = () => {
           </Field>
 
           <Field label="Preferred currency">
-            <Select required>
+            <Select required value={form.currency} onValueChange={update("currency")}>
               <SelectTrigger><SelectValue placeholder="Currency" /></SelectTrigger>
               <SelectContent className="max-h-64">
                 {currencies.map((c) => <SelectItem key={c.code} value={c.code}>{c.code} — {c.name}</SelectItem>)}
@@ -85,18 +129,25 @@ const Signup = () => {
             </Select>
           </Field>
 
-          <Field label="Date of birth"><Input type="date" required /></Field>
-          <Field label="Zip code"><Input required placeholder="10001" /></Field>
+          <Field label="City">
+            <Input required placeholder="New York" value={form.city} onChange={(e) => update("city")(e.target.value)} />
+          </Field>
+          <Field label="Postal code">
+            <Input required placeholder="10001" value={form.postal_code} onChange={(e) => update("postal_code")(e.target.value)} />
+          </Field>
 
           <div className="sm:col-span-2">
-            <Field label="Address"><Input required placeholder="123 Main St, New York" /></Field>
+            <Field label="Address">
+              <Input required placeholder="123 Main St" value={form.address} onChange={(e) => update("address")(e.target.value)} />
+            </Field>
           </div>
 
-          <Field label="4-digit PIN"><Input type="password" required maxLength={4} pattern="[0-9]{4}" placeholder="••••" /></Field>
-          <Field label="Confirm PIN"><Input type="password" required maxLength={4} pattern="[0-9]{4}" placeholder="••••" /></Field>
-
-          <Field label="Password"><Input type="password" required minLength={8} placeholder="At least 8 characters" /></Field>
-          <Field label="Confirm password"><Input type="password" required minLength={8} placeholder="Repeat password" /></Field>
+          <Field label="Password">
+            <Input type="password" required minLength={8} placeholder="At least 8 characters" value={form.password} onChange={(e) => update("password")(e.target.value)} />
+          </Field>
+          <Field label="Confirm password">
+            <Input type="password" required minLength={8} placeholder="Repeat password" value={form.confirm_password} onChange={(e) => update("confirm_password")(e.target.value)} />
+          </Field>
         </div>
 
         <label className="flex items-start gap-2 text-sm text-muted-foreground">
@@ -108,8 +159,13 @@ const Signup = () => {
           </span>
         </label>
 
-        <Button type="submit" size="lg" className="w-full bg-gradient-primary text-primary-foreground shadow-md hover:opacity-95">
-          Create account
+        <Button
+          type="submit"
+          size="lg"
+          disabled={submitting}
+          className="w-full bg-gradient-primary text-primary-foreground shadow-md hover:opacity-95"
+        >
+          {submitting ? "Creating account…" : "Create account"}
         </Button>
       </form>
     </AuthLayout>

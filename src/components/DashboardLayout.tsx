@@ -22,6 +22,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useEffect, useState } from "react";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 
 const nav = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, end: true },
@@ -39,6 +41,7 @@ const nav = [
 
 const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
   const navigate = useNavigate();
+  const { signOut } = useAuth();
   return (
     <div className="flex h-full flex-col">
       <div className="flex h-16 items-center gap-2 border-b border-sidebar-border px-6 font-display text-xl font-bold">
@@ -72,8 +75,9 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
       </nav>
       <div className="border-t border-sidebar-border p-3">
         <button
-          onClick={() => {
+          onClick={async () => {
             onNavigate?.();
+            await signOut();
             navigate("/login");
           }}
           className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground transition-smooth hover:bg-destructive/10 hover:text-destructive"
@@ -89,6 +93,8 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
 export const DashboardLayout = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [dark, setDark] = useState(false);
+  const { user } = useAuth();
+  const [initials, setInitials] = useState("JD");
 
   useEffect(() => {
     const saved = localStorage.getItem("norvex-theme");
@@ -97,6 +103,20 @@ export const DashboardLayout = () => {
       setDark(true);
     }
   }, []);
+
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("profiles")
+      .select("first_name,last_name")
+      .eq("id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        const f = data?.first_name?.[0] ?? user.email?.[0] ?? "";
+        const l = data?.last_name?.[0] ?? "";
+        setInitials(((f + l) || "U").toUpperCase());
+      });
+  }, [user]);
 
   const toggleTheme = () => {
     const next = !dark;
@@ -140,7 +160,7 @@ export const DashboardLayout = () => {
               <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-accent" />
             </Button>
             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-coral text-sm font-bold text-white">
-              JD
+              {initials}
             </div>
           </div>
         </header>
