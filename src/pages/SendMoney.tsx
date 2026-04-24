@@ -27,7 +27,7 @@ const SendMoney = () => {
     lastName: "",
     address: "",
     zip: "",
-    country: "US",
+    country: "United States",
     bankName: "",
     accountName: "",
     accountType: "checking",
