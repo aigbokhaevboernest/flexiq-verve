@@ -4,33 +4,88 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowRight, Repeat, Shield } from "lucide-react";
+import { ArrowRight, Repeat, Shield, Lock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAccount, formatMoney, currencySymbol } from "@/hooks/useAccount";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
+import { CodeGate } from "@/components/CodeGate";
 
 const LocalTransfer = () => {
   const { toast } = useToast();
-  const [amount, setAmount] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+  const { user } = useAuth();
+  const { data: account } = useAccount();
+  const qc = useQueryClient();
+  const currency = account?.currency || "USD";
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [amount, setAmount] = useState("");
+  const [recipient, setRecipient] = useState("");
+  const [accNumber, setAccNumber] = useState("");
+  const [routing, setRouting] = useState("");
+  const [desc, setDesc] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [gateOpen, setGateOpen] = useState(false);
+  const [pendingTxId, setPendingTxId] = useState<string | null>(null);
+
+  const { data: beneficiaries = [] } = useQuery({
+    queryKey: ["beneficiaries", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data } = await supabase.from("beneficiaries").select("*").eq("user_id", user!.id);
+      return data || [];
+    },
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user || !account) return;
+    const amt = Number(amount);
+    if (!amt || amt <= 0) return toast({ title: "Enter amount", variant: "destructive" });
+    if (account.frozen) return toast({ title: "Account frozen", variant: "destructive" });
+    if (amt > Number(account.balance)) return toast({ title: "Insufficient funds", variant: "destructive" });
+
     setSubmitting(true);
-    setTimeout(() => {
-      setSubmitting(false);
-      toast({
-        title: "Local transfer submitted",
-        description: `$${amount || "0.00"} will arrive within minutes.`,
-      });
-    }, 800);
+    const { data: tx, error } = await supabase.from("transactions").insert({
+      user_id: user.id,
+      type: "transfer_out",
+      status: "awaiting_code",
+      amount: -amt,
+      currency,
+      recipient_name: recipient,
+      recipient_account: accNumber,
+      recipient_bank: "Local bank",
+      description: desc || `Local transfer to ${recipient}`,
+      metadata: { routing, local: true },
+    }).select().single();
+    setSubmitting(false);
+
+    if (error || !tx) return toast({ title: "Failed", description: error?.message, variant: "destructive" });
+    setPendingTxId(tx.id);
+    setGateOpen(true);
   };
+
+  const onVerified = async () => {
+    if (!user || !account || !pendingTxId) return;
+    const amt = Number(amount);
+    await supabase.from("accounts").update({ balance: Number(account.balance) - amt }).eq("user_id", user.id);
+    await supabase.from("transactions").update({ status: "completed" }).eq("id", pendingTxId);
+    qc.invalidateQueries({ queryKey: ["account"] });
+    qc.invalidateQueries({ queryKey: ["transactions"] });
+    qc.invalidateQueries({ queryKey: ["recent-tx"] });
+    qc.invalidateQueries({ queryKey: ["stats"] });
+    toast({ title: "Local transfer completed", description: `${formatMoney(amt, currency)} sent to ${recipient}.` });
+    setAmount(""); setRecipient(""); setAccNumber(""); setRouting(""); setDesc("");
+    setPendingTxId(null);
+  };
+
+  const sym = currencySymbol(currency);
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="font-display text-2xl font-bold sm:text-3xl">Local Transfer</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Bank transfers within your country — instant and free.
-        </p>
+        <p className="mt-1 text-sm text-muted-foreground">Bank transfers within your country.</p>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[2fr,1fr]">
@@ -39,84 +94,45 @@ const LocalTransfer = () => {
             <div className="rounded-2xl border border-border bg-muted/40 p-5">
               <p className="text-xs uppercase tracking-wider text-muted-foreground">Amount</p>
               <div className="mt-2 flex items-center gap-2">
-                <span className="font-display text-2xl font-bold text-muted-foreground">$</span>
-                <Input
-                  type="number"
-                  inputMode="decimal"
-                  step="0.01"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  placeholder="0.00"
-                  className="h-14 border-0 bg-transparent p-0 font-display text-3xl font-bold shadow-none focus-visible:ring-0"
-                  required
-                />
+                <span className="font-display text-2xl font-bold text-muted-foreground">{sym}</span>
+                <Input type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00"
+                  className="h-14 border-0 bg-transparent p-0 font-display text-3xl font-bold shadow-none focus-visible:ring-0" required />
               </div>
+              <p className="mt-1 text-xs text-muted-foreground">Available: {formatMoney(Number(account?.balance ?? 0), currency)}</p>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2 sm:col-span-2">
-                <Label htmlFor="recipient">Recipient name</Label>
-                <Input id="recipient" required placeholder="Jane Doe" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="account">Account number</Label>
-                <Input id="account" required placeholder="0123456789" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="routing">Routing number</Label>
-                <Input id="routing" required placeholder="021000021" />
-              </div>
-              <div className="space-y-2 sm:col-span-2">
-                <Label htmlFor="description">Description</Label>
-                <Textarea id="description" placeholder="What's this transfer for?" rows={3} />
-              </div>
+              <div className="space-y-2 sm:col-span-2"><Label>Recipient name</Label><Input value={recipient} onChange={(e) => setRecipient(e.target.value)} required /></div>
+              <div className="space-y-2"><Label>Account number</Label><Input value={accNumber} onChange={(e) => setAccNumber(e.target.value)} required /></div>
+              <div className="space-y-2"><Label>Routing number</Label><Input value={routing} onChange={(e) => setRouting(e.target.value)} required /></div>
+              <div className="space-y-2 sm:col-span-2"><Label>Description</Label><Textarea value={desc} onChange={(e) => setDesc(e.target.value)} rows={3} /></div>
             </div>
 
-            <Button
-              type="submit"
-              disabled={submitting}
-              className="h-12 w-full gap-2 rounded-2xl bg-gradient-primary text-base font-semibold shadow-glow"
-            >
-              {submitting ? "Processing…" : (
-                <>
-                  <Repeat className="h-4 w-4" />
-                  Transfer ${amount || "0.00"}
-                  <ArrowRight className="h-4 w-4" />
-                </>
-              )}
+            <Button type="submit" disabled={submitting} className="h-12 w-full gap-2 rounded-2xl bg-gradient-primary text-base font-semibold shadow-glow">
+              {submitting ? "Processing…" : (<><Lock className="h-4 w-4" />Authorize {sym}{Number(amount || 0).toFixed(2)}<ArrowRight className="h-4 w-4" /></>)}
             </Button>
           </form>
         </Card>
 
         <div className="space-y-4">
           <Card className="rounded-3xl border-border/60 p-6 shadow-card">
-            <div className="flex items-center gap-2">
-              <Shield className="h-4 w-4 text-success" />
-              <p className="text-sm font-semibold">Free & instant</p>
-            </div>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Local transfers are free and typically settle within minutes via the national clearing network.
-            </p>
+            <div className="flex items-center gap-2"><Shield className="h-4 w-4 text-success" /><p className="text-sm font-semibold">Authorization required</p></div>
+            <p className="mt-2 text-sm text-muted-foreground">All transfers require COT, IMF and Tax clearance codes.</p>
           </Card>
           <Card className="rounded-3xl border-border/60 p-6 shadow-card">
             <p className="text-sm font-semibold">Saved beneficiaries</p>
             <div className="mt-3 space-y-2">
-              {[
-                { n: "D. Lee", acc: "•••• 4421" },
-                { n: "Maya Patel", acc: "•••• 8821" },
-                { n: "Sarah Kim", acc: "•••• 2210" },
-              ].map((b) => (
-                <button
-                  key={b.n}
-                  type="button"
-                  className="flex w-full items-center gap-3 rounded-xl p-2 text-left transition-smooth hover:bg-muted"
-                >
+              {beneficiaries.length === 0 && <p className="text-xs text-muted-foreground">No saved beneficiaries yet.</p>}
+              {beneficiaries.map((b: any) => (
+                <button key={b.id} type="button"
+                  onClick={() => { setRecipient(b.name); setAccNumber(b.account_number); }}
+                  className="flex w-full items-center gap-3 rounded-xl p-2 text-left transition-smooth hover:bg-muted">
                   <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-primary text-xs font-bold text-white">
-                    {b.n.split(" ").map((p) => p[0]).join("")}
+                    {b.name.split(" ").map((p: string) => p[0]).join("")}
                   </span>
                   <div className="flex-1">
-                    <p className="text-sm font-medium">{b.n}</p>
-                    <p className="text-xs text-muted-foreground">{b.acc}</p>
+                    <p className="text-sm font-medium">{b.name}</p>
+                    <p className="text-xs text-muted-foreground">•••• {b.account_number.slice(-4)}</p>
                   </div>
                 </button>
               ))}
@@ -124,6 +140,9 @@ const LocalTransfer = () => {
           </Card>
         </div>
       </div>
+
+      <CodeGate open={gateOpen} onOpenChange={setGateOpen} required={["cot", "imf", "tax"]}
+        title="Authorize local transfer" onVerified={onVerified} />
     </div>
   );
 };

@@ -4,40 +4,129 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { ArrowRight, Building2, Send, Shield } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ArrowRight, Building2, Send, Shield, Lock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAccount, formatMoney, currencySymbol } from "@/hooks/useAccount";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useQueryClient } from "@tanstack/react-query";
+import { CodeGate } from "@/components/CodeGate";
+import { countries } from "@/lib/countries";
 
 const SendMoney = () => {
   const { toast } = useToast();
-  const [amount, setAmount] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+  const { user } = useAuth();
+  const { data: account } = useAccount();
+  const qc = useQueryClient();
+  const currency = account?.currency || "USD";
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [form, setForm] = useState({
+    amount: "",
+    firstName: "",
+    lastName: "",
+    address: "",
+    zip: "",
+    country: "US",
+    bankName: "",
+    accountName: "",
+    accountType: "checking",
+    accountNumber: "",
+    routing: "",
+    note: "",
+  });
+  const [submitting, setSubmitting] = useState(false);
+  const [gateOpen, setGateOpen] = useState(false);
+  const [pendingTxId, setPendingTxId] = useState<string | null>(null);
+
+  const set = (k: keyof typeof form, v: string) => setForm({ ...form, [k]: v });
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user || !account) return;
+    const amount = Number(form.amount);
+    if (!amount || amount <= 0) {
+      toast({ title: "Enter a valid amount", variant: "destructive" });
+      return;
+    }
+    if (account.frozen) {
+      toast({ title: "Account is frozen", description: "Contact support.", variant: "destructive" });
+      return;
+    }
+    if (amount > Number(account.balance)) {
+      toast({ title: "Insufficient funds", description: `Available: ${formatMoney(Number(account.balance), currency)}`, variant: "destructive" });
+      return;
+    }
+
     setSubmitting(true);
-    setTimeout(() => {
-      setSubmitting(false);
-      toast({
-        title: "Transfer initiated",
-        description: `$${amount || "0.00"} is on the way. You'll see it in Transactions shortly.`,
-      });
-    }, 900);
+    // Create awaiting-code transaction
+    const recipientName = `${form.firstName} ${form.lastName}`.trim();
+    const { data: tx, error } = await supabase.from("transactions").insert({
+      user_id: user.id,
+      type: "transfer_out",
+      status: "awaiting_code",
+      amount: -amount,
+      currency,
+      recipient_name: recipientName,
+      recipient_account: form.accountNumber,
+      recipient_bank: form.bankName,
+      recipient_country: form.country,
+      description: form.note || `Transfer to ${recipientName}`,
+      metadata: {
+        first_name: form.firstName,
+        last_name: form.lastName,
+        address: form.address,
+        zip: form.zip,
+        account_type: form.accountType,
+        routing: form.routing,
+        account_name: form.accountName,
+      },
+    }).select().single();
+
+    setSubmitting(false);
+    if (error || !tx) {
+      toast({ title: "Could not start transfer", description: error?.message, variant: "destructive" });
+      return;
+    }
+    setPendingTxId(tx.id);
+    setGateOpen(true);
   };
+
+  const onCodesVerified = async () => {
+    if (!user || !pendingTxId || !account) return;
+    const amount = Number(form.amount);
+    // Debit account + complete tx
+    const { error: balErr } = await supabase
+      .from("accounts")
+      .update({ balance: Number(account.balance) - amount })
+      .eq("user_id", user.id);
+    if (balErr) throw balErr;
+
+    await supabase
+      .from("transactions")
+      .update({ status: "completed" })
+      .eq("id", pendingTxId);
+
+    qc.invalidateQueries({ queryKey: ["account"] });
+    qc.invalidateQueries({ queryKey: ["transactions"] });
+    qc.invalidateQueries({ queryKey: ["recent-tx"] });
+    qc.invalidateQueries({ queryKey: ["stats"] });
+
+    toast({
+      title: "Transfer completed",
+      description: `${formatMoney(amount, currency)} sent to ${form.firstName} ${form.lastName}.`,
+    });
+    setForm({ ...form, amount: "", note: "" });
+    setPendingTxId(null);
+  };
+
+  const sym = currencySymbol(currency);
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="font-display text-2xl font-bold sm:text-3xl">Send Money</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Send funds to anyone, anywhere — securely and instantly.
-        </p>
+        <p className="mt-1 text-sm text-muted-foreground">Send funds to anyone, anywhere — securely with COT, IMF and Tax authorization.</p>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[2fr,1fr]">
@@ -49,30 +138,17 @@ const SendMoney = () => {
                 <h2 className="font-display text-lg font-bold">Amount</h2>
               </div>
               <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 font-display text-2xl font-bold text-muted-foreground">$</span>
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 font-display text-2xl font-bold text-muted-foreground">{sym}</span>
                 <Input
-                  type="number"
-                  inputMode="decimal"
-                  step="0.01"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
+                  type="number" inputMode="decimal" step="0.01"
+                  value={form.amount}
+                  onChange={(e) => set("amount", e.target.value)}
                   placeholder="0.00"
                   className="h-20 rounded-2xl pl-10 text-center font-display text-3xl font-bold"
                   required
                 />
               </div>
-              <div className="flex flex-wrap gap-2">
-                {[50, 100, 250, 500, 1000].map((v) => (
-                  <button
-                    type="button"
-                    key={v}
-                    onClick={() => setAmount(String(v))}
-                    className="rounded-full border border-border bg-muted/50 px-4 py-1.5 text-xs font-medium transition-smooth hover:border-primary hover:bg-primary/5"
-                  >
-                    ${v}
-                  </button>
-                ))}
-              </div>
+              <p className="text-xs text-muted-foreground">Available: {formatMoney(Number(account?.balance ?? 0), currency)}</p>
             </section>
 
             <section className="space-y-4">
@@ -81,32 +157,16 @@ const SendMoney = () => {
                 <h2 className="font-display text-lg font-bold">Recipient</h2>
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2"><Label>First name</Label><Input value={form.firstName} onChange={(e) => set("firstName", e.target.value)} required /></div>
+                <div className="space-y-2"><Label>Last name</Label><Input value={form.lastName} onChange={(e) => set("lastName", e.target.value)} required /></div>
+                <div className="space-y-2 sm:col-span-2"><Label>Address</Label><Input value={form.address} onChange={(e) => set("address", e.target.value)} required /></div>
+                <div className="space-y-2"><Label>Zip code</Label><Input value={form.zip} onChange={(e) => set("zip", e.target.value)} required /></div>
                 <div className="space-y-2">
-                  <Label htmlFor="firstName">First name</Label>
-                  <Input id="firstName" required placeholder="Jane" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="lastName">Last name</Label>
-                  <Input id="lastName" required placeholder="Doe" />
-                </div>
-                <div className="space-y-2 sm:col-span-2">
-                  <Label htmlFor="address">Address</Label>
-                  <Input id="address" required placeholder="123 Market St" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="zip">Zip code</Label>
-                  <Input id="zip" required placeholder="94103" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="country">Country</Label>
-                  <Select defaultValue="US">
-                    <SelectTrigger id="country"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="US">United States</SelectItem>
-                      <SelectItem value="GB">United Kingdom</SelectItem>
-                      <SelectItem value="CA">Canada</SelectItem>
-                      <SelectItem value="AU">Australia</SelectItem>
-                      <SelectItem value="DE">Germany</SelectItem>
+                  <Label>Country</Label>
+                  <Select value={form.country} onValueChange={(v) => set("country", v)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent className="max-h-72">
+                      {countries.map((c) => <SelectItem key={c.code} value={c.code}>{c.name}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
@@ -119,18 +179,12 @@ const SendMoney = () => {
                 <h2 className="font-display text-lg font-bold">Bank details</h2>
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2"><Label>Bank name</Label><Input value={form.bankName} onChange={(e) => set("bankName", e.target.value)} required /></div>
+                <div className="space-y-2"><Label>Account name</Label><Input value={form.accountName} onChange={(e) => set("accountName", e.target.value)} required /></div>
                 <div className="space-y-2">
-                  <Label htmlFor="bankName">Bank name</Label>
-                  <Input id="bankName" required placeholder="Chase Bank" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="accountName">Account name</Label>
-                  <Input id="accountName" required placeholder="Jane Doe" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="accountType">Account type</Label>
-                  <Select defaultValue="checking">
-                    <SelectTrigger id="accountType"><SelectValue /></SelectTrigger>
+                  <Label>Account type</Label>
+                  <Select value={form.accountType} onValueChange={(v) => set("accountType", v)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="checking">Checking</SelectItem>
                       <SelectItem value="savings">Savings</SelectItem>
@@ -138,30 +192,15 @@ const SendMoney = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="accountNumber">Account number</Label>
-                  <Input id="accountNumber" required placeholder="0123456789" />
-                </div>
-                <div className="space-y-2 sm:col-span-2">
-                  <Label htmlFor="routing">Routing number</Label>
-                  <Input id="routing" required placeholder="021000021" />
-                </div>
-                <div className="space-y-2 sm:col-span-2">
-                  <Label htmlFor="note">Note (optional)</Label>
-                  <Textarea id="note" placeholder="What's this for?" rows={3} />
-                </div>
+                <div className="space-y-2"><Label>Account number</Label><Input value={form.accountNumber} onChange={(e) => set("accountNumber", e.target.value)} required /></div>
+                <div className="space-y-2 sm:col-span-2"><Label>Routing / SWIFT</Label><Input value={form.routing} onChange={(e) => set("routing", e.target.value)} required /></div>
+                <div className="space-y-2 sm:col-span-2"><Label>Note (optional)</Label><Textarea value={form.note} onChange={(e) => set("note", e.target.value)} rows={3} /></div>
               </div>
             </section>
 
-            <Button
-              type="submit"
-              disabled={submitting}
-              className="h-12 w-full gap-2 rounded-2xl bg-gradient-primary text-base font-semibold shadow-glow"
-            >
-              {submitting ? "Sending…" : (
-                <>
-                  Send ${amount || "0.00"} <ArrowRight className="h-4 w-4" />
-                </>
+            <Button type="submit" disabled={submitting} className="h-12 w-full gap-2 rounded-2xl bg-gradient-primary text-base font-semibold shadow-glow">
+              {submitting ? "Preparing…" : (
+                <><Lock className="h-4 w-4" />Authorize & Send {sym}{Number(form.amount || 0).toFixed(2)}<ArrowRight className="h-4 w-4" /></>
               )}
             </Button>
           </form>
@@ -169,54 +208,37 @@ const SendMoney = () => {
 
         <div className="space-y-4">
           <Card className="rounded-3xl border-border/60 p-6 shadow-card">
-            <div className="flex items-center gap-2">
-              <Shield className="h-4 w-4 text-success" />
-              <p className="text-sm font-semibold">Secure transfer</p>
-            </div>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Every transfer is encrypted end-to-end and protected by 2FA. We never share your details with the recipient bank beyond what's required.
-            </p>
+            <div className="flex items-center gap-2"><Shield className="h-4 w-4 text-success" /><p className="text-sm font-semibold">Three-step authorization</p></div>
+            <p className="mt-2 text-sm text-muted-foreground">All international transfers require COT, IMF and Tax clearance codes issued by your account manager.</p>
           </Card>
           <Card className="rounded-3xl border-border/60 p-6 shadow-card">
             <p className="text-sm font-semibold">Fee summary</p>
             <div className="mt-4 space-y-2 text-sm">
-              <div className="flex justify-between text-muted-foreground">
-                <span>Amount</span>
-                <span>${Number(amount || 0).toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between text-muted-foreground">
-                <span>Transfer fee</span>
-                <span>$0.00</span>
-              </div>
-              <div className="border-t border-border/60 pt-3 flex justify-between font-semibold">
-                <span>Total</span>
-                <span>${Number(amount || 0).toFixed(2)}</span>
-              </div>
+              <div className="flex justify-between text-muted-foreground"><span>Amount</span><span>{formatMoney(Number(form.amount || 0), currency)}</span></div>
+              <div className="flex justify-between text-muted-foreground"><span>Transfer fee</span><span>{formatMoney(0, currency)}</span></div>
+              <div className="border-t border-border/60 pt-3 flex justify-between font-semibold"><span>Total</span><span>{formatMoney(Number(form.amount || 0), currency)}</span></div>
             </div>
           </Card>
           <Card className="rounded-3xl border-border/60 p-6 shadow-card">
-            <div className="flex items-center gap-2">
-              <Building2 className="h-4 w-4 text-primary" />
-              <p className="text-sm font-semibold">Recent recipients</p>
-            </div>
-            <div className="mt-3 space-y-2">
-              {["Maya Patel", "D. Lee", "Sarah Kim"].map((n) => (
-                <button
-                  key={n}
-                  type="button"
-                  className="flex w-full items-center gap-3 rounded-xl p-2 text-left transition-smooth hover:bg-muted"
-                >
-                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-mint text-xs font-bold text-white">
-                    {n.split(" ").map((p) => p[0]).join("")}
-                  </span>
-                  <span className="text-sm">{n}</span>
-                  <Send className="ml-auto h-3.5 w-3.5 text-muted-foreground" />
-                </button>
-              ))}
-            </div>
+            <div className="flex items-center gap-2"><Building2 className="h-4 w-4 text-primary" /><p className="text-sm font-semibold">Need codes?</p></div>
+            <p className="mt-2 text-xs text-muted-foreground">Contact your account manager to receive valid COT, IMF and Tax authorization codes for this transaction.</p>
           </Card>
         </div>
       </div>
+
+      <CodeGate
+        open={gateOpen}
+        onOpenChange={(v) => {
+          setGateOpen(v);
+          if (!v && pendingTxId) {
+            // user cancelled — leave tx awaiting_code so admin can also issue codes / approve
+          }
+        }}
+        required={["cot", "imf", "tax"]}
+        title="Authorize transfer"
+        description="Enter the COT, IMF and Tax codes provided by your account manager."
+        onVerified={onCodesVerified}
+      />
     </div>
   );
 };
