@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { AdminRoute } from "@/components/AdminRoute";
 import Index from "./pages/Index.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import Login from "./pages/Login.tsx";
@@ -12,13 +13,24 @@ import Signup from "./pages/Signup.tsx";
 import ForgotPassword from "./pages/ForgotPassword.tsx";
 import ResetPassword from "./pages/ResetPassword.tsx";
 import { DashboardLayout } from "./components/DashboardLayout.tsx";
+import { AdminLayout } from "./components/AdminLayout.tsx";
 import DashboardHome from "./pages/DashboardHome.tsx";
-import { ComingSoon } from "./pages/ComingSoon.tsx";
 import Transactions from "./pages/Transactions.tsx";
 import SendMoney from "./pages/SendMoney.tsx";
 import Cards from "./pages/Cards.tsx";
 import FxTransfer from "./pages/FxTransfer.tsx";
 import LocalTransfer from "./pages/LocalTransfer.tsx";
+import Loans from "./pages/Loans.tsx";
+import ReceiveMoney from "./pages/ReceiveMoney.tsx";
+import Bills from "./pages/Bills.tsx";
+import Settings from "./pages/Settings.tsx";
+import Support from "./pages/Support.tsx";
+import AdminHome from "./pages/admin/AdminHome.tsx";
+import AdminUsers from "./pages/admin/AdminUsers.tsx";
+import AdminTransactions from "./pages/admin/AdminTransactions.tsx";
+import AdminLoans from "./pages/admin/AdminLoans.tsx";
+import AdminCodes from "./pages/admin/AdminCodes.tsx";
+import AdminFx from "./pages/admin/AdminFx.tsx";
 
 const queryClient = new QueryClient();
 
@@ -41,18 +53,28 @@ const App = () => (
                 <Route index element={<DashboardHome />} />
                 <Route path="transactions" element={<Transactions />} />
                 <Route path="send" element={<SendMoney />} />
-                <Route path="receive" element={<ComingSoon title="Receive Money" description="Share your account details or generate a payment link." />} />
-                <Route path="loans" element={<ComingSoon title="Quick Loans" description="Borrow up to 5x your monthly deposit." />} />
+                <Route path="receive" element={<ReceiveMoney />} />
+                <Route path="loans" element={<Loans />} />
                 <Route path="cards" element={<Cards />} />
                 <Route path="fx" element={<FxTransfer />} />
                 <Route path="local" element={<LocalTransfer />} />
-                <Route path="bills" element={<ComingSoon title="Bill Payment" description="Service unavailable — please contact support." />} />
-                <Route path="settings" element={<ComingSoon title="Settings" description="Profile, security and notification preferences." />} />
-                <Route path="support" element={<ComingSoon title="Support" description="Live chat, contact form and FAQs." />} />
+                <Route path="bills" element={<Bills />} />
+                <Route path="settings" element={<Settings />} />
+                <Route path="support" element={<Support />} />
+              </Route>
+
+              <Route element={<AdminRoute />}>
+                <Route path="/admin" element={<AdminLayout />}>
+                  <Route index element={<AdminHome />} />
+                  <Route path="users" element={<AdminUsers />} />
+                  <Route path="transactions" element={<AdminTransactions />} />
+                  <Route path="loans" element={<AdminLoans />} />
+                  <Route path="codes" element={<AdminCodes />} />
+                  <Route path="fx" element={<AdminFx />} />
+                </Route>
               </Route>
             </Route>
 
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
