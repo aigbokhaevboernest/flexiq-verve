@@ -14,6 +14,255 @@ export type Database = {
   }
   public: {
     Tables: {
+      accounts: {
+        Row: {
+          account_number: string
+          balance: number
+          created_at: string
+          currency: string
+          frozen: boolean
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account_number: string
+          balance?: number
+          created_at?: string
+          currency?: string
+          frozen?: boolean
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          account_number?: string
+          balance?: number
+          created_at?: string
+          currency?: string
+          frozen?: boolean
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      auth_codes: {
+        Row: {
+          code: string
+          code_type: string
+          created_at: string
+          expires_at: string | null
+          id: string
+          loan_id: string | null
+          note: string | null
+          transaction_id: string | null
+          used: boolean
+          used_at: string | null
+          user_id: string
+        }
+        Insert: {
+          code: string
+          code_type: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          loan_id?: string | null
+          note?: string | null
+          transaction_id?: string | null
+          used?: boolean
+          used_at?: string | null
+          user_id: string
+        }
+        Update: {
+          code?: string
+          code_type?: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          loan_id?: string | null
+          note?: string | null
+          transaction_id?: string | null
+          used?: boolean
+          used_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "auth_codes_loan_id_fkey"
+            columns: ["loan_id"]
+            isOneToOne: false
+            referencedRelation: "loans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "auth_codes_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      beneficiaries: {
+        Row: {
+          account_number: string
+          bank_name: string | null
+          country: string | null
+          created_at: string
+          currency: string | null
+          id: string
+          name: string
+          swift_code: string | null
+          user_id: string
+        }
+        Insert: {
+          account_number: string
+          bank_name?: string | null
+          country?: string | null
+          created_at?: string
+          currency?: string | null
+          id?: string
+          name: string
+          swift_code?: string | null
+          user_id: string
+        }
+        Update: {
+          account_number?: string
+          bank_name?: string | null
+          country?: string | null
+          created_at?: string
+          currency?: string | null
+          id?: string
+          name?: string
+          swift_code?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      cards: {
+        Row: {
+          atm_enabled: boolean
+          brand: string
+          card_number: string
+          card_type: string
+          cardholder_name: string
+          created_at: string
+          cvv: string
+          expires_at: string
+          frozen: boolean
+          id: string
+          monthly_limit: number
+          online_enabled: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          atm_enabled?: boolean
+          brand?: string
+          card_number: string
+          card_type?: string
+          cardholder_name: string
+          created_at?: string
+          cvv: string
+          expires_at: string
+          frozen?: boolean
+          id?: string
+          monthly_limit?: number
+          online_enabled?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          atm_enabled?: boolean
+          brand?: string
+          card_number?: string
+          card_type?: string
+          cardholder_name?: string
+          created_at?: string
+          cvv?: string
+          expires_at?: string
+          frozen?: boolean
+          id?: string
+          monthly_limit?: number
+          online_enabled?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      fx_rates: {
+        Row: {
+          base_currency: string
+          id: string
+          quote_currency: string
+          rate: number
+          updated_at: string
+        }
+        Insert: {
+          base_currency?: string
+          id?: string
+          quote_currency: string
+          rate: number
+          updated_at?: string
+        }
+        Update: {
+          base_currency?: string
+          id?: string
+          quote_currency?: string
+          rate?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      loans: {
+        Row: {
+          amount: number
+          approved_at: string | null
+          created_at: string
+          currency: string
+          disbursed_at: string | null
+          id: string
+          interest_rate: number
+          purpose: string | null
+          rejection_reason: string | null
+          status: string
+          term_months: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          approved_at?: string | null
+          created_at?: string
+          currency?: string
+          disbursed_at?: string | null
+          id?: string
+          interest_rate?: number
+          purpose?: string | null
+          rejection_reason?: string | null
+          status?: string
+          term_months: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          approved_at?: string | null
+          created_at?: string
+          currency?: string
+          disbursed_at?: string | null
+          id?: string
+          interest_rate?: number
+          purpose?: string | null
+          rejection_reason?: string | null
+          status?: string
+          term_months?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           account_type: string | null
@@ -65,15 +314,105 @@ export type Database = {
         }
         Relationships: []
       }
+      transactions: {
+        Row: {
+          amount: number
+          converted_amount: number | null
+          converted_currency: string | null
+          created_at: string
+          currency: string
+          description: string | null
+          fx_rate: number | null
+          id: string
+          metadata: Json | null
+          recipient_account: string | null
+          recipient_bank: string | null
+          recipient_country: string | null
+          recipient_name: string | null
+          reference: string
+          status: string
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          converted_amount?: number | null
+          converted_currency?: string | null
+          created_at?: string
+          currency?: string
+          description?: string | null
+          fx_rate?: number | null
+          id?: string
+          metadata?: Json | null
+          recipient_account?: string | null
+          recipient_bank?: string | null
+          recipient_country?: string | null
+          recipient_name?: string | null
+          reference?: string
+          status?: string
+          type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          converted_amount?: number | null
+          converted_currency?: string | null
+          created_at?: string
+          currency?: string
+          description?: string | null
+          fx_rate?: number | null
+          id?: string
+          metadata?: Json | null
+          recipient_account?: string | null
+          recipient_bank?: string | null
+          recipient_country?: string | null
+          recipient_name?: string | null
+          reference?: string
+          status?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -200,6 +539,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "user"],
+    },
   },
 } as const

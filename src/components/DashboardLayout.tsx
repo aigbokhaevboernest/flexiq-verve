@@ -24,6 +24,8 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { useIsAdmin } from "@/hooks/useAccount";
+import { ShieldCheck } from "lucide-react";
 
 const nav = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, end: true },
@@ -42,6 +44,7 @@ const nav = [
 const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
   const navigate = useNavigate();
   const { signOut } = useAuth();
+  const { data: isAdmin } = useIsAdmin();
   return (
     <div className="flex h-full flex-col">
       <div className="flex h-16 items-center gap-2 border-b border-sidebar-border px-6 font-display text-xl font-bold">
@@ -73,6 +76,14 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
           );
         })}
       </nav>
+      {isAdmin && (
+        <div className="border-t border-sidebar-border p-3">
+          <NavLink to="/admin" onClick={onNavigate}
+            className="flex items-center gap-3 rounded-xl bg-gradient-coral px-3 py-2.5 text-sm font-semibold text-white shadow-md">
+            <ShieldCheck className="h-4 w-4" /> Admin Console
+          </NavLink>
+        </div>
+      )}
       <div className="border-t border-sidebar-border p-3">
         <button
           onClick={async () => {

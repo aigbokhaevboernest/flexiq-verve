@@ -1,0 +1,200 @@
+import { useState } from "react";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Banknote, Calculator, Lock, Shield } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import { useAccount, formatMoney } from "@/hooks/useAccount";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { CodeGate } from "@/components/CodeGate";
+
+const Loans = () => {
+  const { toast } = useToast();
+  const { user } = useAuth();
+  const { data: account } = useAccount();
+  const qc = useQueryClient();
+  const currency = account?.currency || "USD";
+
+  const [amount, setAmount] = useState("5000");
+  const [term, setTerm] = useState("12");
+  const [purpose, setPurpose] = useState("");
+
+  const [gateOpen, setGateOpen] = useState(false);
+  const [pendingLoanId, setPendingLoanId] = useState<string | null>(null);
+
+  const { data: loans = [] } = useQuery({
+    queryKey: ["loans", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data } = await supabase.from("loans").select("*").eq("user_id", user!.id).order("created_at", { ascending: false });
+      return data || [];
+    },
+  });
+
+  const rate = 8.5;
+  const months = Number(term);
+  const principal = Number(amount);
+  const monthlyRate = rate / 100 / 12;
+  const monthlyPayment = principal && months ? (principal * monthlyRate) / (1 - Math.pow(1 + monthlyRate, -months)) : 0;
+  const totalPayable = monthlyPayment * months;
+
+  const apply = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+    if (!principal || principal <= 0) return toast({ title: "Enter amount", variant: "destructive" });
+
+    const { data, error } = await supabase.from("loans").insert({
+      user_id: user.id,
+      amount: principal,
+      currency,
+      term_months: months,
+      interest_rate: rate,
+      purpose,
+      status: "pending",
+    }).select().single();
+
+    if (error || !data) return toast({ title: "Failed", description: error?.message, variant: "destructive" });
+    qc.invalidateQueries({ queryKey: ["loans"] });
+    toast({ title: "Loan application submitted", description: "We'll review and contact you within 24 hours." });
+    setAmount(""); setPurpose("");
+  };
+
+  const releaseFunds = (loanId: string) => {
+    setPendingLoanId(loanId);
+    setGateOpen(true);
+  };
+
+  const onCodesVerified = async () => {
+    if (!user || !account || !pendingLoanId) return;
+    const loan = loans.find((l: any) => l.id === pendingLoanId);
+    if (!loan) return;
+
+    // Disburse: credit account + create tx + mark loan active
+    await supabase.from("accounts").update({ balance: Number(account.balance) + Number(loan.amount) }).eq("user_id", user.id);
+    await supabase.from("transactions").insert({
+      user_id: user.id,
+      type: "loan_disbursement",
+      status: "completed",
+      amount: Number(loan.amount),
+      currency: loan.currency,
+      description: `Loan disbursement (${loan.term_months} months @ ${loan.interest_rate}%)`,
+      metadata: { loan_id: loan.id },
+    });
+    await supabase.from("loans").update({ status: "active", disbursed_at: new Date().toISOString() }).eq("id", loan.id);
+
+    qc.invalidateQueries({ queryKey: ["account"] });
+    qc.invalidateQueries({ queryKey: ["loans"] });
+    qc.invalidateQueries({ queryKey: ["transactions"] });
+    qc.invalidateQueries({ queryKey: ["recent-tx"] });
+    toast({ title: "Funds released", description: `${formatMoney(Number(loan.amount), loan.currency)} added to your balance.` });
+    setPendingLoanId(null);
+  };
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="font-display text-2xl font-bold sm:text-3xl">Quick Loans</h1>
+        <p className="mt-1 text-sm text-muted-foreground">Borrow up to 5x your monthly deposit. Disbursement requires authorization codes.</p>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-[1.4fr,1fr]">
+        <Card className="rounded-3xl border-border/60 p-6 shadow-card sm:p-8">
+          <form onSubmit={apply} className="space-y-6">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Amount ({currency})</Label>
+                <Input type="number" step="100" value={amount} onChange={(e) => setAmount(e.target.value)} required />
+              </div>
+              <div className="space-y-2">
+                <Label>Term</Label>
+                <Select value={term} onValueChange={setTerm}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="6">6 months</SelectItem>
+                    <SelectItem value="12">12 months</SelectItem>
+                    <SelectItem value="24">24 months</SelectItem>
+                    <SelectItem value="36">36 months</SelectItem>
+                    <SelectItem value="60">60 months</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label>Purpose</Label>
+                <Textarea value={purpose} onChange={(e) => setPurpose(e.target.value)} placeholder="What will the loan be used for?" rows={3} />
+              </div>
+            </div>
+
+            <div className="grid gap-3 rounded-2xl bg-muted/40 p-4 text-sm sm:grid-cols-3">
+              <div><p className="text-xs text-muted-foreground">Monthly payment</p><p className="font-display font-bold">{formatMoney(monthlyPayment, currency)}</p></div>
+              <div><p className="text-xs text-muted-foreground">Interest rate</p><p className="font-display font-bold">{rate}% APR</p></div>
+              <div><p className="text-xs text-muted-foreground">Total payable</p><p className="font-display font-bold">{formatMoney(totalPayable, currency)}</p></div>
+            </div>
+
+            <Button type="submit" className="h-12 w-full gap-2 rounded-2xl bg-gradient-primary text-base font-semibold shadow-glow">
+              <Banknote className="h-4 w-4" /> Apply for loan
+            </Button>
+          </form>
+        </Card>
+
+        <div className="space-y-4">
+          <Card className="rounded-3xl border-border/60 p-6 shadow-card">
+            <div className="flex items-center gap-2"><Calculator className="h-4 w-4 text-primary" /><p className="text-sm font-semibold">How it works</p></div>
+            <ol className="mt-3 space-y-2 text-sm text-muted-foreground list-decimal list-inside">
+              <li>Submit your application</li>
+              <li>Account manager reviews & approves</li>
+              <li>Receive Loan Authorization Code</li>
+              <li>Enter code to release funds</li>
+            </ol>
+          </Card>
+          <Card className="rounded-3xl border-border/60 p-6 shadow-card">
+            <div className="flex items-center gap-2"><Shield className="h-4 w-4 text-success" /><p className="text-sm font-semibold">Secure disbursement</p></div>
+            <p className="mt-2 text-sm text-muted-foreground">Loan funds are released only after Loan Authorization Code verification.</p>
+          </Card>
+        </div>
+      </div>
+
+      <Card className="rounded-3xl border-border/60 p-6 shadow-card">
+        <h2 className="font-display text-lg font-bold">Your loans</h2>
+        <div className="mt-4 space-y-3">
+          {loans.length === 0 && <p className="py-6 text-center text-sm text-muted-foreground">No loans yet — apply above.</p>}
+          {loans.map((l: any) => (
+            <div key={l.id} className="flex flex-wrap items-center gap-4 rounded-2xl border border-border/60 p-4">
+              <div className="flex-1 min-w-[200px]">
+                <p className="font-display text-lg font-bold">{formatMoney(Number(l.amount), l.currency)}</p>
+                <p className="text-xs text-muted-foreground">{l.term_months} months · {l.interest_rate}% · {new Date(l.created_at).toLocaleDateString()}</p>
+                {l.purpose && <p className="mt-1 text-xs text-muted-foreground">"{l.purpose}"</p>}
+                {l.rejection_reason && <p className="mt-1 text-xs text-destructive">Reason: {l.rejection_reason}</p>}
+              </div>
+              <Badge className={
+                l.status === "active" || l.status === "approved" ? "bg-success/15 text-success border-success/30" :
+                l.status === "rejected" ? "bg-destructive/15 text-destructive border-destructive/30" :
+                l.status === "paid" ? "bg-primary/15 text-primary border-primary/30" :
+                "bg-warning/15 text-warning border-warning/30"
+              } variant="outline">
+                {l.status === "approved" ? "Awaiting code" : l.status}
+              </Badge>
+              {l.status === "approved" && (
+                <Button onClick={() => releaseFunds(l.id)} size="sm" className="gap-2 bg-gradient-primary">
+                  <Lock className="h-3.5 w-3.5" /> Release funds
+                </Button>
+              )}
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      <CodeGate open={gateOpen} onOpenChange={setGateOpen} required={["loan"]}
+        title="Authorize loan disbursement"
+        description="Enter the Loan Authorization Code provided by your account manager to release funds."
+        onVerified={onCodesVerified} />
+    </div>
+  );
+};
+
+export default Loans;

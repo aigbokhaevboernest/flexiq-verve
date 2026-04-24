@@ -5,152 +5,111 @@ import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import {
-  Copy,
-  CreditCard,
-  Eye,
-  EyeOff,
-  Plus,
-  Snowflake,
-  Wifi,
-  Zap,
-} from "lucide-react";
-
-type CardItem = {
-  id: string;
-  name: string;
-  last4: string;
-  expiry: string;
-  type: "Virtual" | "Physical";
-  gradient: string;
-  frozen: boolean;
-  limit: number;
-  spent: number;
-};
-
-const initial: CardItem[] = [
-  {
-    id: "c1",
-    name: "Jane Doe",
-    last4: "4829",
-    expiry: "12/29",
-    type: "Virtual",
-    gradient: "bg-gradient-primary",
-    frozen: false,
-    limit: 10000,
-    spent: 2140,
-  },
-  {
-    id: "c2",
-    name: "Jane Doe",
-    last4: "1052",
-    expiry: "08/27",
-    type: "Physical",
-    gradient: "bg-gradient-coral",
-    frozen: false,
-    limit: 5000,
-    spent: 980,
-  },
-];
+import { Copy, CreditCard, Eye, EyeOff, Plus, Snowflake, Wifi, Zap } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { useProfile, formatMoney } from "@/hooks/useAccount";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 const Cards = () => {
   const { toast } = useToast();
-  const [cards, setCards] = useState<CardItem[]>(initial);
-  const [activeId, setActiveId] = useState(initial[0].id);
+  const { user } = useAuth();
+  const { data: profile } = useProfile();
+  const qc = useQueryClient();
+  const [activeId, setActiveId] = useState<string | null>(null);
   const [showDetails, setShowDetails] = useState(false);
 
-  const active = cards.find((c) => c.id === activeId)!;
+  const { data: cards = [] } = useQuery({
+    queryKey: ["cards", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data } = await supabase.from("cards").select("*").eq("user_id", user!.id).order("created_at");
+      return data || [];
+    },
+  });
 
-  const update = (patch: Partial<CardItem>) =>
-    setCards((cs) => cs.map((c) => (c.id === activeId ? { ...c, ...patch } : c)));
+  const active = cards.find((c: any) => c.id === activeId) || cards[0];
+  const update = async (patch: any) => {
+    if (!active) return;
+    await supabase.from("cards").update(patch).eq("id", active.id);
+    qc.invalidateQueries({ queryKey: ["cards"] });
+  };
 
-  const usagePct = Math.round((active.spent / active.limit) * 100);
+  const newCard = async () => {
+    if (!user || !profile) return;
+    const num = "4" + Array.from({ length: 15 }, () => Math.floor(Math.random() * 10)).join("");
+    const cvv = String(Math.floor(Math.random() * 1000)).padStart(3, "0");
+    const exp = `${String(Math.floor(Math.random() * 12) + 1).padStart(2, "0")}/${String(new Date().getFullYear() + 4).slice(-2)}`;
+    await supabase.from("cards").insert({
+      user_id: user.id,
+      card_number: num, cvv, expires_at: exp,
+      cardholder_name: `${profile.first_name || ""} ${profile.last_name || ""}`.trim().toUpperCase() || "CARDHOLDER",
+      brand: "Visa",
+    });
+    qc.invalidateQueries({ queryKey: ["cards"] });
+    toast({ title: "Virtual card created" });
+  };
+
+  if (!active) {
+    return (
+      <Card className="rounded-3xl p-10 text-center">
+        <p className="text-muted-foreground">No cards yet.</p>
+        <Button onClick={newCard} className="mt-4 gap-2 bg-gradient-primary"><Plus className="h-4 w-4" />Create card</Button>
+      </Card>
+    );
+  }
+
+  const usagePct = 0; // we don't track per-card spend yet
+  const last4 = active.card_number.slice(-4);
+  const masked = active.card_number.replace(/(.{4})/g, "$1 ").trim();
+  const currency = profile?.currency || "USD";
 
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="font-display text-2xl font-bold sm:text-3xl">Cards</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Create virtual cards, set limits and freeze instantly.
-          </p>
+          <p className="mt-1 text-sm text-muted-foreground">Create virtual cards, set limits and freeze instantly.</p>
         </div>
-        <Button
-          className="gap-2 rounded-2xl bg-gradient-primary shadow-glow"
-          onClick={() => {
-            const nc: CardItem = {
-              id: "c" + (cards.length + 1),
-              name: "Jane Doe",
-              last4: String(Math.floor(1000 + Math.random() * 9000)),
-              expiry: "06/30",
-              type: "Virtual",
-              gradient: "bg-gradient-mint",
-              frozen: false,
-              limit: 2000,
-              spent: 0,
-            };
-            setCards((cs) => [...cs, nc]);
-            setActiveId(nc.id);
-            toast({ title: "Virtual card created", description: `Card ending in ${nc.last4} is ready.` });
-          }}
-        >
+        <Button onClick={newCard} className="gap-2 rounded-2xl bg-gradient-primary shadow-glow">
           <Plus className="h-4 w-4" /> New virtual card
         </Button>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1.2fr,1fr]">
-        {/* Active card preview */}
         <div className="space-y-4">
-          <div className={`relative overflow-hidden rounded-3xl ${active.gradient} p-7 text-white shadow-elev transition-smooth ${active.frozen ? "opacity-60" : ""}`}>
+          <div className={`relative overflow-hidden rounded-3xl bg-gradient-primary p-7 text-white shadow-elev transition-smooth ${active.frozen ? "opacity-60" : ""}`}>
             <div className="absolute -right-16 -top-16 h-56 w-56 rounded-full bg-white/15 blur-2xl" />
             <div className="relative flex items-start justify-between">
               <div>
-                <p className="text-xs uppercase tracking-widest opacity-80">Norvex {active.type}</p>
-                <p className="mt-1 font-display text-lg font-semibold">{active.name}</p>
+                <p className="text-xs uppercase tracking-widest opacity-80">Norvex {active.card_type}</p>
+                <p className="mt-1 font-display text-lg font-semibold">{active.cardholder_name}</p>
               </div>
               <Wifi className="h-5 w-5 rotate-90 opacity-90" />
             </div>
-            <p className="relative mt-10 font-mono text-xl tracking-[0.25em]">
-              {showDetails ? "4829 1234 5678 " + active.last4 : "•••• •••• •••• " + active.last4}
-            </p>
+            <p className="relative mt-10 font-mono text-xl tracking-[0.25em]">{showDetails ? masked : `•••• •••• •••• ${last4}`}</p>
             <div className="relative mt-5 flex justify-between text-sm">
-              <div>
-                <p className="text-[10px] uppercase opacity-70">Expiry</p>
-                <p className="font-mono">{active.expiry}</p>
-              </div>
-              <div>
-                <p className="text-[10px] uppercase opacity-70">CVV</p>
-                <p className="font-mono">{showDetails ? "428" : "•••"}</p>
-              </div>
+              <div><p className="text-[10px] uppercase opacity-70">Expiry</p><p className="font-mono">{active.expires_at}</p></div>
+              <div><p className="text-[10px] uppercase opacity-70">CVV</p><p className="font-mono">{showDetails ? active.cvv : "•••"}</p></div>
               <CreditCard className="h-6 w-6 opacity-90" />
             </div>
             {active.frozen && (
               <div className="absolute inset-0 flex items-center justify-center">
-                <Badge className="rounded-full bg-white/90 text-foreground backdrop-blur">
-                  <Snowflake className="mr-1 h-3 w-3" /> Frozen
-                </Badge>
+                <Badge className="rounded-full bg-white/90 text-foreground"><Snowflake className="mr-1 h-3 w-3" /> Frozen</Badge>
               </div>
             )}
           </div>
 
           <div className="flex flex-wrap gap-2">
-            {cards.map((c) => (
-              <button
-                key={c.id}
-                onClick={() => setActiveId(c.id)}
-                className={`rounded-xl border px-3 py-2 text-xs font-medium transition-smooth ${
-                  c.id === activeId
-                    ? "border-primary bg-primary/5 text-primary"
-                    : "border-border hover:border-primary/40"
-                }`}
-              >
-                •••• {c.last4} · {c.type}
+            {cards.map((c: any) => (
+              <button key={c.id} onClick={() => setActiveId(c.id)}
+                className={`rounded-xl border px-3 py-2 text-xs font-medium transition-smooth ${c.id === active.id ? "border-primary bg-primary/5 text-primary" : "border-border hover:border-primary/40"}`}>
+                •••• {c.card_number.slice(-4)} · {c.card_type}
               </button>
             ))}
           </div>
         </div>
 
-        {/* Controls */}
         <div className="space-y-4">
           <Card className="rounded-3xl border-border/60 p-6 shadow-card">
             <div className="flex items-center justify-between">
@@ -163,79 +122,39 @@ const Cards = () => {
                 {showDetails ? "Hide" : "Reveal"}
               </Button>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="mt-3 w-full justify-start gap-2 text-muted-foreground"
-              onClick={() => {
-                navigator.clipboard.writeText(`4829 1234 5678 ${active.last4}`);
-                toast({ title: "Card number copied" });
-              }}
-            >
+            <Button variant="ghost" size="sm" className="mt-3 w-full justify-start gap-2 text-muted-foreground"
+              onClick={() => { navigator.clipboard.writeText(active.card_number); toast({ title: "Copied" }); }}>
               <Copy className="h-3.5 w-3.5" /> Copy card number
             </Button>
           </Card>
 
           <Card className="rounded-3xl border-border/60 p-6 shadow-card">
             <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm font-semibold">Freeze card</p>
-                <p className="text-xs text-muted-foreground">Block all new transactions instantly.</p>
-              </div>
-              <Switch
-                checked={active.frozen}
-                onCheckedChange={(v) => {
-                  update({ frozen: v });
-                  toast({ title: v ? "Card frozen" : "Card unfrozen" });
-                }}
-              />
+              <div><p className="text-sm font-semibold">Freeze card</p><p className="text-xs text-muted-foreground">Block all transactions instantly.</p></div>
+              <Switch checked={active.frozen} onCheckedChange={(v) => { update({ frozen: v }); toast({ title: v ? "Card frozen" : "Card unfrozen" }); }} />
             </div>
           </Card>
 
           <Card className="rounded-3xl border-border/60 p-6 shadow-card">
             <div className="flex items-center justify-between">
               <p className="text-sm font-semibold">Monthly limit</p>
-              <span className="font-display text-sm font-bold">${active.limit.toLocaleString()}</span>
+              <span className="font-display text-sm font-bold">{formatMoney(Number(active.monthly_limit), currency)}</span>
             </div>
-            <Slider
-              className="mt-4"
-              min={500}
-              max={20000}
-              step={500}
-              value={[active.limit]}
-              onValueChange={([v]) => update({ limit: v })}
-            />
-            <div className="mt-4 space-y-2">
-              <div className="flex justify-between text-xs text-muted-foreground">
-                <span>Used: ${active.spent.toLocaleString()}</span>
-                <span>{usagePct}%</span>
-              </div>
-              <div className="h-2 overflow-hidden rounded-full bg-muted">
-                <div
-                  className={`h-full rounded-full ${usagePct > 80 ? "bg-destructive" : "bg-gradient-primary"}`}
-                  style={{ width: `${Math.min(usagePct, 100)}%` }}
-                />
-              </div>
+            <Slider className="mt-4" min={500} max={50000} step={500} value={[Number(active.monthly_limit)]}
+              onValueChange={([v]) => update({ monthly_limit: v })} />
+            <div className="mt-4 h-2 overflow-hidden rounded-full bg-muted">
+              <div className="h-full rounded-full bg-gradient-primary" style={{ width: `${usagePct}%` }} />
             </div>
           </Card>
 
           <Card className="rounded-3xl border-border/60 p-6 shadow-card">
-            <div className="flex items-center gap-2">
-              <Zap className="h-4 w-4 text-warning" />
-              <p className="text-sm font-semibold">Quick controls</p>
-            </div>
+            <div className="flex items-center gap-2"><Zap className="h-4 w-4 text-warning" /><p className="text-sm font-semibold">Quick controls</p></div>
             <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
               <label className="flex items-center justify-between rounded-xl bg-muted/50 px-3 py-2">
-                Online <Switch defaultChecked />
+                Online <Switch checked={active.online_enabled} onCheckedChange={(v) => update({ online_enabled: v })} />
               </label>
               <label className="flex items-center justify-between rounded-xl bg-muted/50 px-3 py-2">
-                ATM <Switch defaultChecked />
-              </label>
-              <label className="flex items-center justify-between rounded-xl bg-muted/50 px-3 py-2">
-                Contactless <Switch defaultChecked />
-              </label>
-              <label className="flex items-center justify-between rounded-xl bg-muted/50 px-3 py-2">
-                Abroad <Switch />
+                ATM <Switch checked={active.atm_enabled} onCheckedChange={(v) => update({ atm_enabled: v })} />
               </label>
             </div>
           </Card>
