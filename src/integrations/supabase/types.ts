@@ -215,6 +215,105 @@ export type Database = {
         }
         Relationships: []
       }
+      id_verifications: {
+        Row: {
+          address_line1: string | null
+          address_line2: string | null
+          approved_at: string | null
+          city: string | null
+          country: string | null
+          created_at: string
+          date_of_birth: string | null
+          document_country: string | null
+          document_expires: string | null
+          document_number: string | null
+          document_state: string | null
+          document_type: string | null
+          id: string
+          id_back_path: string | null
+          id_front_path: string | null
+          legal_first_name: string | null
+          legal_last_name: string | null
+          legal_middle_name: string | null
+          phone: string | null
+          postal_code: string | null
+          rejection_reason: string | null
+          reviewed_at: string | null
+          reviewer_notes: string | null
+          selfie_path: string | null
+          ssn_last4: string | null
+          state_region: string | null
+          status: string
+          submitted_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          address_line1?: string | null
+          address_line2?: string | null
+          approved_at?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          date_of_birth?: string | null
+          document_country?: string | null
+          document_expires?: string | null
+          document_number?: string | null
+          document_state?: string | null
+          document_type?: string | null
+          id?: string
+          id_back_path?: string | null
+          id_front_path?: string | null
+          legal_first_name?: string | null
+          legal_last_name?: string | null
+          legal_middle_name?: string | null
+          phone?: string | null
+          postal_code?: string | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewer_notes?: string | null
+          selfie_path?: string | null
+          ssn_last4?: string | null
+          state_region?: string | null
+          status?: string
+          submitted_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          address_line1?: string | null
+          address_line2?: string | null
+          approved_at?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          date_of_birth?: string | null
+          document_country?: string | null
+          document_expires?: string | null
+          document_number?: string | null
+          document_state?: string | null
+          document_type?: string | null
+          id?: string
+          id_back_path?: string | null
+          id_front_path?: string | null
+          legal_first_name?: string | null
+          legal_last_name?: string | null
+          legal_middle_name?: string | null
+          phone?: string | null
+          postal_code?: string | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewer_notes?: string | null
+          selfie_path?: string | null
+          ssn_last4?: string | null
+          state_region?: string | null
+          status?: string
+          submitted_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       loans: {
         Row: {
           amount: number
