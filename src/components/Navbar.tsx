@@ -4,10 +4,11 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Menu, Sparkles } from "lucide-react";
 import { useState } from "react";
 
-const links = [
+const links: { href: string; label: string; external?: boolean }[] = [
   { href: "/#features", label: "Features" },
   { href: "/#stats", label: "Why Norvex" },
   { href: "/#security", label: "Security" },
+  { href: "/verify", label: "ID.me Verification" },
 ];
 
 export const Navbar = () => {
