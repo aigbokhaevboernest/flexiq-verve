@@ -246,41 +246,4 @@ const DashboardHome = () => {
   );
 };
 
-const VerificationBanner = ({ status, reason }: { status?: string; reason?: string | null }) => {
-  if (status === "approved") {
-    return (
-      <Link to="/dashboard/verify" className="flex items-center gap-3 rounded-2xl border border-success/30 bg-success/5 px-4 py-3 transition-smooth hover:bg-success/10">
-        <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-success/15 text-success"><CheckCircle2 className="h-4 w-4" /></span>
-        <div className="flex-1 text-sm"><p className="font-semibold">Identity verified by ID.me</p><p className="text-xs text-muted-foreground">All features unlocked</p></div>
-      </Link>
-    );
-  }
-  if (status === "pending") {
-    return (
-      <Link to="/dashboard/verify" className="flex items-center gap-3 rounded-2xl border border-warning/30 bg-warning/5 px-4 py-3 transition-smooth hover:bg-warning/10">
-        <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-warning/15 text-warning"><Clock className="h-4 w-4" /></span>
-        <div className="flex-1 text-sm"><p className="font-semibold">ID.me verification in review</p><p className="text-xs text-muted-foreground">Usually completes within 1–2 business days</p></div>
-      </Link>
-    );
-  }
-  if (status === "rejected") {
-    return (
-      <Link to="/dashboard/verify" className="flex items-center gap-3 rounded-2xl border border-destructive/30 bg-destructive/5 px-4 py-3 transition-smooth hover:bg-destructive/10">
-        <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-destructive/15 text-destructive"><XCircle className="h-4 w-4" /></span>
-        <div className="flex-1 text-sm"><p className="font-semibold">Verification rejected — action needed</p><p className="text-xs text-muted-foreground">{reason || "Please resubmit your documents"}</p></div>
-      </Link>
-    );
-  }
-  return (
-    <Link to="/dashboard/verify" className="group flex items-center gap-3 rounded-2xl border border-primary/30 bg-gradient-to-r from-primary/10 to-accent/10 px-4 py-3 transition-smooth hover:from-primary/15 hover:to-accent/15">
-      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-primary text-white"><ShieldCheck className="h-4 w-4" /></span>
-      <div className="flex-1 text-sm">
-        <p className="font-semibold">Verify your identity with ID.me</p>
-        <p className="text-xs text-muted-foreground">Unlock higher limits and full account access · 3 minutes</p>
-      </div>
-      <span className="text-xs font-semibold text-primary group-hover:underline">Start →</span>
-    </Link>
-  );
-};
-
 export default DashboardHome;
