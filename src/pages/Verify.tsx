@@ -55,11 +55,11 @@ const Verify = () => {
   const [city, setCity] = useState("");
   const [stateRegion, setStateRegion] = useState("");
   const [postal, setPostal] = useState("");
-  const [country, setCountry] = useState("US");
+  const [country, setCountry] = useState("United States");
 
   const [docType, setDocType] = useState<DocType>("drivers_license");
   const [docNumber, setDocNumber] = useState("");
-  const [docCountry, setDocCountry] = useState("US");
+  const [docCountry, setDocCountry] = useState("United States");
   const [docState, setDocState] = useState("");
   const [docExpires, setDocExpires] = useState("");
 
