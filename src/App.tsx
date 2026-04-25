@@ -49,6 +49,7 @@ const App = () => (
             <Route path="/signup" element={<Signup />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/verify" element={<Verify />} />
 
             <Route element={<ProtectedRoute />}>
               <Route path="/dashboard" element={<DashboardLayout />}>
@@ -63,7 +64,6 @@ const App = () => (
                 <Route path="bills" element={<Bills />} />
                 <Route path="settings" element={<Settings />} />
                 <Route path="support" element={<Support />} />
-                <Route path="verify" element={<Verify />} />
               </Route>
 
               <Route element={<AdminRoute />}>
