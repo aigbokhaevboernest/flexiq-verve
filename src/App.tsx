@@ -31,6 +31,8 @@ import AdminTransactions from "./pages/admin/AdminTransactions.tsx";
 import AdminLoans from "./pages/admin/AdminLoans.tsx";
 import AdminCodes from "./pages/admin/AdminCodes.tsx";
 import AdminFx from "./pages/admin/AdminFx.tsx";
+import AdminVerifications from "./pages/admin/AdminVerifications.tsx";
+import Verify from "./pages/Verify.tsx";
 
 const queryClient = new QueryClient();
 
@@ -61,6 +63,7 @@ const App = () => (
                 <Route path="bills" element={<Bills />} />
                 <Route path="settings" element={<Settings />} />
                 <Route path="support" element={<Support />} />
+                <Route path="verify" element={<Verify />} />
               </Route>
 
               <Route element={<AdminRoute />}>
@@ -71,6 +74,7 @@ const App = () => (
                   <Route path="loans" element={<AdminLoans />} />
                   <Route path="codes" element={<AdminCodes />} />
                   <Route path="fx" element={<AdminFx />} />
+                  <Route path="verifications" element={<AdminVerifications />} />
                 </Route>
               </Route>
             </Route>

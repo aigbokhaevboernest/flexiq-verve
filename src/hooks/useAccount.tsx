@@ -54,6 +54,23 @@ export const useIsAdmin = () => {
   });
 };
 
+export const useVerification = () => {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: ["id-verification", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("id_verifications")
+        .select("*")
+        .eq("user_id", user!.id)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+};
+
 export const formatMoney = (amount: number, currency = "USD") => {
   try {
     return new Intl.NumberFormat(undefined, {

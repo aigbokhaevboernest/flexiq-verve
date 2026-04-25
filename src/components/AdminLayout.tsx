@@ -1,7 +1,7 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import {
-  ShieldCheck, Users, Receipt, Banknote, KeyRound, Globe2, Menu, LogOut, ArrowLeft, Sparkles,
+  ShieldCheck, Users, Receipt, Banknote, KeyRound, Globe2, Menu, LogOut, ArrowLeft, Sparkles, BadgeCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -14,6 +14,7 @@ const nav = [
   { to: "/admin/loans", label: "Loans", icon: Banknote },
   { to: "/admin/codes", label: "Auth Codes", icon: KeyRound },
   { to: "/admin/fx", label: "FX Rates", icon: Globe2 },
+  { to: "/admin/verifications", label: "ID Verifications", icon: BadgeCheck },
 ];
 
 const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {

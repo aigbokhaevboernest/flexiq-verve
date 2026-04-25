@@ -14,6 +14,7 @@ import {
   Search,
   Send,
   Settings,
+  ShieldCheck as ShieldCheckIcon,
   Sparkles,
   Sun,
   Wallet,
@@ -37,6 +38,7 @@ const nav = [
   { to: "/dashboard/fx", label: "FX Transfer", icon: Globe2 },
   { to: "/dashboard/local", label: "Local Transfer", icon: Repeat },
   { to: "/dashboard/bills", label: "Bill Payment", icon: Receipt },
+  { to: "/dashboard/verify", label: "ID Verification", icon: ShieldCheckIcon },
   { to: "/dashboard/settings", label: "Settings", icon: Settings },
   { to: "/dashboard/support", label: "Support", icon: Headphones },
 ];
