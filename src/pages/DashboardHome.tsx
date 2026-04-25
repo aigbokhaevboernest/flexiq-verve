@@ -14,12 +14,11 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { useAccount, useProfile, useVerification, formatMoney } from "@/hooks/useAccount";
+import { useAccount, useProfile, formatMoney } from "@/hooks/useAccount";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ShieldCheck, CheckCircle2, Clock, XCircle } from "lucide-react";
 
 const quickActions = [
   { icon: Send, label: "Send", to: "/dashboard/send" },
