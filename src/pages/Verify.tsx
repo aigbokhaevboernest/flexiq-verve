@@ -11,7 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useVerification, useProfile } from "@/hooks/useAccount";
 import { useQueryClient } from "@tanstack/react-query";
-import { COUNTRIES } from "@/lib/countries";
+import { countries } from "@/lib/countries";
 import {
   ArrowLeft,
   ArrowRight,
