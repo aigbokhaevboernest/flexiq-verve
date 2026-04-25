@@ -76,7 +76,7 @@ const Verify = () => {
       setAddr1((v) => v || profile.address || "");
       setCity((v) => v || profile.city || "");
       setPostal((v) => v || profile.postal_code || "");
-      setCountry((v) => v || profile.country || "US");
+      setCountry((v) => v || profile.country || "United States");
     }
   }, [profile]);
 
@@ -94,10 +94,10 @@ const Verify = () => {
       setCity(verification.city || "");
       setStateRegion(verification.state_region || "");
       setPostal(verification.postal_code || "");
-      setCountry(verification.country || "US");
+      setCountry(verification.country || "United States");
       setDocType((verification.document_type as DocType) || "drivers_license");
       setDocNumber(verification.document_number || "");
-      setDocCountry(verification.document_country || "US");
+      setDocCountry(verification.document_country || "United States");
       setDocState(verification.document_state || "");
       setDocExpires(verification.document_expires || "");
     }
