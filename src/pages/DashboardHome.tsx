@@ -32,7 +32,6 @@ const DashboardHome = () => {
   const { user } = useAuth();
   const { data: account, isLoading: accLoading } = useAccount();
   const { data: profile } = useProfile();
-  const { data: verification } = useVerification();
 
   const { data: txs } = useQuery({
     queryKey: ["recent-tx", user?.id],
