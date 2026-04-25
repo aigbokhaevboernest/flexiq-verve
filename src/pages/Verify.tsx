@@ -417,8 +417,8 @@ const CountrySelect = ({ value, onChange }: { value: string; onChange: (v: strin
   <Select value={value} onValueChange={onChange}>
     <SelectTrigger><SelectValue placeholder="Select country" /></SelectTrigger>
     <SelectContent className="max-h-72">
-      {COUNTRIES.map((c) => (
-        <SelectItem key={c.code} value={c.code}>{c.name}</SelectItem>
+      {countries.map((c) => (
+        <SelectItem key={c} value={c}>{c}</SelectItem>
       ))}
     </SelectContent>
   </Select>
