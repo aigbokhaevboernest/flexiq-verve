@@ -90,7 +90,7 @@ const DashboardHome = () => {
         <h1 className="mt-1 font-display text-2xl font-bold sm:text-3xl">Here's your money today</h1>
       </div>
 
-      <VerificationBanner status={verification?.status} reason={verification?.rejection_reason} />
+      
 
       <div className="grid gap-5 lg:grid-cols-3">
         <div className="lg:col-span-2">
