@@ -64,7 +64,6 @@ const App = () => (
                 <Route path="bills" element={<Bills />} />
                 <Route path="settings" element={<Settings />} />
                 <Route path="support" element={<Support />} />
-                <Route path="verify" element={<Verify />} />
               </Route>
 
               <Route element={<AdminRoute />}>
