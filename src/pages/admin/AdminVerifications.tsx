@@ -61,6 +61,16 @@ const AdminVerifications = () => {
       toast({ title: "Failed", description: error.message, variant: "destructive" });
       return;
     }
+    // Audit log (best-effort; ignore failure so the decision still goes through)
+    await supabase.functions.invoke("admin-actions", {
+      body: {
+        action: "audit_verification",
+        target_user_id: selected.user_id,
+        verification_id: selected.id,
+        decision: status,
+        reason: status === "rejected" ? reason : null,
+      },
+    }).catch(() => {});
     toast({ title: status === "approved" ? "Verification approved" : "Verification rejected" });
     qc.invalidateQueries({ queryKey: ["admin-verifications"] });
     setSelected(null);
