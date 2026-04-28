@@ -4,14 +4,18 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowDownLeft, ArrowUpRight, Download, Filter, Search } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, Download, FileText, Filter, Search } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { formatMoney } from "@/hooks/useAccount";
+import { formatMoney, useAccount, useProfile } from "@/hooks/useAccount";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 const Transactions = () => {
   const { user } = useAuth();
+  const { data: profile } = useProfile();
+  const { data: account } = useAccount();
   const [q, setQ] = useState("");
   const [type, setType] = useState("all");
   const [status, setStatus] = useState("all");
@@ -71,6 +75,84 @@ const Transactions = () => {
     URL.revokeObjectURL(url);
   };
 
+  const exportPdf = () => {
+    const doc = new jsPDF();
+    const pageW = doc.internal.pageSize.getWidth();
+    const fullName = [profile?.first_name, profile?.last_name].filter(Boolean).join(" ") || user?.email || "Account holder";
+    const periodLabel = range === "0" ? "All time" : `Last ${range} days`;
+    const generated = new Date().toLocaleString();
+
+    // Header band
+    doc.setFillColor(15, 23, 42);
+    doc.rect(0, 0, pageW, 28, "F");
+    doc.setTextColor(255, 255, 255);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(18);
+    doc.text("NORVEX", 14, 18);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.text("Account Statement", pageW - 14, 18, { align: "right" });
+
+    // Account block
+    doc.setTextColor(15, 23, 42);
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "bold");
+    doc.text(fullName, 14, 40);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(80, 80, 80);
+    doc.text(`Email: ${user?.email ?? "-"}`, 14, 46);
+    doc.text(`Account: ${account?.account_number ?? "-"}`, 14, 51);
+    doc.text(`Currency: ${account?.currency ?? currency}`, 14, 56);
+    doc.text(`Statement period: ${periodLabel}`, pageW - 14, 46, { align: "right" });
+    doc.text(`Generated: ${generated}`, pageW - 14, 51, { align: "right" });
+    doc.text(`Current balance: ${account ? formatMoney(Number(account.balance), account.currency) : "-"}`, pageW - 14, 56, { align: "right" });
+
+    // Summary
+    doc.setDrawColor(220);
+    doc.line(14, 62, pageW - 14, 62);
+    doc.setTextColor(15, 23, 42);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.text(`Money in: +${formatMoney(totalIn, currency)}`, 14, 70);
+    doc.text(`Money out: -${formatMoney(totalOut, currency)}`, 75, 70);
+    const net = totalIn - totalOut;
+    doc.text(`Net: ${net >= 0 ? "+" : "-"}${formatMoney(Math.abs(net), currency)}`, 140, 70);
+
+    autoTable(doc, {
+      startY: 76,
+      head: [["Date", "Reference", "Type", "Description", "Status", "Amount"]],
+      body: filtered.map((t: any) => [
+        new Date(t.created_at).toLocaleDateString(),
+        t.reference,
+        (t.type || "").replace(/_/g, " "),
+        (t.description || t.recipient_name || "").substring(0, 40),
+        t.status,
+        `${Number(t.amount) >= 0 ? "+" : "-"}${formatMoney(Math.abs(Number(t.amount)), t.currency || currency)}`,
+      ]),
+      styles: { fontSize: 8, cellPadding: 2.5 },
+      headStyles: { fillColor: [15, 23, 42], textColor: 255 },
+      alternateRowStyles: { fillColor: [248, 250, 252] },
+      columnStyles: { 5: { halign: "right" } },
+      margin: { left: 14, right: 14 },
+    });
+
+    const pageCount = (doc as any).internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.setTextColor(120);
+      doc.text(
+        `Norvex Bank • This statement is generated electronically and is valid without signature. Page ${i} of ${pageCount}`,
+        pageW / 2,
+        doc.internal.pageSize.getHeight() - 8,
+        { align: "center" }
+      );
+    }
+
+    doc.save(`norvex-statement-${new Date().toISOString().slice(0, 10)}.pdf`);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
@@ -78,9 +160,14 @@ const Transactions = () => {
           <h1 className="font-display text-2xl font-bold sm:text-3xl">Transactions</h1>
           <p className="mt-1 text-sm text-muted-foreground">All your money movements in one place.</p>
         </div>
-        <Button variant="outline" className="gap-2" onClick={exportCsv}>
-          <Download className="h-4 w-4" /> Export CSV
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" className="gap-2" onClick={exportCsv}>
+            <Download className="h-4 w-4" /> CSV
+          </Button>
+          <Button className="gap-2 bg-gradient-primary" onClick={exportPdf}>
+            <FileText className="h-4 w-4" /> PDF Statement
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
