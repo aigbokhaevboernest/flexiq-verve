@@ -13,7 +13,8 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Search, Snowflake, Sun, Plus, Minus, KeyRound, ShieldCheck, Shield, Trash2, RotateCcw, Copy } from "lucide-react";
+import { Search, Snowflake, Sun, Plus, Minus, KeyRound, ShieldCheck, Shield, Trash2, RotateCcw, Copy, Lock, Ban, ReceiptText } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 
 type Role = "admin" | "moderator" | "user";
 
@@ -41,6 +42,19 @@ const AdminUsers = () => {
   const [resetLink, setResetLink] = useState<string | null>(null);
 
   const [deleteOpen, setDeleteOpen] = useState(false);
+
+  const [pwdOpen, setPwdOpen] = useState(false);
+  const [pwdValue, setPwdValue] = useState("");
+
+  const [banOpen, setBanOpen] = useState(false);
+  const [banValue, setBanValue] = useState(true);
+
+  const [txOpen, setTxOpen] = useState(false);
+  const [txType, setTxType] = useState("deposit");
+  const [txAmount, setTxAmount] = useState("");
+  const [txDesc, setTxDesc] = useState("");
+  const [txStatus, setTxStatus] = useState("completed");
+  const [txAffect, setTxAffect] = useState(true);
 
   const { data: users = [] } = useQuery({
     queryKey: ["admin-users"],
@@ -169,6 +183,51 @@ const AdminUsers = () => {
     }
   };
 
+  const setPassword = async () => {
+    if (!selected) return;
+    if (pwdValue.length < 8) return toast({ title: "Min 8 characters", variant: "destructive" });
+    try {
+      await callAdmin({ action: "set_password", target_user_id: selected.id, new_password: pwdValue });
+      toast({ title: "Password updated", description: `New password set for ${selected.email}` });
+      setPwdOpen(false); setPwdValue("");
+    } catch (e: any) {
+      toast({ title: "Failed", description: e.message, variant: "destructive" });
+    }
+  };
+
+  const setBanned = async () => {
+    if (!selected) return;
+    try {
+      await callAdmin({ action: "set_user_banned", target_user_id: selected.id, banned: banValue });
+      toast({ title: banValue ? "User blocked" : "User unblocked" });
+      setBanOpen(false);
+    } catch (e: any) {
+      toast({ title: "Failed", description: e.message, variant: "destructive" });
+    }
+  };
+
+  const createTransaction = async () => {
+    if (!selected) return;
+    const amt = Number(txAmount);
+    if (!amt) return toast({ title: "Enter a non-zero amount (use negative for debits)", variant: "destructive" });
+    try {
+      await callAdmin({
+        action: "create_transaction",
+        target_user_id: selected.id,
+        tx_type: txType,
+        amount: amt,
+        description: txDesc,
+        status: txStatus,
+        affect_balance: txAffect,
+      });
+      qc.invalidateQueries({ queryKey: ["admin-users"] });
+      toast({ title: "Transaction created" });
+      setTxOpen(false); setTxAmount(""); setTxDesc("");
+    } catch (e: any) {
+      toast({ title: "Failed", description: e.message, variant: "destructive" });
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
@@ -245,9 +304,21 @@ const AdminUsers = () => {
                         onClick={() => { setSelected(u); setRoleValue("user"); setRoleGrant(true); setRoleOpen(true); }}>
                         {u.roles.includes("admin") ? <ShieldCheck className="h-3.5 w-3.5" /> : <Shield className="h-3.5 w-3.5" />}
                       </Button>
+                      <Button size="sm" variant="outline" disabled={busy} title="Add transaction"
+                        onClick={() => { setSelected(u); setTxType("deposit"); setTxAmount(""); setTxDesc(""); setTxStatus("completed"); setTxAffect(true); setTxOpen(true); }}>
+                        <ReceiptText className="h-3.5 w-3.5" />
+                      </Button>
                       <Button size="sm" variant="outline" disabled={busy} title="Send password reset"
                         onClick={() => { setSelected(u); setResetLink(null); setResetOpen(true); }}>
                         <RotateCcw className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button size="sm" variant="outline" disabled={busy} title="Set new password"
+                        onClick={() => { setSelected(u); setPwdValue(""); setPwdOpen(true); }}>
+                        <Lock className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button size="sm" variant="outline" disabled={busy} title="Block / unblock user"
+                        onClick={() => { setSelected(u); setBanValue(true); setBanOpen(true); }}>
+                        <Ban className="h-3.5 w-3.5" />
                       </Button>
                       <Button size="sm" variant="outline" disabled={busy} title="Delete user"
                         className="text-destructive hover:text-destructive"
