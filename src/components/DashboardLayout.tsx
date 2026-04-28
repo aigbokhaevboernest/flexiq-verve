@@ -1,4 +1,4 @@
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
 import {
   Banknote,
   Bell,
@@ -171,9 +171,13 @@ export const DashboardLayout = () => {
               <Bell className="h-4 w-4" />
               <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-accent" />
             </Button>
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-coral text-sm font-bold text-white">
+            <Link
+              to="/dashboard/profile"
+              aria-label="View profile"
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-coral text-sm font-bold text-white transition-smooth hover:scale-105 hover:shadow-glow focus:outline-none focus:ring-2 focus:ring-ring"
+            >
               {initials}
-            </div>
+            </Link>
           </div>
         </header>
 
