@@ -163,6 +163,15 @@ Deno.serve(async (req) => {
         return json(200, { ok: true });
       }
 
+      case "audit_verification": {
+        await audit("verification_decision", {
+          verification_id: body.verification_id,
+          decision: body.decision,
+          reason: body.reason ?? null,
+        });
+        return json(200, { ok: true });
+      }
+
       default:
         return json(400, { error: "Unknown action" });
     }

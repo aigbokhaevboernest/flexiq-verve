@@ -8,14 +8,23 @@ const AdminHome = () => {
   const { data: stats } = useQuery({
     queryKey: ["admin-stats"],
     queryFn: async () => {
-      const [{ count: userCount }, { data: accounts }, { count: pendingTx }, { count: pendingLoans }] = await Promise.all([
+      const [{ count: userCount }, { data: accounts }, { count: pendingTx }, { count: pendingLoans }, { count: openTickets }, { count: pendingKyc }] = await Promise.all([
         supabase.from("profiles").select("*", { count: "exact", head: true }),
         supabase.from("accounts").select("balance,currency"),
         supabase.from("transactions").select("*", { count: "exact", head: true }).eq("status", "awaiting_code"),
         supabase.from("loans").select("*", { count: "exact", head: true }).eq("status", "pending"),
+        supabase.from("support_tickets").select("*", { count: "exact", head: true }).in("status", ["open", "pending"]),
+        supabase.from("id_verifications").select("*", { count: "exact", head: true }).eq("status", "pending"),
       ]);
       const totalBalance = (accounts || []).reduce((s, a: any) => s + Number(a.balance), 0);
-      return { userCount: userCount || 0, totalBalance, pendingTx: pendingTx || 0, pendingLoans: pendingLoans || 0 };
+      return {
+        userCount: userCount || 0,
+        totalBalance,
+        pendingTx: pendingTx || 0,
+        pendingLoans: pendingLoans || 0,
+        openTickets: openTickets || 0,
+        pendingKyc: pendingKyc || 0,
+      };
     },
   });
 
