@@ -461,6 +461,112 @@ const AdminUsers = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Set password */}
+      <Dialog open={pwdOpen} onOpenChange={setPwdOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Set new password for {selected?.first_name}</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Sets the password directly for <span className="font-medium">{selected?.email}</span>. The user can sign in immediately with it.
+            </p>
+            <div className="space-y-2">
+              <Label>New password (min 8 chars)</Label>
+              <Input type="text" value={pwdValue} onChange={(e) => setPwdValue(e.target.value)} className="font-mono" placeholder="Strong password…" />
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" type="button" onClick={() => {
+                const r = Array.from(crypto.getRandomValues(new Uint8Array(12))).map((b) => "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$"[b % 60]).join("");
+                setPwdValue(r);
+              }}>Generate</Button>
+              <Button onClick={setPassword} disabled={busy || pwdValue.length < 8} className="flex-1 bg-gradient-primary">
+                {busy ? "Working…" : "Update password"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Block / unblock */}
+      <Dialog open={banOpen} onOpenChange={setBanOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Block / unblock {selected?.first_name}</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Blocking prevents this user from signing in. Existing sessions will be invalidated on next request.
+            </p>
+            <div className="space-y-2">
+              <Label>Action</Label>
+              <Select value={banValue ? "block" : "unblock"} onValueChange={(v) => setBanValue(v === "block")}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="block">Block user (suspend login)</SelectItem>
+                  <SelectItem value="unblock">Unblock user (restore access)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <Button onClick={setBanned} disabled={busy} className={`w-full ${banValue ? "bg-destructive hover:bg-destructive/90" : "bg-gradient-primary"}`}>
+              {busy ? "Working…" : banValue ? "Block user" : "Unblock user"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add transaction */}
+      <Dialog open={txOpen} onOpenChange={setTxOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Add transaction for {selected?.first_name}</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Type</Label>
+                <Select value={txType} onValueChange={setTxType}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="deposit">Deposit</SelectItem>
+                    <SelectItem value="withdrawal">Withdrawal</SelectItem>
+                    <SelectItem value="transfer_in">Transfer in</SelectItem>
+                    <SelectItem value="transfer_out">Transfer out</SelectItem>
+                    <SelectItem value="fx">FX</SelectItem>
+                    <SelectItem value="loan_disbursement">Loan disbursement</SelectItem>
+                    <SelectItem value="bill_payment">Bill payment</SelectItem>
+                    <SelectItem value="adjustment">Adjustment</SelectItem>
+                    <SelectItem value="fee">Fee</SelectItem>
+                    <SelectItem value="refund">Refund</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Status</Label>
+                <Select value={txStatus} onValueChange={setTxStatus}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="completed">Completed</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="failed">Failed</SelectItem>
+                    <SelectItem value="rejected">Rejected</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Amount ({selected?.account?.currency || "USD"}) — use negative for debits</Label>
+              <Input type="number" step="0.01" value={txAmount} onChange={(e) => setTxAmount(e.target.value)} placeholder="100.00 or -50.00" />
+            </div>
+            <div className="space-y-2">
+              <Label>Description</Label>
+              <Textarea value={txDesc} onChange={(e) => setTxDesc(e.target.value)} placeholder="Reason / reference shown to user" rows={2} />
+            </div>
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" checked={txAffect} onChange={(e) => setTxAffect(e.target.checked)} />
+              Apply to account balance (only when status is completed)
+            </label>
+            <Button onClick={createTransaction} disabled={busy} className="w-full bg-gradient-primary">
+              {busy ? "Working…" : "Create transaction"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
