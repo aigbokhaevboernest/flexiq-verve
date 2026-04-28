@@ -6,16 +6,24 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Search, Snowflake, Sun, Plus, Minus, KeyRound } from "lucide-react";
+import { Search, Snowflake, Sun, Plus, Minus, KeyRound, ShieldCheck, Shield, Trash2, RotateCcw, Copy } from "lucide-react";
+
+type Role = "admin" | "moderator" | "user";
 
 const AdminUsers = () => {
   const { toast } = useToast();
   const qc = useQueryClient();
   const [q, setQ] = useState("");
   const [selected, setSelected] = useState<any>(null);
+  const [busy, setBusy] = useState(false);
+
   const [adjOpen, setAdjOpen] = useState(false);
   const [adjType, setAdjType] = useState<"credit" | "debit">("credit");
   const [adjAmount, setAdjAmount] = useState("");
@@ -25,14 +33,33 @@ const AdminUsers = () => {
   const [codeType, setCodeType] = useState<"cot" | "imf" | "tax" | "loan">("cot");
   const [codeValue, setCodeValue] = useState("");
 
+  const [roleOpen, setRoleOpen] = useState(false);
+  const [roleValue, setRoleValue] = useState<Role>("user");
+  const [roleGrant, setRoleGrant] = useState(true);
+
+  const [resetOpen, setResetOpen] = useState(false);
+  const [resetLink, setResetLink] = useState<string | null>(null);
+
+  const [deleteOpen, setDeleteOpen] = useState(false);
+
   const { data: users = [] } = useQuery({
     queryKey: ["admin-users"],
     queryFn: async () => {
-      const { data: profiles } = await supabase.from("profiles").select("*").order("created_at", { ascending: false });
-      const { data: accounts } = await supabase.from("accounts").select("*");
+      const [{ data: profiles }, { data: accounts }, { data: roles }] = await Promise.all([
+        supabase.from("profiles").select("*").order("created_at", { ascending: false }),
+        supabase.from("accounts").select("*"),
+        supabase.from("user_roles").select("user_id, role"),
+      ]);
+      const rolesByUser = new Map<string, Role[]>();
+      (roles || []).forEach((r: any) => {
+        const arr = rolesByUser.get(r.user_id) || [];
+        arr.push(r.role);
+        rolesByUser.set(r.user_id, arr);
+      });
       return (profiles || []).map((p: any) => ({
         ...p,
         account: (accounts || []).find((a: any) => a.user_id === p.id),
+        roles: rolesByUser.get(p.id) || [],
       }));
     },
   });
@@ -43,34 +70,47 @@ const AdminUsers = () => {
     return hay.includes(q.toLowerCase());
   });
 
-  const toggleFreeze = async (u: any) => {
-    if (!u.account) return;
-    await supabase.from("accounts").update({ frozen: !u.account.frozen }).eq("id", u.account.id);
-    qc.invalidateQueries({ queryKey: ["admin-users"] });
-    toast({ title: u.account.frozen ? "Account unfrozen" : "Account frozen" });
+  const callAdmin = async (body: Record<string, unknown>) => {
+    setBusy(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("admin-actions", { body });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      return data as any;
+    } finally {
+      setBusy(false);
+    }
   };
 
   const adjust = async () => {
     if (!selected?.account) return;
     const amt = Number(adjAmount);
     if (!amt || amt <= 0) return toast({ title: "Enter amount", variant: "destructive" });
-    const delta = adjType === "credit" ? amt : -amt;
-    const newBal = Number(selected.account.balance) + delta;
-    if (newBal < 0) return toast({ title: "Cannot debit below 0", variant: "destructive" });
+    try {
+      await callAdmin({
+        action: "adjust_balance",
+        target_user_id: selected.id,
+        amount: amt,
+        kind: adjType,
+        note: adjNote,
+      });
+      qc.invalidateQueries({ queryKey: ["admin-users"] });
+      toast({ title: `${adjType === "credit" ? "Credited" : "Debited"} ${amt} ${selected.account.currency}` });
+      setAdjOpen(false); setAdjAmount(""); setAdjNote("");
+    } catch (e: any) {
+      toast({ title: "Failed", description: e.message, variant: "destructive" });
+    }
+  };
 
-    await supabase.from("accounts").update({ balance: newBal }).eq("id", selected.account.id);
-    await supabase.from("transactions").insert({
-      user_id: selected.id,
-      type: "adjustment",
-      status: "completed",
-      amount: delta,
-      currency: selected.account.currency,
-      description: adjNote || `Admin ${adjType}`,
-    });
-
-    qc.invalidateQueries({ queryKey: ["admin-users"] });
-    toast({ title: `${adjType === "credit" ? "Credited" : "Debited"} ${amt} ${selected.account.currency}` });
-    setAdjOpen(false); setAdjAmount(""); setAdjNote("");
+  const toggleFreeze = async (u: any) => {
+    if (!u.account) return;
+    try {
+      const res = await callAdmin({ action: "toggle_freeze", target_user_id: u.id });
+      qc.invalidateQueries({ queryKey: ["admin-users"] });
+      toast({ title: res.frozen ? "Account frozen" : "Account unfrozen" });
+    } catch (e: any) {
+      toast({ title: "Failed", description: e.message, variant: "destructive" });
+    }
   };
 
   const issueCode = async () => {
@@ -89,12 +129,52 @@ const AdminUsers = () => {
     setCodeOpen(false); setCodeValue("");
   };
 
+  const applyRole = async () => {
+    if (!selected) return;
+    try {
+      await callAdmin({
+        action: "set_role",
+        target_user_id: selected.id,
+        role: roleValue,
+        grant: roleGrant,
+      });
+      qc.invalidateQueries({ queryKey: ["admin-users"] });
+      toast({ title: roleGrant ? `Granted ${roleValue}` : `Removed ${roleValue}` });
+      setRoleOpen(false);
+    } catch (e: any) {
+      toast({ title: "Failed", description: e.message, variant: "destructive" });
+    }
+  };
+
+  const sendReset = async () => {
+    if (!selected) return;
+    try {
+      const res = await callAdmin({ action: "reset_password", target_user_id: selected.id });
+      setResetLink(res.recovery_link || null);
+      toast({ title: "Recovery link generated" });
+    } catch (e: any) {
+      toast({ title: "Failed", description: e.message, variant: "destructive" });
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (!selected) return;
+    try {
+      await callAdmin({ action: "delete_user", target_user_id: selected.id });
+      qc.invalidateQueries({ queryKey: ["admin-users"] });
+      toast({ title: "User deleted" });
+      setDeleteOpen(false);
+    } catch (e: any) {
+      toast({ title: "Failed", description: e.message, variant: "destructive" });
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="font-display text-2xl font-bold sm:text-3xl">Users</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Manage balances, freeze accounts and issue codes.</p>
+          <p className="mt-1 text-sm text-muted-foreground">Manage balances, freeze accounts, roles and access.</p>
         </div>
       </div>
 
@@ -107,7 +187,14 @@ const AdminUsers = () => {
         <div className="mt-6 overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="text-left text-xs uppercase tracking-wider text-muted-foreground">
-              <tr><th className="pb-3">User</th><th className="pb-3">Account</th><th className="pb-3 text-right">Balance</th><th className="pb-3">Status</th><th className="pb-3 text-right">Actions</th></tr>
+              <tr>
+                <th className="pb-3">User</th>
+                <th className="pb-3">Account</th>
+                <th className="pb-3 text-right">Balance</th>
+                <th className="pb-3">Status</th>
+                <th className="pb-3">Roles</th>
+                <th className="pb-3 text-right">Actions</th>
+              </tr>
             </thead>
             <tbody className="divide-y divide-border/60">
               {filtered.map((u: any) => (
@@ -121,36 +208,81 @@ const AdminUsers = () => {
                     {u.account ? `${Number(u.account.balance).toLocaleString(undefined, { minimumFractionDigits: 2 })} ${u.account.currency}` : "—"}
                   </td>
                   <td className="py-3">
-                    {u.account?.frozen ? <Badge variant="outline" className="border-warning/30 bg-warning/10 text-warning">Frozen</Badge> :
-                      <Badge variant="outline" className="border-success/30 bg-success/10 text-success">Active</Badge>}
+                    {u.account?.frozen
+                      ? <Badge variant="outline" className="border-warning/30 bg-warning/10 text-warning">Frozen</Badge>
+                      : <Badge variant="outline" className="border-success/30 bg-success/10 text-success">Active</Badge>}
+                  </td>
+                  <td className="py-3">
+                    <div className="flex flex-wrap gap-1">
+                      {u.roles.length === 0 && <span className="text-xs text-muted-foreground">—</span>}
+                      {u.roles.map((r: Role) => (
+                        <Badge key={r} variant="outline" className={
+                          r === "admin" ? "border-primary/30 bg-primary/10 text-primary" :
+                          r === "moderator" ? "border-accent/30 bg-accent/10" : ""
+                        }>{r}</Badge>
+                      ))}
+                    </div>
                   </td>
                   <td className="py-3 text-right">
                     <div className="flex justify-end gap-1">
-                      <Button size="sm" variant="outline" onClick={() => { setSelected(u); setAdjType("credit"); setAdjOpen(true); }}><Plus className="h-3.5 w-3.5" /></Button>
-                      <Button size="sm" variant="outline" onClick={() => { setSelected(u); setAdjType("debit"); setAdjOpen(true); }}><Minus className="h-3.5 w-3.5" /></Button>
-                      <Button size="sm" variant="outline" onClick={() => toggleFreeze(u)}>{u.account?.frozen ? <Sun className="h-3.5 w-3.5" /> : <Snowflake className="h-3.5 w-3.5" />}</Button>
-                      <Button size="sm" variant="outline" onClick={() => { setSelected(u); setCodeOpen(true); }}><KeyRound className="h-3.5 w-3.5" /></Button>
+                      <Button size="sm" variant="outline" disabled={busy} title="Credit"
+                        onClick={() => { setSelected(u); setAdjType("credit"); setAdjOpen(true); }}>
+                        <Plus className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button size="sm" variant="outline" disabled={busy} title="Debit"
+                        onClick={() => { setSelected(u); setAdjType("debit"); setAdjOpen(true); }}>
+                        <Minus className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button size="sm" variant="outline" disabled={busy} title={u.account?.frozen ? "Unfreeze" : "Freeze"}
+                        onClick={() => toggleFreeze(u)}>
+                        {u.account?.frozen ? <Sun className="h-3.5 w-3.5" /> : <Snowflake className="h-3.5 w-3.5" />}
+                      </Button>
+                      <Button size="sm" variant="outline" disabled={busy} title="Issue code"
+                        onClick={() => { setSelected(u); setCodeOpen(true); }}>
+                        <KeyRound className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button size="sm" variant="outline" disabled={busy} title="Manage roles"
+                        onClick={() => { setSelected(u); setRoleValue("user"); setRoleGrant(true); setRoleOpen(true); }}>
+                        {u.roles.includes("admin") ? <ShieldCheck className="h-3.5 w-3.5" /> : <Shield className="h-3.5 w-3.5" />}
+                      </Button>
+                      <Button size="sm" variant="outline" disabled={busy} title="Send password reset"
+                        onClick={() => { setSelected(u); setResetLink(null); setResetOpen(true); }}>
+                        <RotateCcw className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button size="sm" variant="outline" disabled={busy} title="Delete user"
+                        className="text-destructive hover:text-destructive"
+                        onClick={() => { setSelected(u); setDeleteOpen(true); }}>
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
                     </div>
                   </td>
                 </tr>
               ))}
-              {filtered.length === 0 && <tr><td colSpan={5} className="py-10 text-center text-sm text-muted-foreground">No users found.</td></tr>}
+              {filtered.length === 0 && <tr><td colSpan={6} className="py-10 text-center text-sm text-muted-foreground">No users found.</td></tr>}
             </tbody>
           </table>
         </div>
       </Card>
 
+      {/* Adjust balance */}
       <Dialog open={adjOpen} onOpenChange={setAdjOpen}>
         <DialogContent>
           <DialogHeader><DialogTitle className="capitalize">{adjType} {selected?.first_name}'s account</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <div className="space-y-2"><Label>Amount ({selected?.account?.currency || "USD"})</Label><Input type="number" step="0.01" value={adjAmount} onChange={(e) => setAdjAmount(e.target.value)} /></div>
-            <div className="space-y-2"><Label>Note</Label><Input value={adjNote} onChange={(e) => setAdjNote(e.target.value)} placeholder="Reason / reference" /></div>
-            <Button onClick={adjust} className="w-full bg-gradient-primary capitalize">{adjType} account</Button>
+            <div className="space-y-2"><Label>Amount ({selected?.account?.currency || "USD"})</Label>
+              <Input type="number" step="0.01" value={adjAmount} onChange={(e) => setAdjAmount(e.target.value)} />
+            </div>
+            <div className="space-y-2"><Label>Note</Label>
+              <Input value={adjNote} onChange={(e) => setAdjNote(e.target.value)} placeholder="Reason / reference" />
+            </div>
+            <Button onClick={adjust} disabled={busy} className="w-full bg-gradient-primary capitalize">
+              {busy ? "Working…" : `${adjType} account`}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
 
+      {/* Issue code */}
       <Dialog open={codeOpen} onOpenChange={setCodeOpen}>
         <DialogContent>
           <DialogHeader><DialogTitle>Issue authorization code for {selected?.first_name}</DialogTitle></DialogHeader>
@@ -167,12 +299,97 @@ const AdminUsers = () => {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2"><Label>Code (leave blank to auto-generate)</Label><Input value={codeValue} onChange={(e) => setCodeValue(e.target.value.toUpperCase())} placeholder="NX-XXXX-XXXX" className="font-mono" /></div>
-            <p className="text-xs text-muted-foreground">Code will be valid for 7 days. It will be copied to your clipboard.</p>
+            <div className="space-y-2"><Label>Code (leave blank to auto-generate)</Label>
+              <Input value={codeValue} onChange={(e) => setCodeValue(e.target.value.toUpperCase())} placeholder="NX-XXXX-XXXX" className="font-mono" />
+            </div>
+            <p className="text-xs text-muted-foreground">Code valid for 7 days. Will be copied to your clipboard.</p>
             <Button onClick={issueCode} className="w-full bg-gradient-primary">Issue code</Button>
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Roles */}
+      <Dialog open={roleOpen} onOpenChange={setRoleOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Manage roles for {selected?.first_name}</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div className="text-sm text-muted-foreground">
+              Current: {selected?.roles?.join(", ") || "none"}
+            </div>
+            <div className="space-y-2">
+              <Label>Role</Label>
+              <Select value={roleValue} onValueChange={(v: any) => setRoleValue(v)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="user">user</SelectItem>
+                  <SelectItem value="moderator">moderator</SelectItem>
+                  <SelectItem value="admin">admin</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Action</Label>
+              <Select value={roleGrant ? "grant" : "revoke"} onValueChange={(v) => setRoleGrant(v === "grant")}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="grant">Grant role</SelectItem>
+                  <SelectItem value="revoke">Revoke role</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <Button onClick={applyRole} disabled={busy} className="w-full bg-gradient-primary">
+              {busy ? "Working…" : "Apply"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Password reset */}
+      <Dialog open={resetOpen} onOpenChange={setResetOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Password reset for {selected?.first_name}</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Generates a one-time recovery link for <span className="font-medium">{selected?.email}</span>.
+              Share it securely — the user can use it to set a new password.
+            </p>
+            {resetLink ? (
+              <div className="space-y-2">
+                <Label>Recovery link</Label>
+                <div className="flex gap-2">
+                  <Input readOnly value={resetLink} className="font-mono text-xs" />
+                  <Button variant="outline" onClick={() => { navigator.clipboard?.writeText(resetLink); toast({ title: "Copied" }); }}>
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <Button onClick={sendReset} disabled={busy} className="w-full bg-gradient-primary">
+                {busy ? "Generating…" : "Generate recovery link"}
+              </Button>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete confirm */}
+      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {selected?.first_name} {selected?.last_name}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently removes the user and all linked data (account, cards, transactions, loans).
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">
+              Delete user
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
