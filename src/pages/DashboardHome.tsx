@@ -139,12 +139,34 @@ const DashboardHome = () => {
             <div className="relative mt-8 grid grid-cols-4 gap-3">
               {quickActions.map((a) => {
                 const Icon = a.icon;
-                return (
-                  <Link key={a.label} to={a.to} className="group flex flex-col items-center gap-2 rounded-2xl bg-white/10 p-3 text-center backdrop-blur transition-smooth hover:bg-white/20">
+                const cls = "group flex flex-col items-center gap-2 rounded-2xl bg-white/10 p-3 text-center backdrop-blur transition-smooth hover:bg-white/20";
+                const inner = (
+                  <>
                     <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20 text-primary-foreground">
                       <Icon className="h-4 w-4" />
                     </span>
                     <span className="text-xs font-medium">{a.label}</span>
+                  </>
+                );
+                if (a.disabled) {
+                  return (
+                    <button
+                      key={a.label}
+                      type="button"
+                      onClick={() =>
+                        toast.error("Feature not available", {
+                          description: "Please contact support for assistance.",
+                        })
+                      }
+                      className={cls + " opacity-70"}
+                    >
+                      {inner}
+                    </button>
+                  );
+                }
+                return (
+                  <Link key={a.label} to={a.to} className={cls}>
+                    {inner}
                   </Link>
                 );
               })}
