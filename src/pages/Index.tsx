@@ -1,3 +1,4 @@
+import heroBanking from "@/assets/hero-banking.jpg";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { RotatingWord } from "@/components/RotatingWord";
@@ -59,7 +60,15 @@ const Index = () => {
 
       {/* HERO */}
       <section className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-mesh" />
+        <img
+          src={heroBanking}
+          alt="Mobile banking app with premium credit card and financial charts"
+          width={1920}
+          height={1080}
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-background via-background/85 to-background/40" />
+        <div className="absolute inset-0 bg-background/30 md:bg-transparent" />
         <div className="container relative grid gap-14 py-16 md:grid-cols-2 md:py-24 lg:py-32">
           <div className="flex flex-col justify-center">
             <motion.div {...fade(0)} className="inline-flex w-fit items-center gap-2 rounded-full border border-border/60 bg-card/70 px-4 py-1.5 text-xs font-medium backdrop-blur">
