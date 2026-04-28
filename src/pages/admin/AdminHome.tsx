@@ -1,7 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Users, Wallet, Banknote, AlertCircle } from "lucide-react";
+import { Users, Wallet, Banknote, AlertCircle, MessageSquare, BadgeCheck } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const AdminHome = () => {
@@ -45,6 +45,8 @@ const AdminHome = () => {
     { label: "Combined balance", value: `$${(stats?.totalBalance ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`, icon: Wallet, to: "/admin/users" },
     { label: "Awaiting authorization", value: stats?.pendingTx ?? 0, icon: AlertCircle, to: "/admin/transactions" },
     { label: "Pending loans", value: stats?.pendingLoans ?? 0, icon: Banknote, to: "/admin/loans" },
+    { label: "Open tickets", value: stats?.openTickets ?? 0, icon: MessageSquare, to: "/admin/tickets" },
+    { label: "Pending KYC", value: stats?.pendingKyc ?? 0, icon: BadgeCheck, to: "/admin/verifications" },
   ];
 
   return (
