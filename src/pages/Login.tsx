@@ -19,26 +19,14 @@ const Login = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
     setSubmitting(false);
     if (error) {
       toast({ title: "Sign in failed", description: error.message, variant: "destructive" });
       return;
     }
     toast({ title: "Welcome back" });
-
-    // Auto-redirect admins to /admin
-    let dest = "/dashboard";
-    if (data.user) {
-      const { data: roleRow } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", data.user.id)
-        .eq("role", "admin")
-        .maybeSingle();
-      if (roleRow) dest = "/admin";
-    }
-    navigate(dest);
+    navigate("/dashboard");
   };
 
   const handleGoogle = async () => {
