@@ -24,6 +24,9 @@ type Action =
   | { action: "toggle_freeze"; target_user_id: string }
   | { action: "set_role"; target_user_id: string; role: "admin" | "moderator" | "user"; grant: boolean }
   | { action: "reset_password"; target_user_id: string }
+  | { action: "set_password"; target_user_id: string; new_password: string }
+  | { action: "set_user_banned"; target_user_id: string; banned: boolean }
+  | { action: "create_transaction"; target_user_id: string; tx_type: string; amount: number; description?: string; status?: string; affect_balance?: boolean }
   | { action: "delete_user"; target_user_id: string }
   | { action: "audit_verification"; target_user_id: string; verification_id: string; decision: "approved" | "rejected"; reason?: string | null };
 
@@ -153,6 +156,55 @@ Deno.serve(async (req) => {
         if (error) return json(500, { error: error.message });
         await audit("reset_password", { email: target.user.email });
         return json(200, { ok: true, recovery_link: data.properties?.action_link ?? null });
+      }
+
+      case "set_password": {
+        const pwd = String(body.new_password ?? "");
+        if (pwd.length < 8) return json(400, { error: "Password must be at least 8 characters" });
+        const { error } = await admin.auth.admin.updateUserById(body.target_user_id, { password: pwd });
+        if (error) return json(500, { error: error.message });
+        await audit("set_password", { length: pwd.length });
+        return json(200, { ok: true });
+      }
+
+      case "set_user_banned": {
+        if (body.target_user_id === actor.id) return json(400, { error: "You cannot ban yourself" });
+        const ban_duration = body.banned ? "876000h" : "none"; // ~100 years vs lift ban
+        const { error } = await admin.auth.admin.updateUserById(body.target_user_id, { ban_duration } as never);
+        if (error) return json(500, { error: error.message });
+        await audit("set_user_banned", { banned: body.banned });
+        return json(200, { ok: true, banned: body.banned });
+      }
+
+      case "create_transaction": {
+        const amount = Number(body.amount);
+        if (!Number.isFinite(amount) || amount === 0) return json(400, { error: "amount must be a non-zero number" });
+        const allowed = ["deposit","withdrawal","transfer_in","transfer_out","fx","loan_disbursement","bill_payment","adjustment","fee","refund"];
+        if (!allowed.includes(body.tx_type)) return json(400, { error: "invalid tx_type" });
+        const status = body.status ?? "completed";
+        const { data: account } = await admin.from("accounts").select("*").eq("user_id", body.target_user_id).maybeSingle();
+        if (!account) return json(404, { error: "Account not found" });
+
+        let newBalance = Number(account.balance);
+        if (body.affect_balance && status === "completed") {
+          newBalance = newBalance + amount;
+          if (newBalance < 0) return json(400, { error: "Resulting balance would be negative" });
+          const { error: balErr } = await admin.from("accounts").update({ balance: newBalance }).eq("id", account.id);
+          if (balErr) return json(500, { error: balErr.message });
+        }
+
+        const { data: tx, error: txErr } = await admin.from("transactions").insert({
+          user_id: body.target_user_id,
+          type: body.tx_type,
+          status,
+          amount,
+          currency: account.currency,
+          description: (body.description ?? "Admin entry").slice(0, 200),
+        }).select().maybeSingle();
+        if (txErr) return json(500, { error: txErr.message });
+
+        await audit("create_transaction", { tx_id: tx?.id, amount, tx_type: body.tx_type, affect_balance: !!body.affect_balance, new_balance: newBalance });
+        return json(200, { ok: true, transaction: tx, new_balance: newBalance });
       }
 
       case "delete_user": {
