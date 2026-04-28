@@ -33,6 +33,7 @@ import AdminCodes from "./pages/admin/AdminCodes.tsx";
 import AdminFx from "./pages/admin/AdminFx.tsx";
 import AdminVerifications from "./pages/admin/AdminVerifications.tsx";
 import AdminAuditLog from "./pages/admin/AdminAuditLog.tsx";
+import AdminLogin from "./pages/admin/AdminLogin.tsx";
 import Verify from "./pages/Verify.tsx";
 
 const queryClient = new QueryClient();
@@ -51,6 +52,7 @@ const App = () => (
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/verify" element={<Verify />} />
+            <Route path="/admin/login" element={<AdminLogin />} />
 
             <Route element={<ProtectedRoute />}>
               <Route path="/dashboard" element={<DashboardLayout />}>
@@ -66,18 +68,18 @@ const App = () => (
                 <Route path="settings" element={<Settings />} />
                 <Route path="support" element={<Support />} />
               </Route>
+            </Route>
 
-              <Route element={<AdminRoute />}>
-                <Route path="/admin" element={<AdminLayout />}>
-                  <Route index element={<AdminHome />} />
-                  <Route path="users" element={<AdminUsers />} />
-                  <Route path="transactions" element={<AdminTransactions />} />
-                  <Route path="loans" element={<AdminLoans />} />
-                  <Route path="codes" element={<AdminCodes />} />
-                  <Route path="fx" element={<AdminFx />} />
-                  <Route path="verifications" element={<AdminVerifications />} />
-                  <Route path="audit" element={<AdminAuditLog />} />
-                </Route>
+            <Route element={<AdminRoute />}>
+              <Route path="/admin" element={<AdminLayout />}>
+                <Route index element={<AdminHome />} />
+                <Route path="users" element={<AdminUsers />} />
+                <Route path="transactions" element={<AdminTransactions />} />
+                <Route path="loans" element={<AdminLoans />} />
+                <Route path="codes" element={<AdminCodes />} />
+                <Route path="fx" element={<AdminFx />} />
+                <Route path="verifications" element={<AdminVerifications />} />
+                <Route path="audit" element={<AdminAuditLog />} />
               </Route>
             </Route>
 
