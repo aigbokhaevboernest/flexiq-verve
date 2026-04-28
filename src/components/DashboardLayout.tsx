@@ -27,6 +27,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsAdmin } from "@/hooks/useAccount";
 import { ShieldCheck } from "lucide-react";
+import { toast } from "sonner";
 
 const nav = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, end: true },
@@ -37,7 +38,7 @@ const nav = [
   { to: "/dashboard/cards", label: "Cards", icon: CreditCard },
   { to: "/dashboard/fx", label: "FX Transfer", icon: Globe2 },
   { to: "/dashboard/local", label: "Local Transfer", icon: Repeat },
-  { to: "/dashboard/bills", label: "Bill Payment", icon: Receipt },
+  { to: "/dashboard/bills", label: "Bill Payment", icon: Receipt, disabled: true },
   { to: "/dashboard/settings", label: "Settings", icon: Settings },
   { to: "/dashboard/support", label: "Support", icon: Headphones },
 ];
@@ -57,6 +58,24 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
       <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
         {nav.map((n) => {
           const Icon = n.icon;
+          if (n.disabled) {
+            return (
+              <button
+                key={n.to}
+                type="button"
+                onClick={() => {
+                  onNavigate?.();
+                  toast.error("Feature not available", {
+                    description: "Please contact support for assistance.",
+                  });
+                }}
+                className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-sidebar-foreground/60 transition-smooth hover:bg-sidebar-accent/50"
+              >
+                <Icon className="h-4 w-4" />
+                {n.label}
+              </button>
+            );
+          }
           return (
             <NavLink
               key={n.to}
