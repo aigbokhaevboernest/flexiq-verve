@@ -24,7 +24,8 @@ type Action =
   | { action: "toggle_freeze"; target_user_id: string }
   | { action: "set_role"; target_user_id: string; role: "admin" | "moderator" | "user"; grant: boolean }
   | { action: "reset_password"; target_user_id: string }
-  | { action: "delete_user"; target_user_id: string };
+  | { action: "delete_user"; target_user_id: string }
+  | { action: "audit_verification"; target_user_id: string; verification_id: string; decision: "approved" | "rejected"; reason?: string | null };
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -159,6 +160,15 @@ Deno.serve(async (req) => {
         const { error } = await admin.auth.admin.deleteUser(body.target_user_id);
         if (error) return json(500, { error: error.message });
         await audit("delete_user", {});
+        return json(200, { ok: true });
+      }
+
+      case "audit_verification": {
+        await audit("verification_decision", {
+          verification_id: body.verification_id,
+          decision: body.decision,
+          reason: body.reason ?? null,
+        });
         return json(200, { ok: true });
       }
 
