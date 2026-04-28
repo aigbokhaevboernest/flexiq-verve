@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { toast } from "sonner";
 import { useAccount, useProfile, formatMoney } from "@/hooks/useAccount";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -23,7 +24,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 const quickActions = [
   { icon: Send, label: "Send", to: "/dashboard/send" },
   { icon: ArrowDownLeft, label: "Receive", to: "/dashboard/receive" },
-  { icon: Receipt, label: "Bills", to: "/dashboard/bills" },
+  { icon: Receipt, label: "Bills", to: "/dashboard/bills", disabled: true },
   { icon: Wallet, label: "Loans", to: "/dashboard/loans" },
 ];
 
