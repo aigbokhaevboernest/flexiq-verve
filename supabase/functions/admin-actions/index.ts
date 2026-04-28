@@ -24,7 +24,8 @@ type Action =
   | { action: "toggle_freeze"; target_user_id: string }
   | { action: "set_role"; target_user_id: string; role: "admin" | "moderator" | "user"; grant: boolean }
   | { action: "reset_password"; target_user_id: string }
-  | { action: "delete_user"; target_user_id: string };
+  | { action: "delete_user"; target_user_id: string }
+  | { action: "audit_verification"; target_user_id: string; verification_id: string; decision: "approved" | "rejected"; reason?: string | null };
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
