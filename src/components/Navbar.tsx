@@ -19,14 +19,15 @@ export const Navbar = () => {
   return (
     <header className={`sticky top-0 z-50 w-full transition-smooth ${transparent ? "bg-background/70 backdrop-blur-xl" : "bg-background"} border-b border-border/60`}>
 <div className="container flex h-16 items-start justify-between pt-3">
-  <Link to="/" className="flex items-left gap-1 font-display text-xl font-bold">
-  <img
-    src="/logo.png"
-    alt="Flexiq Verve"
-    className="h-12 w-auto object-contain"
-  />
-  <span>Flexiq Verve</span>
-</Link>
+  <Link to="/" className="flex items-center gap-1 font-display text-xl font-bold">
+    <img
+      src="/logo.png"
+      alt="Flexiq Verve"
+      className="h-12 w-auto object-contain"
+    />
+    <span>Flexiq Verve</span>
+  </Link>
+
 
         <nav className="hidden items-center gap-8 md:flex">
           {links.map((l) => (
