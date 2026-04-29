@@ -19,10 +19,13 @@ export const Navbar = () => {
   return (
     <header className={`sticky top-0 z-50 w-full transition-smooth ${transparent ? "bg-background/70 backdrop-blur-xl" : "bg-background"} border-b border-border/60`}>
       <div className="container flex h-16 items-center justify-between">
-        <Link to="/" className="flex items-center gap-2 font-display text-xl font-bold">
-  <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-primary shadow-glow">
-    <img src="/logo.png" alt="Flexiq Verve" className="h-7 w-7 object-contain" />
-  </span>
+        return (
+  <Link to="/" className="flex items-center gap-3 font-display text-xl font-bold">
+  <img
+    src="/logo.png"
+    alt="Flexiq Verve"
+    className="h-12 w-auto object-contain"
+  />
   <span>Flexiq Verve</span>
 </Link>
 
