@@ -86,17 +86,17 @@ const Signup = () => {
       <form className="space-y-5" onSubmit={handleSubmit}>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="First name">
-            <Input required placeholder="Jane" value={form.first_name} onChange={(e) => update("first_name")(e.target.value)} />
+            <Input required placeholder="enter first name" value={form.first_name} onChange={(e) => update("first_name")(e.target.value)} />
           </Field>
           <Field label="Last name">
-            <Input required placeholder="Doe" value={form.last_name} onChange={(e) => update("last_name")(e.target.value)} />
+            <Input required placeholder="enter last name" value={form.last_name} onChange={(e) => update("last_name")(e.target.value)} />
           </Field>
 
           <Field label="Email">
             <Input type="email" required placeholder="jane@email.com" value={form.email} onChange={(e) => update("email")(e.target.value)} />
           </Field>
           <Field label="Phone">
-            <Input type="tel" required placeholder="+1 555 123 4567" value={form.phone} onChange={(e) => update("phone")(e.target.value)} />
+            <Input type="tel" required placeholder="enter phone number" value={form.phone} onChange={(e) => update("phone")(e.target.value)} />
           </Field>
 
           <Field label="Country">
@@ -130,15 +130,15 @@ const Signup = () => {
           </Field>
 
           <Field label="City">
-            <Input required placeholder="New York" value={form.city} onChange={(e) => update("city")(e.target.value)} />
+            <Input required placeholder="enter city" value={form.city} onChange={(e) => update("city")(e.target.value)} />
           </Field>
           <Field label="Postal code">
-            <Input required placeholder="10001" value={form.postal_code} onChange={(e) => update("postal_code")(e.target.value)} />
+            <Input required placeholder="enter postal code" value={form.postal_code} onChange={(e) => update("postal_code")(e.target.value)} />
           </Field>
 
           <div className="sm:col-span-2">
             <Field label="Address">
-              <Input required placeholder="123 Main St" value={form.address} onChange={(e) => update("address")(e.target.value)} />
+              <Input required placeholder="enter password" value={form.address} onChange={(e) => update("address")(e.target.value)} />
             </Field>
           </div>
 
