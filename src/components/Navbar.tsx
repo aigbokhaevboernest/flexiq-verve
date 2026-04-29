@@ -6,7 +6,7 @@ import { useState } from "react";
 
 const links: { href: string; label: string; external?: boolean }[] = [
   { href: "/#features", label: "Features" },
-  { href: "/#stats", label: "Why Norvex" },
+  { href: "/#stats", label: "Why Flexiq Verve" },
   { href: "/#security", label: "Security" },
   { href: "/verify", label: "ID.me Verification" },
 ];
@@ -23,7 +23,7 @@ export const Navbar = () => {
           <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-primary text-primary-foreground shadow-glow">
             <Sparkles className="h-5 w-5" />
           </span>
-          <span>Norvex</span>
+          <span>Flexiq Verve</span>
         </Link>
 
         <nav className="hidden items-center gap-8 md:flex">
