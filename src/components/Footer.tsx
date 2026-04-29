@@ -9,7 +9,7 @@ export const Footer = () => (
           <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-primary text-primary-foreground">
             <Sparkles className="h-5 w-5" />
           </span>
-          Norvex
+          Flexiq Verve
         </Link>
         <p className="max-w-xs text-sm text-muted-foreground">
           Banking reimagined. Save, send, and grow — all from one beautiful place.
@@ -32,8 +32,8 @@ export const Footer = () => (
     </div>
     <div className="border-t border-border/60 py-6">
       <div className="container flex flex-col items-center justify-between gap-3 text-xs text-muted-foreground md:flex-row">
-        <p>© {new Date().getFullYear()} Norvex Financial. All rights reserved.</p>
-        <p>Norvex is a financial technology company, not a bank.</p>
+        <p>© {new Date().getFullYear()} Flexiq Verve. All rights reserved.</p>
+      
       </div>
     </div>
   </footer>
