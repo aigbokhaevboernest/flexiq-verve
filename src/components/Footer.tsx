@@ -1,4 +1,3 @@
-export const Footer = () => (
   <footer className="border-t border-border/60 bg-muted/30">
     <div className="container grid gap-10 py-14 md:grid-cols-4">
       <div className="space-y-3">
