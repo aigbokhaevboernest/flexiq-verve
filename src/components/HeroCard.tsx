@@ -29,7 +29,7 @@ export const HeroCard = () => {
         <div className="absolute -right-16 -top-16 h-56 w-56 rounded-full bg-white/15 blur-2xl" />
         <div className="absolute -bottom-20 -left-10 h-56 w-56 rounded-full bg-accent/40 blur-3xl" />
         <div className="relative flex items-center justify-between">
-          <span className="font-display text-sm font-semibold opacity-90">NORVEX • Platinum</span>
+          <span className="font-display text-sm font-semibold opacity-90">FLEXIQ VERVE • Platinum</span>
           <Wifi className="h-5 w-5 rotate-90 opacity-90" />
         </div>
         <div className="relative mt-10">
