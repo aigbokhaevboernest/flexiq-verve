@@ -1,7 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Menu, Sparkles } from "lucide-react";
+import { Menu } from "lucide-react";
 import { useState } from "react";
 
 const links: { href: string; label: string; external?: boolean }[] = [
@@ -21,7 +21,7 @@ export const Navbar = () => {
       <div className="container flex h-16 items-center justify-between">
         <Link to="/" className="flex items-center gap-2 font-display text-xl font-bold">
           <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-primary text-primary-foreground shadow-glow">
-            <Sparkles className="h-5 w-5" />
+   <img src="/logo.png" alt="Flexiq Verve" className="h-5 w-5" />
           </span>
           <span>Flexiq Verve</span>
         </Link>
