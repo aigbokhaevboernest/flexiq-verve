@@ -20,7 +20,8 @@ export const Navbar = () => {
     <header className={`sticky top-0 z-50 w-full transition-smooth ${transparent ? "bg-background/70 backdrop-blur-xl" : "bg-background"} border-b border-border/60`}>
       <div className="container flex h-16 items-center justify-between">
         <Link to="/" className="flex items-center gap-2 font-display text-xl font-bold">
-            <img src="/logo.png" alt="Logo">
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-primary text-primary-foreground shadow-glow">
+            <Sparkles className="h-5 w-5" />
           </span>
           <span>Flexiq Verve</span>
         </Link>
