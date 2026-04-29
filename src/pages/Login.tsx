@@ -29,27 +29,19 @@ const Login = () => {
     navigate("/dashboard");
   };
 
-  const handleGoogle = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: `${window.location.origin}/dashboard` },
-    });
-    if (error) toast({ title: "Google sign in failed", description: error.message, variant: "destructive" });
-  };
-
   return (
     <AuthLayout
       title="Welcome back"
-      subtitle="Sign in to continue managing your money."
+      subtitle="Sign in to take control of your finances."
       footer={
         <>
           New to Norvex?{" "}
           <Link to="/signup" className="font-medium text-primary hover:underline">
             Open an account
           </Link>
-        </>
+      
       }
-    >
+    
       <form className="space-y-5" onSubmit={handleSubmit}>
         <div className="space-y-2">
           <Label htmlFor="id">Email</Label>
@@ -58,7 +50,7 @@ const Login = () => {
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="you@norvex.com"
+            placeholder="you@gmail.com"
             required
           />
         </div>
