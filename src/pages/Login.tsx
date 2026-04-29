@@ -40,10 +40,10 @@ const Login = () => {
   return (
     <AuthLayout
       title="Welcome back"
-      subtitle="Sign in to continue managing your money."
+      subtitle="Sign in to take control of your finances."
       footer={
         <>
-          New to Norvex?{" "}
+          New to flexiq's?{" "}
           <Link to="/signup" className="font-medium text-primary hover:underline">
             Open an account
           </Link>
@@ -58,7 +58,7 @@ const Login = () => {
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="you@norvex.com"
+            placeholder="you@flexiq's.com"
             required
           />
         </div>
