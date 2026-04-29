@@ -1,5 +1,4 @@
 import { Link } from "react-router-dom";
-import { img src="/logo.png";
 
 export const Footer = () => (
   <footer className="border-t border-border/60 bg-muted/30">
