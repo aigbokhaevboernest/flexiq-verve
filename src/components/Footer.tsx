@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Sparkles } from "lucide-react";
+import { img src="/logo.png";
 
 export const Footer = () => (
   <footer className="border-t border-border/60 bg-muted/30">
@@ -7,12 +7,12 @@ export const Footer = () => (
       <div className="space-y-3">
         <Link to="/" className="flex items-center gap-2 font-display text-xl font-bold">
           <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-primary text-primary-foreground">
-            <Sparkles className="h-5 w-5" />
+
           </span>
           Flexiq Verve
         </Link>
         <p className="max-w-xs text-sm text-muted-foreground">
-          Banking reimagined. Save, send, and grow — all from one beautiful place.
+          Banking reimagined. Save, send and grow. all from one place.
         </p>
       </div>
       {[
