@@ -1,5 +1,4 @@
 import { Link } from "react-router-dom";
-import { Sparkles } from "lucide-react";
 import { ReactNode } from "react";
 
 export const AuthLayout = ({
@@ -20,7 +19,7 @@ export const AuthLayout = ({
         <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-primary text-primary-foreground shadow-glow">
           <Sparkles className="h-5 w-5" />
         </span>
-        Norvex
+        Flexiq Verve
       </Link>
 
       <div className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center py-10">
