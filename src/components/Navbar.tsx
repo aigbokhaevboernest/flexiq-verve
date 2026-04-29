@@ -1,12 +1,12 @@
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Menu } from "lucide-react";
+import { Menu, Sparkles } from "lucide-react";
 import { useState } from "react";
 
 const links: { href: string; label: string; external?: boolean }[] = [
   { href: "/#features", label: "Features" },
-  { href: "/#stats", label: "Why Flexiq's" },
+  { href: "/#stats", label: "Why Flexiq Verve" },
   { href: "/#security", label: "Security" },
   { href: "/verify", label: "ID.me Verification" },
 ];
@@ -18,17 +18,13 @@ export const Navbar = () => {
 
   return (
     <header className={`sticky top-0 z-50 w-full transition-smooth ${transparent ? "bg-background/70 backdrop-blur-xl" : "bg-background"} border-b border-border/60`}>
-<<div className="container flex h-16 items-start justify-between pt-0">
-  <Link to="/" className="flex items-center gap-1 font-display text-xl font-bold">
-    <img
-      src="/logo.png"
-      alt="Flexiq Verve"
-      className="h-12 w-auto object-contain"
-    />
-    <span>Flexiq Verve</span>
-  </Link>
-
-
+      <div className="container flex h-16 items-center justify-between">
+        <Link to="/" className="flex items-center gap-2 font-display text-xl font-bold">
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-primary text-primary-foreground shadow-glow">
+            <Sparkles className="h-5 w-5" />
+          </span>
+          <span>Flexiq Verve</span>
+        </Link>
 
         <nav className="hidden items-center gap-8 md:flex">
           {links.map((l) => (

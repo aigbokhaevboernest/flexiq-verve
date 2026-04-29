@@ -1,4 +1,4 @@
-import heroBanking from "@/assets/hero-banking.jpg";
+import heroBanking from "@/assets/IMG_0979.jpeg";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { RotatingWord } from "@/components/RotatingWord";
