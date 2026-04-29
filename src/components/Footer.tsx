@@ -4,12 +4,7 @@ export const Footer = () => (
   <footer className="border-t border-border/60 bg-muted/30">
     <div className="container grid gap-10 py-14 md:grid-cols-4">
       <div className="space-y-3">
-        <Link to="/" className="flex items-center gap-2 font-display text-xl font-bold">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-primary text-primary-foreground">
-
-          </span>
-          Flexiq Verve
-        </Link>
+       
         <p className="max-w-xs text-sm text-muted-foreground">
           Banking reimagined. Save, send and grow. all from one place.
         </p>
