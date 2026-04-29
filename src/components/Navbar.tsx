@@ -18,7 +18,7 @@ export const Navbar = () => {
 
   return (
     <header className={`sticky top-0 z-50 w-full transition-smooth ${transparent ? "bg-background/70 backdrop-blur-xl" : "bg-background"} border-b border-border/60`}>
-      <div className="container flex h-16 items-center justify-between">
+<div className="container flex h-16 items-start justify-between pt-3">
   <Link to="/" className="flex items-center gap-3 font-display text-xl font-bold">
   <img
     src="/logo.png"
