@@ -6,6 +6,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useAuth } from "@/hooks/useAuth";
+import adminLogo from "@/assets/logo.png";
 
 const nav = [
   { to: "/admin", label: "Overview", icon: ShieldCheck, end: true },
@@ -25,9 +26,11 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
   return (
     <div className="flex h-full flex-col">
       <div className="flex h-16 items-center gap-2 border-b border-sidebar-border px-6 font-display text-xl font-bold">
-        <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-coral text-white shadow-glow">
-          <ShieldCheck className="h-5 w-5" />
-        </span>
+        <img
+          src={adminLogo}
+          alt="Admin Logo"
+          style={{ width: "40px", height: "auto", display: "block", margin: 0, padding: 0 }}
+        />
         Admin
       </div>
       <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
