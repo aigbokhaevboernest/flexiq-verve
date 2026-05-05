@@ -94,7 +94,7 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
             </NavLink>
           );
         })}
-     
+      </nav>
       <div className="border-t border-sidebar-border p-3">
         <button
           onClick={async () => {
