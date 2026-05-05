@@ -50,9 +50,7 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
     <div className="flex h-full flex-col">
       <div className="flex h-16 items-center gap-2 border-b border-sidebar-border px-6 font-display text-xl font-bold">
         <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-primary text-primary-foreground shadow-glow">
-             <img
-      src="/logo.png" className="h-5 w-5" />
-        </span>
+          <img src="/logo.png" alt="Logo" className="h-5 w-5" />
         </span>
         Flexiq Verve
       </div>
@@ -96,7 +94,7 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
             </NavLink>
           );
         })}
-     
+      </nav>
       <div className="border-t border-sidebar-border p-3">
         <button
           onClick={async () => {
