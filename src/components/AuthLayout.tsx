@@ -17,7 +17,7 @@ export const AuthLayout = ({
     <div className="flex flex-col px-6 py-8 sm:px-10">
       <Link to="/" className="flex items-center gap-2 font-display text-xl font-bold">
         <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-primary text-primary-foreground shadow-glow">
-          <Sparkles className="h-5 w-5" />
+          <img src="/logo.png" alt="Logo" className="h-5 w-5" />
         </span>
         Flexiq Verve
       </Link>
