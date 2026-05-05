@@ -1,4 +1,5 @@
 import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
+import adminLogo from "@/assets/logo.png";
 import {
   Banknote,
   Bell,
