@@ -1,7 +1,9 @@
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Menu } from "lucide-react";import { useState } from "react";
+import { Menu } from "lucide-react";
+import { useState } from "react";
+import adminLogo from "@/assets/logo.png";
 const links: { href: string; label: string; external?: boolean }[] = [
   { href: "/#features", label: "Features" },
    { href: "/#stats", label: "Why Flexiq?" },
@@ -16,10 +18,12 @@ export const Navbar = () => {
 
   return (
     <header className={`sticky top-0 z-50 w-full transition-smooth ${transparent ? "bg-background/70 backdrop-blur-xl" : "bg-background"} border-b border-border/60`}>
-     <div className="container flex h-16 items-start justify-between pt-0">
-  <Link to="/" className="flex items-center gap-1 font-display text-xl font-bold">
-    <img src="/logo.png"
-      className="h-12 w-auto object-contain"
+     <div className="container flex h-16 items-center justify-between">
+  <Link to="/" className="flex items-center gap-2 font-display text-xl font-bold m-0 p-0">
+    <img
+      src={adminLogo}
+      alt="Admin Logo"
+      style={{ width: "40px", height: "auto", display: "block", margin: 0, padding: 0 }}
     />
     <span>Flexiq Verve</span>
   </Link>

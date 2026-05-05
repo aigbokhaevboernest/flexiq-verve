@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { ReactNode } from "react";
+import adminLogo from "@/assets/logo.png";
 
 export const AuthLayout = ({
   title,
@@ -15,10 +16,12 @@ export const AuthLayout = ({
   <div className="grid min-h-screen lg:grid-cols-2">
     {/* Left: form */}
     <div className="flex flex-col px-6 py-8 sm:px-10">
-      <Link to="/" className="flex items-center gap-2 font-display text-xl font-bold">
-        <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-primary text-primary-foreground shadow-glow">
-          <img src="/logo.png" alt="Logo" className="h-5 w-5" />
-        </span>
+      <Link to="/" className="flex items-center gap-2 font-display text-xl font-bold m-0 p-0">
+        <img
+          src={adminLogo}
+          alt="Admin Logo"
+          style={{ width: "40px", height: "auto", display: "block", margin: 0, padding: 0 }}
+        />
         Flexiq Verve
       </Link>
 

@@ -1,4 +1,5 @@
 import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
+import adminLogo from "@/assets/logo.png";
 import {
   Banknote,
   Bell,
@@ -49,9 +50,11 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
   return (
     <div className="flex h-full flex-col">
       <div className="flex h-16 items-center gap-2 border-b border-sidebar-border px-6 font-display text-xl font-bold">
-        <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-primary text-primary-foreground shadow-glow">
-          <img src="/logo.png" alt="Logo" className="h-5 w-5" />
-        </span>
+        <img
+          src={adminLogo}
+          alt="Admin Logo"
+          style={{ width: "40px", height: "auto", display: "block", margin: 0, padding: 0 }}
+        />
         Flexiq Verve
       </div>
       <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
