@@ -78,10 +78,10 @@ const Index = () => {
             <motion.h1 {...fade(0.05)} className="mt-6 font-display text-4xl font-bold leading-[1.05] tracking-tight sm:text-5xl lg:text-6xl">
               Bank Smarter,{" "}
               <RotatingWord />{" "}
-              <span className="block">your money & build credit with Norvex</span>
+              <span className="block">your money & build credit with Flexiq Verve</span>
             </motion.h1>
             <motion.p {...fade(0.15)} className="mt-6 max-w-xl text-base text-muted-foreground sm:text-lg">
-              Norvex provides secure, fast, and reliable digital banking services to help you manage your finances with ease — from anywhere, on any device.
+              Flexiq Verve provides secure, fast, and reliable digital banking services to help you manage your finances with ease — from anywhere, on any device.
             </motion.p>
             <motion.div {...fade(0.25)} className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Button asChild size="lg" className="bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-95">
@@ -237,7 +237,7 @@ const Index = () => {
             <div className="relative">
               <h2 className="mx-auto max-w-2xl font-display text-3xl font-bold sm:text-4xl">Ready to bank smarter?</h2>
               <p className="mx-auto mt-4 max-w-xl text-primary-foreground/80">
-                Join Norvex in under 2 minutes. No paperwork, no fees, no nonsense.
+                Join Flexiq Verve in under 2 minutes. No paperwork, no fees, no nonsense.
               </p>
               <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
                 <Button asChild size="lg" variant="secondary" className="bg-card text-foreground hover:bg-card/90">
