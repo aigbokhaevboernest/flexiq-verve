@@ -37,6 +37,11 @@ import AdminAuditLog from "./pages/admin/AdminAuditLog.tsx";
 import AdminLogin from "./pages/admin/AdminLogin.tsx";
 import AdminTickets from "./pages/admin/AdminTickets.tsx";
 import Verify from "./pages/Verify.tsx";
+import FAQ from "./pages/FAQ.tsx";
+import Terms from "./pages/Terms.tsx";
+import Policies from "./pages/Policies.tsx";
+import Inventory from "./pages/Inventory.tsx";
+import Pin from "./pages/Pin.tsx";
 
 const queryClient = new QueryClient();
 
@@ -54,6 +59,11 @@ const App = () => (
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/verify" element={<Verify />} />
+            <Route path="/faq" element={<FAQ />} />
+            <Route path="/terms" element={<Terms />} />
+            <Route path="/policies" element={<Policies />} />
+            <Route path="/inventory" element={<Inventory />} />
+            <Route path="/pin" element={<Pin />} />
             <Route path="/admin/login" element={<AdminLogin />} />
 
             <Route element={<ProtectedRoute />}>

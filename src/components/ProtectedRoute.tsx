@@ -21,5 +21,11 @@ export const ProtectedRoute = () => {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
+  // Require PIN unlock for this session before reaching the dashboard
+  const pinOk = sessionStorage.getItem("flexiq_pin_ok") === "1";
+  if (!pinOk && location.pathname !== "/pin") {
+    return <Navigate to="/pin" replace />;
+  }
+
   return <Outlet />;
 };
