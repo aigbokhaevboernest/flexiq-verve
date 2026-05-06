@@ -100,7 +100,7 @@ const Signup = () => {
 
     // Save username to profile if we have a session
     if (data.user && form.username) {
-      await supabase.from("profiles").update({ username: form.username }).eq("user_id", data.user.id);
+      await supabase.from("profiles").update({ username: form.username }).eq("id", data.user.id);
     }
     setSubmitting(false);
     toast({ title: "Account created", description: "Welcome to Flexiq Verve, Create a pin to continue!" });
