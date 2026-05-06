@@ -4,11 +4,16 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Menu } from "lucide-react";
 import { useState } from "react";
 import adminLogo from "@/assets/logo.png";
-const links: { href: string; label: string; external?: boolean }[] = [
+
+const links: { href: string; label: string }[] = [
   { href: "/#features", label: "Features" },
-   { href: "/#stats", label: "Why Flexiq?" },
+  { href: "/#stats", label: "Why Flexiq?" },
   { href: "/#security", label: "Security" },
-  { href: "/verify", label: "ID.me Verification" },
+  { href: "/inventory", label: "Inventory" },
+  { href: "/faq", label: "FAQ" },
+  { href: "/terms", label: "Terms" },
+  { href: "/policies", label: "Privacy" },
+  { href: "/verify", label: "ID.me" },
 ];
 
 export const Navbar = () => {
@@ -18,17 +23,17 @@ export const Navbar = () => {
 
   return (
     <header className={`sticky top-0 z-50 w-full transition-smooth ${transparent ? "bg-background/70 backdrop-blur-xl" : "bg-background"} border-b border-border/60`}>
-     <div className="container flex h-16 items-center justify-between">
-  <Link to="/" className="flex items-center gap-2 font-display text-xl font-bold m-0 p-0">
-    <img
-      src={adminLogo}
-      alt="Admin Logo"
-      style={{ width: "40px", height: "auto", display: "block", margin: 0, padding: 0 }}
-    />
-    <span>Flexiq Verve</span>
-  </Link>
+      <div className="container flex h-20 items-center justify-between">
+        <Link to="/" className="flex items-center gap-3 font-display text-xl font-bold">
+          <img
+            src={adminLogo}
+            alt="Flexiq Verve"
+            style={{ width: "56px", height: "auto", display: "block" }}
+          />
+          <span>Flexiq Verve</span>
+        </Link>
 
-        <nav className="hidden items-center gap-8 md:flex">
+        <nav className="hidden items-center gap-6 lg:flex">
           {links.map((l) => (
             <a key={l.href} href={l.href} className="text-sm font-medium text-muted-foreground transition-smooth hover:text-foreground">
               {l.label}
@@ -36,7 +41,7 @@ export const Navbar = () => {
           ))}
         </nav>
 
-        <div className="hidden items-center gap-3 md:flex">
+        <div className="hidden items-center gap-3 lg:flex">
           <Button variant="ghost" asChild>
             <Link to="/login">Login</Link>
           </Button>
@@ -47,12 +52,12 @@ export const Navbar = () => {
 
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild>
-            <Button variant="ghost" size="icon" className="md:hidden">
+            <Button variant="ghost" size="icon" className="lg:hidden">
               <Menu className="h-5 w-5" />
             </Button>
           </SheetTrigger>
           <SheetContent side="right" className="w-72">
-            <div className="mt-8 flex flex-col gap-6">
+            <div className="mt-8 flex flex-col gap-5">
               {links.map((l) => (
                 <a key={l.href} href={l.href} onClick={() => setOpen(false)} className="text-base font-medium">
                   {l.label}
