@@ -62,13 +62,13 @@ const Index = () => {
       <section className="relative overflow-hidden">
         <img
           src={heroBanking}
-          alt="Mobile banking app with premium credit card and financial charts"
+          alt="Premium banking app and card"
           width={1920}
           height={1080}
-          className="absolute inset-0 h-full w-full object-cover"
+          className="absolute inset-0 h-full w-full object-cover object-center"
         />
-        <div className="absolute inset-0 bg-gradient-to-r from-background via-background/85 to-background/40" />
-        <div className="absolute inset-0 bg-background/30 md:bg-transparent" />
+        <div className="absolute inset-0 bg-background/70 md:bg-gradient-to-r md:from-background md:via-background/85 md:to-background/30" />
+        <div className="absolute inset-0 bg-gradient-to-b from-background/40 via-transparent to-background/40 md:hidden" />
         <div className="container relative grid gap-14 py-16 md:grid-cols-2 md:py-24 lg:py-32">
           <div className="flex flex-col justify-center">
             <motion.div {...fade(0)} className="inline-flex w-fit items-center gap-2 rounded-full border border-border/60 bg-card/70 px-4 py-1.5 text-xs font-medium backdrop-blur">
