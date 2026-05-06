@@ -32,7 +32,7 @@ export const AuthLayout = ({
         {footer && <div className="mt-6 text-sm text-muted-foreground">{footer}</div>}
       </div>
 
-      <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} Norvex Financial</p>
+      <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} Flexiq Verve</p>
     </div>
 
     {/* Right: hero panel */}

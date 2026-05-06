@@ -412,8 +412,10 @@ export type Database = {
           id: string
           last_name: string | null
           phone: string | null
+          pin_hash: string | null
           postal_code: string | null
           updated_at: string
+          username: string | null
         }
         Insert: {
           account_type?: string | null
@@ -428,8 +430,10 @@ export type Database = {
           id: string
           last_name?: string | null
           phone?: string | null
+          pin_hash?: string | null
           postal_code?: string | null
           updated_at?: string
+          username?: string | null
         }
         Update: {
           account_type?: string | null
@@ -444,8 +448,10 @@ export type Database = {
           id?: string
           last_name?: string | null
           phone?: string | null
+          pin_hash?: string | null
           postal_code?: string | null
           updated_at?: string
+          username?: string | null
         }
         Relationships: []
       }
@@ -612,6 +618,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_email_by_username: { Args: { _username: string }; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

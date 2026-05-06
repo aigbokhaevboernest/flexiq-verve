@@ -1,22 +1,17 @@
-import { AuthLayout } from "@/components/AuthLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Link, useNavigate } from "react-router-dom";
 import { countries } from "@/lib/countries";
 import { currencies } from "@/lib/currencies";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import adminLogo from "@/assets/logo.png";
 
-const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
-  <div className="space-y-2">
-    <Label>{label}</Label>
-    {children}
-  </div>
-);
+const nativeSelectClass =
+  "mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring";
 
 const Signup = () => {
   const navigate = useNavigate();
@@ -24,6 +19,7 @@ const Signup = () => {
   const [form, setForm] = useState({
     first_name: "",
     last_name: "",
+    username: "",
     email: "",
     phone: "",
     country: "",
@@ -36,6 +32,38 @@ const Signup = () => {
     confirm_password: "",
   });
 
+  // Inject Google Translate widget on this page only
+  useEffect(() => {
+    (window as any).googleTranslateElementInit = () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      new (window as any).google.translate.TranslateElement(
+        {
+          pageLanguage: "en",
+          includedLanguages: "es,fr,de,zh-CN,ar,ja,ko,pt,ru,hi,it,nl,tr,pl,sv",
+          layout: (window as any).google.translate.TranslateElement.InlineLayout.SIMPLE,
+          autoDisplay: false,
+        },
+        "google_translate_element"
+      );
+    };
+    const script = document.createElement("script");
+    script.src = "//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit";
+    script.async = true;
+    document.body.appendChild(script);
+
+    const style = document.createElement("style");
+    style.id = "gt-style";
+    style.textContent = `.goog-te-banner-frame{display:none !important;} body{top:0 !important;}`;
+    document.head.appendChild(style);
+
+    return () => {
+      script.remove();
+      style.remove();
+      const el = document.getElementById("google_translate_element");
+      if (el) el.innerHTML = "";
+    };
+  }, []);
+
   const update = (k: keyof typeof form) => (v: string) => setForm((f) => ({ ...f, [k]: v }));
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -45,7 +73,7 @@ const Signup = () => {
       return;
     }
     setSubmitting(true);
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email: form.email,
       password: form.password,
       options: {
@@ -60,115 +88,151 @@ const Signup = () => {
           address: form.address,
           city: form.city,
           postal_code: form.postal_code,
+          username: form.username,
         },
       },
     });
-    setSubmitting(false);
     if (error) {
+      setSubmitting(false);
       toast({ title: "Signup failed", description: error.message, variant: "destructive" });
       return;
     }
-    toast({ title: "Account created", description: "Welcome to Norvex!" });
-    navigate("/dashboard");
+
+    // Save username to profile if we have a session
+    if (data.user && form.username) {
+      await supabase.from("profiles").update({ username: form.username }).eq("id", data.user.id);
+    }
+    setSubmitting(false);
+    toast({ title: "Account created", description: "Welcome to Flexiq Verve!" });
+    sessionStorage.removeItem("flexiq_pin_ok");
+    navigate("/pin");
   };
 
   return (
-    <AuthLayout
-      title="Open your account"
-      subtitle="Takes about 2 minutes. No paperwork."
-      footer={
-        <>
-          Already have an account?{" "}
-          <Link to="/login" className="font-medium text-primary hover:underline">Login</Link>
-        </>
-      }
-    >
-      <form className="space-y-5" onSubmit={handleSubmit}>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="First name">
-            <Input required placeholder="enter first name" value={form.first_name} onChange={(e) => update("first_name")(e.target.value)} />
-          </Field>
-          <Field label="Last name">
-            <Input required placeholder="enter last name" value={form.last_name} onChange={(e) => update("last_name")(e.target.value)} />
-          </Field>
+    <div className="relative min-h-screen bg-gradient-to-br from-background via-background to-primary/5 px-4 py-10">
+      <div
+        id="google_translate_element"
+        style={{
+          position: "fixed",
+          top: 12,
+          right: 12,
+          background: "white",
+          borderRadius: 8,
+          padding: 4,
+          boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+          zIndex: 9999,
+        }}
+      />
 
-          <Field label="Email">
-            <Input type="email" required placeholder="jane@email.com" value={form.email} onChange={(e) => update("email")(e.target.value)} />
-          </Field>
-          <Field label="Phone">
-            <Input type="tel" required placeholder="enter phone number" value={form.phone} onChange={(e) => update("phone")(e.target.value)} />
-          </Field>
-
-          <Field label="Country">
-            <Select required value={form.country} onValueChange={update("country")}>
-              <SelectTrigger><SelectValue placeholder="Select country" /></SelectTrigger>
-              <SelectContent className="max-h-64">
-                {countries.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </Field>
-
-          <Field label="Account type">
-            <Select required value={form.account_type} onValueChange={update("account_type")}>
-              <SelectTrigger><SelectValue placeholder="Choose account" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="personal">Personal</SelectItem>
-                <SelectItem value="business">Business</SelectItem>
-                <SelectItem value="checking">Checking</SelectItem>
-                <SelectItem value="savings">Savings</SelectItem>
-              </SelectContent>
-            </Select>
-          </Field>
-
-          <Field label="Preferred currency">
-            <Select required value={form.currency} onValueChange={update("currency")}>
-              <SelectTrigger><SelectValue placeholder="Currency" /></SelectTrigger>
-              <SelectContent className="max-h-64">
-                {currencies.map((c) => <SelectItem key={c.code} value={c.code}>{c.code} — {c.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </Field>
-
-          <Field label="City">
-            <Input required placeholder="enter city" value={form.city} onChange={(e) => update("city")(e.target.value)} />
-          </Field>
-          <Field label="Postal code">
-            <Input required placeholder="enter postal code" value={form.postal_code} onChange={(e) => update("postal_code")(e.target.value)} />
-          </Field>
-
-          <div className="sm:col-span-2">
-            <Field label="Address">
-              <Input required placeholder="enter password" value={form.address} onChange={(e) => update("address")(e.target.value)} />
-            </Field>
-          </div>
-
-          <Field label="Password">
-            <Input type="password" required minLength={8} placeholder="At least 8 characters" value={form.password} onChange={(e) => update("password")(e.target.value)} />
-          </Field>
-          <Field label="Confirm password">
-            <Input type="password" required minLength={8} placeholder="Repeat password" value={form.confirm_password} onChange={(e) => update("confirm_password")(e.target.value)} />
-          </Field>
+      <div className="mx-auto w-full max-w-2xl rounded-3xl border border-border/60 bg-card/90 p-8 shadow-elev backdrop-blur-xl sm:p-10">
+        <div className="flex flex-col items-center text-center">
+          <Link to="/" className="flex flex-col items-center">
+            <img src={adminLogo} alt="Flexiq Verve" style={{ width: 96, height: "auto", display: "block" }} />
+            <span className="mt-3 font-display text-2xl font-bold">Flexiq Verve</span>
+          </Link>
+          <h1 className="mt-6 font-display text-3xl font-bold tracking-tight">Open your account</h1>
+          <p className="mt-2 text-sm text-muted-foreground">Takes about 2 minutes. No paperwork.</p>
         </div>
 
-        <label className="flex items-start gap-2 text-sm text-muted-foreground">
-          <Checkbox required className="mt-0.5" />
-          <span>
-            I agree to the{" "}
-            <a className="font-medium text-primary hover:underline">Terms of Service</a> and{" "}
-            <a className="font-medium text-primary hover:underline">Privacy Policy</a>.
-          </span>
-        </label>
+        <form className="mt-8 space-y-5" onSubmit={handleSubmit}>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <Label>First name</Label>
+              <Input required className="mt-1" placeholder="First name" value={form.first_name} onChange={(e) => update("first_name")(e.target.value)} />
+            </div>
+            <div>
+              <Label>Last name</Label>
+              <Input required className="mt-1" placeholder="Last name" value={form.last_name} onChange={(e) => update("last_name")(e.target.value)} />
+            </div>
 
-        <Button
-          type="submit"
-          size="lg"
-          disabled={submitting}
-          className="w-full bg-gradient-primary text-primary-foreground shadow-md hover:opacity-95"
-        >
-          {submitting ? "Creating account…" : "Create account"}
-        </Button>
-      </form>
-    </AuthLayout>
+            <div>
+              <Label>Username</Label>
+              <Input required className="mt-1" placeholder="username" value={form.username} onChange={(e) => update("username")(e.target.value.replace(/\s+/g, ""))} />
+            </div>
+            <div>
+              <Label>Email</Label>
+              <Input type="email" required className="mt-1" placeholder="jane@email.com" value={form.email} onChange={(e) => update("email")(e.target.value)} />
+            </div>
+
+            <div>
+              <Label>Phone</Label>
+              <Input type="tel" required className="mt-1" placeholder="Phone number" value={form.phone} onChange={(e) => update("phone")(e.target.value)} />
+            </div>
+            <div>
+              <Label>Country</Label>
+              <select required className={nativeSelectClass} value={form.country} onChange={(e) => update("country")(e.target.value)}>
+                <option value="">Select country</option>
+                {countries.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+
+            <div>
+              <Label>Account type</Label>
+              <select required className={nativeSelectClass} value={form.account_type} onChange={(e) => update("account_type")(e.target.value)}>
+                <option value="">Choose account</option>
+                <option value="personal">Personal</option>
+                <option value="business">Business</option>
+                <option value="checking">Checking</option>
+                <option value="savings">Savings</option>
+              </select>
+            </div>
+            <div>
+              <Label>Preferred currency</Label>
+              <select required className={nativeSelectClass} value={form.currency} onChange={(e) => update("currency")(e.target.value)}>
+                <option value="">Currency</option>
+                {currencies.map((c) => <option key={c.code} value={c.code}>{c.code} — {c.name}</option>)}
+              </select>
+            </div>
+
+            <div>
+              <Label>City</Label>
+              <Input required className="mt-1" placeholder="City" value={form.city} onChange={(e) => update("city")(e.target.value)} />
+            </div>
+            <div>
+              <Label>Postal code</Label>
+              <Input required className="mt-1" placeholder="Postal code" value={form.postal_code} onChange={(e) => update("postal_code")(e.target.value)} />
+            </div>
+
+            <div className="sm:col-span-2">
+              <Label>Address</Label>
+              <Input required className="mt-1" placeholder="Street address" value={form.address} onChange={(e) => update("address")(e.target.value)} />
+            </div>
+
+            <div>
+              <Label>Password</Label>
+              <Input type="password" required minLength={8} className="mt-1" placeholder="At least 8 characters" value={form.password} onChange={(e) => update("password")(e.target.value)} />
+            </div>
+            <div>
+              <Label>Confirm password</Label>
+              <Input type="password" required minLength={8} className="mt-1" placeholder="Repeat password" value={form.confirm_password} onChange={(e) => update("confirm_password")(e.target.value)} />
+            </div>
+          </div>
+
+          <label className="flex items-start gap-2 text-sm text-muted-foreground">
+            <Checkbox required className="mt-0.5" />
+            <span>
+              I agree to the{" "}
+              <Link to="/terms" className="font-medium text-primary hover:underline">Terms of Service</Link> and{" "}
+              <Link to="/policies" className="font-medium text-primary hover:underline">Privacy Policy</Link>.
+            </span>
+          </label>
+
+          <Button
+            type="submit"
+            size="lg"
+            disabled={submitting}
+            className="w-full bg-gradient-primary text-primary-foreground shadow-md hover:opacity-95"
+          >
+            {submitting ? "Creating account…" : "Create account"}
+          </Button>
+        </form>
+
+        <p className="mt-6 text-center text-sm text-muted-foreground">
+          Already have an account?{" "}
+          <Link to="/login" className="font-medium text-primary hover:underline">Login</Link>
+        </p>
+      </div>
+    </div>
   );
 };
 
