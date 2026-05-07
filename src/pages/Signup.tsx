@@ -5,7 +5,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Link, useNavigate } from "react-router-dom";
 import { countries } from "@/lib/countries";
 import { currencies } from "@/lib/currencies";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import adminLogo from "@/assets/logo.png";
