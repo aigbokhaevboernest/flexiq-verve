@@ -94,8 +94,8 @@ const Cards = () => {
               <CreditCard className="h-6 w-6 opacity-90" />
             </div>
             {active.frozen && (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <Badge className="rounded-full bg-white/90 text-foreground"><Snowflake className="mr-1 h-3 w-3" /> Frozen</Badge>
+              <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                <Badge className="rounded-full bg-white text-foreground text-base px-4 py-1.5"><Snowflake className="mr-2 h-4 w-4" /> Card frozen</Badge>
               </div>
             )}
           </div>
@@ -135,29 +135,6 @@ const Cards = () => {
             </div>
           </Card>
 
-          <Card className="rounded-3xl border-border/60 p-6 shadow-card">
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-semibold">Monthly limit</p>
-              <span className="font-display text-sm font-bold">{formatMoney(Number(active.monthly_limit), currency)}</span>
-            </div>
-            <Slider className="mt-4" min={500} max={50000} step={500} value={[Number(active.monthly_limit)]}
-              onValueChange={([v]) => update({ monthly_limit: v })} />
-            <div className="mt-4 h-2 overflow-hidden rounded-full bg-muted">
-              <div className="h-full rounded-full bg-gradient-primary" style={{ width: `${usagePct}%` }} />
-            </div>
-          </Card>
-
-          <Card className="rounded-3xl border-border/60 p-6 shadow-card">
-            <div className="flex items-center gap-2"><Zap className="h-4 w-4 text-warning" /><p className="text-sm font-semibold">Quick controls</p></div>
-            <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
-              <label className="flex items-center justify-between rounded-xl bg-muted/50 px-3 py-2">
-                Online <Switch checked={active.online_enabled} onCheckedChange={(v) => update({ online_enabled: v })} />
-              </label>
-              <label className="flex items-center justify-between rounded-xl bg-muted/50 px-3 py-2">
-                ATM <Switch checked={active.atm_enabled} onCheckedChange={(v) => update({ atm_enabled: v })} />
-              </label>
-            </div>
-          </Card>
         </div>
       </div>
     </div>
