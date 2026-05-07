@@ -12,7 +12,7 @@ import {
   Wallet,
   Wifi,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { useAccount, useProfile, formatMoney } from "@/hooks/useAccount";
