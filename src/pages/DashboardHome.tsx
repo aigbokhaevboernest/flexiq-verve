@@ -143,11 +143,11 @@ const DashboardHome = () => {
               <div>
                 <p className="text-xs uppercase tracking-widest opacity-70">Available Balance</p>
                 <div className="mt-2 flex items-center gap-3">
-                  {accLoading ? (
+                  {accLoading && balanceToShow == null ? (
                     <Skeleton className="h-12 w-48 bg-white/20" />
                   ) : (
                     <p className="font-display text-4xl font-bold tracking-tight sm:text-5xl">
-                      {hidden ? "••••••" : formatMoney(Number(account?.balance ?? 0), currency)}
+                      {hidden ? "••••••" : formatMoney(Number(balanceToShow ?? 0), currency)}
                     </p>
                   )}
                   <button onClick={() => setHidden((h) => !h)} className="rounded-full bg-white/15 p-2 backdrop-blur transition-smooth hover:bg-white/25">
@@ -157,7 +157,7 @@ const DashboardHome = () => {
                 <div className="mt-6 flex flex-wrap gap-x-8 gap-y-2 text-sm opacity-90">
                   <div>
                     <p className="text-xs opacity-70">Account No.</p>
-                    <p className="font-mono">{account?.account_number || "—"}</p>
+                    <p className="font-mono">{account?.account_number || cachedAccountNumber || "—"}</p>
                   </div>
                   <div>
                     <p className="text-xs opacity-70">Account type</p>
@@ -228,23 +228,16 @@ const DashboardHome = () => {
               <CreditCard className="h-4 w-4" />
             </div>
             <p className="mt-6 font-mono text-sm tracking-[0.2em]">
-              •••• •••• •••• {card?.card_number?.slice(-4) ?? "————"}
+              {card?.card_number ? card.card_number.replace(/(.{4})/g, "$1 ").trim() : "•••• •••• •••• ————"}
             </p>
             <div className="mt-3 flex justify-between text-xs opacity-90">
               <span>{card?.cardholder_name || "—"}</span>
               <span>{card?.expires_at || "—"}</span>
             </div>
           </div>
-          <div className="mt-4 grid grid-cols-2 gap-2 text-center">
-            <div className="rounded-xl bg-muted p-3">
-              <p className="text-xs text-muted-foreground">Limit</p>
-              <p className="font-display text-sm font-bold">{formatMoney(Number(card?.monthly_limit ?? 0), currency)}</p>
-            </div>
-            <div className="rounded-xl bg-muted p-3">
-              <p className="text-xs text-muted-foreground">Status</p>
-              <p className="font-display text-sm font-bold">{card?.frozen ? "Frozen" : "Active"}</p>
-            </div>
-          </div>
+          {card?.frozen && (
+            <p className="mt-3 text-center text-xs font-semibold text-warning">Card frozen</p>
+          )}
         </Card>
       </div>
 
