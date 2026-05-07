@@ -98,7 +98,12 @@ const FxTransfer = () => {
     setPendingTxId(null);
   };
 
-  const allCurrencies = ["USD", ...rates.map((r: any) => r.quote_currency).sort()];
+  const allCurrencies = Array.from(new Set([
+    "USD","EUR","GBP","JPY","CNY","CAD","AUD","INR","MXN","BRL","ZAR","AED","KRW",
+    "CHF","HKD","SGD","NZD","SEK","NOK","DKK","TRY","RUB","PLN","THB","IDR","MYR",
+    "PHP","VND","ILS","SAR","EGP","NGN","KES","CZK","HUF","RON","COP","CLP","ARS","TWD",
+    ...rates.map((r: any) => r.quote_currency),
+  ])).sort();
 
   return (
     <div className="space-y-6">
