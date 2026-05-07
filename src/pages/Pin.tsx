@@ -29,9 +29,15 @@ const Pin = () => {
       navigate("/login", { replace: true });
       return;
     }
+    const cached = localStorage.getItem(`hasPinSetup:${user.id}`);
+    if (cached === "1") setMode("enter");
+    else if (cached === "0") setMode("create");
+
     (async () => {
       const { data } = await (supabase as any).rpc("get_pin_hash", { _user_id: user.id });
-      setMode(data ? "enter" : "create");
+      const hasPin = !!data;
+      localStorage.setItem(`hasPinSetup:${user.id}`, hasPin ? "1" : "0");
+      setMode(hasPin ? "enter" : "create");
     })();
   }, [user, loading, navigate]);
 
@@ -44,6 +50,7 @@ const Pin = () => {
     const { error } = await (supabase as any).rpc("set_pin_hash", { user_id: user!.id, hash });
     setBusy(false);
     if (error) return toast({ title: "Could not save PIN", description: error.message, variant: "destructive" });
+    localStorage.setItem(`hasPinSetup:${user!.id}`, "1");
     sessionStorage.setItem("flexiq_pin_ok", "1");
     toast({ title: "PIN set" });
     navigate("/dashboard", { replace: true });
