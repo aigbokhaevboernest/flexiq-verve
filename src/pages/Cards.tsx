@@ -82,7 +82,7 @@ const Cards = () => {
             <div className="absolute -right-16 -top-16 h-56 w-56 rounded-full bg-white/15 blur-2xl" />
             <div className="relative flex items-start justify-between">
               <div>
-                <p className="text-xs uppercase tracking-widest opacity-80">Norvex {active.card_type}</p>
+                <p className="text-xs uppercase tracking-widest opacity-80">Flexiq Verve {active.card_type}</p>
                 <p className="mt-1 font-display text-lg font-semibold">{active.cardholder_name}</p>
               </div>
               <Wifi className="h-5 w-5 rotate-90 opacity-90" />

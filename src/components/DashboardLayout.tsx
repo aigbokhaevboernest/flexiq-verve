@@ -122,7 +122,7 @@ export const DashboardLayout = () => {
   const [initials, setInitials] = useState("JD");
 
   useEffect(() => {
-    const saved = localStorage.getItem("norvex-theme");
+    const saved = localStorage.getItem("flexiq-theme");
     if (saved === "dark") {
       document.documentElement.classList.add("dark");
       setDark(true);
@@ -147,7 +147,7 @@ export const DashboardLayout = () => {
     const next = !dark;
     setDark(next);
     document.documentElement.classList.toggle("dark", next);
-    localStorage.setItem("norvex-theme", next ? "dark" : "light");
+    localStorage.setItem("flexiq-theme", next ? "dark" : "light");
   };
 
   return (

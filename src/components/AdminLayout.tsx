@@ -85,7 +85,7 @@ export const AdminLayout = () => {
           </Sheet>
           <div className="flex items-center gap-2">
             <Sparkles className="h-4 w-4 text-primary" />
-            <span className="font-display font-semibold">Norvex Admin Console</span>
+            <span className="font-display font-semibold">Flexiq Verve Admin Console</span>
           </div>
         </header>
         <main className="p-4 sm:p-6 lg:p-8">

@@ -30,7 +30,7 @@ const ReceiveMoney = () => {
               { label: "Account holder", value: fullName },
               { label: "Account number", value: account?.account_number || "—" },
               { label: "Currency", value: account?.currency || "USD" },
-              { label: "Bank name", value: "Norvex Wealth" },
+              { label: "Bank name", value: "Flexiq Verve Wealth" },
               { label: "SWIFT / BIC", value: "NRVXUS33" },
               { label: "Routing number", value: "021000089" },
             ].map((row) => (
@@ -46,7 +46,7 @@ const ReceiveMoney = () => {
             ))}
           </div>
           <Button className="mt-6 w-full gap-2 bg-gradient-primary" onClick={() => copy(
-            `Account: ${account?.account_number}\nBank: Norvex Wealth\nSWIFT: NRVXUS33\nBeneficiary: ${fullName}`,
+            `Account: ${account?.account_number}\nBank: Flexiq Verve Wealth\nSWIFT: NRVXUS33\nBeneficiary: ${fullName}`,
             "Bank details"
           )}>
             <Share2 className="h-4 w-4" /> Copy all details

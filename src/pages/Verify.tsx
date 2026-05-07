@@ -24,7 +24,7 @@ const steps = [
   },
   {
     icon: Clock,
-    title: "Return to Norvex",
+    title: "Return to Flexiq Verve",
     desc: "Once verified by ID.me, come back here — your verified status will be reflected on your account.",
   },
 ];
@@ -46,7 +46,7 @@ const Verify = () => {
             Verify your identity with ID.me
           </h1>
           <p className="mx-auto mt-4 max-w-2xl text-base text-muted-foreground sm:text-lg">
-            Norvex partners with ID.me — the trusted identity network used by the U.S. government,
+            Flexiq Verve partners with ID.me — the trusted identity network used by the U.S. government,
             healthcare, and leading financial institutions — to securely verify your identity.
           </p>
         </div>
@@ -113,7 +113,7 @@ const Verify = () => {
                 <ExternalLink className="ml-1 h-4 w-4" />
               </Button>
               <p className="text-xs text-muted-foreground">
-                You'll leave Norvex and continue on id.me
+                You'll leave Flexiq Verve and continue on id.me
               </p>
             </div>
           </div>
