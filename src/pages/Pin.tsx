@@ -54,9 +54,9 @@ const Pin = () => {
     if (!/^\d{4}$/.test(pin)) return toast({ title: "Enter your 4-digit PIN", variant: "destructive" });
     setBusy(true);
     const hash = await hashPin(pin);
-    const { data } = await supabase.from("profiles").select("pin_hash").eq("id", user!.id).maybeSingle();
+    const { data } = await (supabase as any).rpc("get_pin_hash", { _user_id: user!.id });
     setBusy(false);
-    if (data?.pin_hash !== hash) return toast({ title: "Incorrect PIN", variant: "destructive" });
+    if (data !== hash) return toast({ title: "Incorrect PIN", variant: "destructive" });
     sessionStorage.setItem("flexiq_pin_ok", "1");
     navigate("/dashboard", { replace: true });
   };
