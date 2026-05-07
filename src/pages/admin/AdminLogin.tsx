@@ -94,7 +94,7 @@ const AdminLogin = () => {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="admin@norvex.com"
+                placeholder="admin@flexiq.com"
                 required
                 autoComplete="email"
               />

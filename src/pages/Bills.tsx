@@ -79,7 +79,7 @@ const Bills = () => {
     <div className="space-y-6">
       <div>
         <h1 className="font-display text-2xl font-bold sm:text-3xl">Bill Payment</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Pay your bills directly from your Norvex account.</p>
+        <p className="mt-1 text-sm text-muted-foreground">Pay your bills directly from your Flexiq Verve account.</p>
       </div>
 
       <Card className="rounded-3xl border-border/60 p-6 shadow-card sm:p-8">

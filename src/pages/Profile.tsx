@@ -98,7 +98,7 @@ const Profile = () => {
               <Row label="Balance" value={account ? formatMoney(Number(account.balance), account.currency) : undefined} />
               <Row label="Status" value={account?.frozen ? "Frozen" : "Active"} />
               <Row label="Member since" value={profile?.created_at ? new Date(profile.created_at).toLocaleDateString() : undefined} icon={CalendarClock} />
-              <Row label="User ID" value={user?.id} />
+              
             </div>
           </Card>
 

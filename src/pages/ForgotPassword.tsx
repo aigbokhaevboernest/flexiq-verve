@@ -54,7 +54,7 @@ const ForgotPassword = () => {
               id="email"
               type="email"
               required
-              placeholder="you@norvex.com"
+              placeholder="you@flexiq.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />

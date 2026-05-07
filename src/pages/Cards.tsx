@@ -2,12 +2,11 @@ import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Copy, CreditCard, Eye, EyeOff, Plus, Snowflake, Wifi, Zap } from "lucide-react";
+import { Copy, CreditCard, Eye, EyeOff, Plus, Snowflake, Wifi } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { useProfile, formatMoney } from "@/hooks/useAccount";
+import { useProfile } from "@/hooks/useAccount";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -58,11 +57,8 @@ const Cards = () => {
       </Card>
     );
   }
-
-  const usagePct = 0; // we don't track per-card spend yet
   const last4 = active.card_number.slice(-4);
   const masked = active.card_number.replace(/(.{4})/g, "$1 ").trim();
-  const currency = profile?.currency || "USD";
 
   return (
     <div className="space-y-6">
@@ -82,7 +78,7 @@ const Cards = () => {
             <div className="absolute -right-16 -top-16 h-56 w-56 rounded-full bg-white/15 blur-2xl" />
             <div className="relative flex items-start justify-between">
               <div>
-                <p className="text-xs uppercase tracking-widest opacity-80">Norvex {active.card_type}</p>
+                <p className="text-xs uppercase tracking-widest opacity-80">Flexiq Verve {active.card_type}</p>
                 <p className="mt-1 font-display text-lg font-semibold">{active.cardholder_name}</p>
               </div>
               <Wifi className="h-5 w-5 rotate-90 opacity-90" />
@@ -94,8 +90,8 @@ const Cards = () => {
               <CreditCard className="h-6 w-6 opacity-90" />
             </div>
             {active.frozen && (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <Badge className="rounded-full bg-white/90 text-foreground"><Snowflake className="mr-1 h-3 w-3" /> Frozen</Badge>
+              <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                <Badge className="rounded-full bg-white text-foreground text-base px-4 py-1.5"><Snowflake className="mr-2 h-4 w-4" /> Card frozen</Badge>
               </div>
             )}
           </div>
@@ -135,29 +131,6 @@ const Cards = () => {
             </div>
           </Card>
 
-          <Card className="rounded-3xl border-border/60 p-6 shadow-card">
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-semibold">Monthly limit</p>
-              <span className="font-display text-sm font-bold">{formatMoney(Number(active.monthly_limit), currency)}</span>
-            </div>
-            <Slider className="mt-4" min={500} max={50000} step={500} value={[Number(active.monthly_limit)]}
-              onValueChange={([v]) => update({ monthly_limit: v })} />
-            <div className="mt-4 h-2 overflow-hidden rounded-full bg-muted">
-              <div className="h-full rounded-full bg-gradient-primary" style={{ width: `${usagePct}%` }} />
-            </div>
-          </Card>
-
-          <Card className="rounded-3xl border-border/60 p-6 shadow-card">
-            <div className="flex items-center gap-2"><Zap className="h-4 w-4 text-warning" /><p className="text-sm font-semibold">Quick controls</p></div>
-            <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
-              <label className="flex items-center justify-between rounded-xl bg-muted/50 px-3 py-2">
-                Online <Switch checked={active.online_enabled} onCheckedChange={(v) => update({ online_enabled: v })} />
-              </label>
-              <label className="flex items-center justify-between rounded-xl bg-muted/50 px-3 py-2">
-                ATM <Switch checked={active.atm_enabled} onCheckedChange={(v) => update({ atm_enabled: v })} />
-              </label>
-            </div>
-          </Card>
         </div>
       </div>
     </div>

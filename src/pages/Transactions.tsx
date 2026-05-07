@@ -88,7 +88,7 @@ const Transactions = () => {
     doc.setTextColor(255, 255, 255);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(18);
-    doc.text("NORVEX", 14, 18);
+    doc.text("FLEXIQ VERVE", 14, 18);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(10);
     doc.text("Account Statement", pageW - 14, 18, { align: "right" });
@@ -143,14 +143,14 @@ const Transactions = () => {
       doc.setFontSize(8);
       doc.setTextColor(120);
       doc.text(
-        `Norvex Bank • This statement is generated electronically and is valid without signature. Page ${i} of ${pageCount}`,
+        `Flexiq Verve Bank • This statement is generated electronically and is valid without signature. Page ${i} of ${pageCount}`,
         pageW / 2,
         doc.internal.pageSize.getHeight() - 8,
         { align: "center" }
       );
     }
 
-    doc.save(`norvex-statement-${new Date().toISOString().slice(0, 10)}.pdf`);
+    doc.save(`flexiq-statement-${new Date().toISOString().slice(0, 10)}.pdf`);
   };
 
   return (

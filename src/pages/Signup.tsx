@@ -5,10 +5,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Link, useNavigate } from "react-router-dom";
 import { countries } from "@/lib/countries";
 import { currencies } from "@/lib/currencies";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import adminLogo from "@/assets/logo.png";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
 const nativeSelectClass =
   "mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring";
@@ -32,37 +33,7 @@ const Signup = () => {
     confirm_password: "",
   });
 
-  // Inject Google Translate widget on this page only
-  useEffect(() => {
-    (window as any).googleTranslateElementInit = () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      new (window as any).google.translate.TranslateElement(
-        {
-          pageLanguage: "en",
-          includedLanguages: "es,fr,de,zh-CN,ar,ja,ko,pt,ru,hi,it,nl,tr,pl,sv",
-          layout: (window as any).google.translate.TranslateElement.InlineLayout.SIMPLE,
-          autoDisplay: false,
-        },
-        "google_translate_element"
-      );
-    };
-    const script = document.createElement("script");
-    script.src = "//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit";
-    script.async = true;
-    document.body.appendChild(script);
-
-    const style = document.createElement("style");
-    style.id = "gt-style";
-    style.textContent = `.goog-te-banner-frame{display:none !important;} body{top:0 !important;}`;
-    document.head.appendChild(style);
-
-    return () => {
-      script.remove();
-      style.remove();
-      const el = document.getElementById("google_translate_element");
-      if (el) el.innerHTML = "";
-    };
-  }, []);
+  // (Google Translate removed — replaced with custom LanguageSwitcher)
 
   const update = (k: keyof typeof form) => (v: string) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -110,19 +81,9 @@ const Signup = () => {
 
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-background via-background to-primary/5 px-4 py-10">
-      <div
-        id="google_translate_element"
-        style={{
-          position: "fixed",
-          top: 12,
-          right: 12,
-          background: "white",
-          borderRadius: 8,
-          padding: 4,
-          boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
-          zIndex: 9999,
-        }}
-      />
+      <div style={{ position: "fixed", top: 12, right: 12, zIndex: 9999 }}>
+        <LanguageSwitcher />
+      </div>
 
       <div className="mx-auto w-full max-w-2xl rounded-3xl border border-border/60 bg-card/90 p-8 shadow-elev backdrop-blur-xl sm:p-10">
         <div className="flex flex-col items-center text-center">

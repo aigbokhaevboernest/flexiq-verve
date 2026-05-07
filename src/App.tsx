@@ -42,16 +42,25 @@ import Terms from "./pages/Terms.tsx";
 import Policies from "./pages/Policies.tsx";
 import Inventory from "./pages/Inventory.tsx";
 import Pin from "./pages/Pin.tsx";
+import { SplashScreen } from "./components/SplashScreen";
+import { useSessionTimeout } from "./hooks/useSessionTimeout";
 
 const queryClient = new QueryClient();
+
+const SessionGuard = ({ children }: { children: React.ReactNode }) => {
+  useSessionTimeout();
+  return <>{children}</>;
+};
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
+      <SplashScreen />
       <Toaster />
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
+          <SessionGuard>
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
@@ -99,6 +108,7 @@ const App = () => (
 
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </SessionGuard>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>

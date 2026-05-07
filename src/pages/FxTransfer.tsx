@@ -98,7 +98,12 @@ const FxTransfer = () => {
     setPendingTxId(null);
   };
 
-  const allCurrencies = ["USD", ...rates.map((r: any) => r.quote_currency).sort()];
+  const allCurrencies = Array.from(new Set([
+    "USD","EUR","GBP","JPY","CNY","CAD","AUD","INR","MXN","BRL","ZAR","AED","KRW",
+    "CHF","HKD","SGD","NZD","SEK","NOK","DKK","TRY","RUB","PLN","THB","IDR","MYR",
+    "PHP","VND","ILS","SAR","EGP","NGN","KES","CZK","HUF","RON","COP","CLP","ARS","TWD",
+    ...rates.map((r: any) => r.quote_currency),
+  ])).sort();
 
   return (
     <div className="space-y-6">
@@ -173,7 +178,7 @@ const FxTransfer = () => {
 
         <div className="space-y-4">
           <Card className="rounded-3xl border-border/60 p-6 shadow-card">
-            <div className="flex items-center gap-2"><Zap className="h-4 w-4 text-warning" /><p className="text-sm font-semibold">Why Norvex FX?</p></div>
+            <div className="flex items-center gap-2"><Zap className="h-4 w-4 text-warning" /><p className="text-sm font-semibold">Why Flexiq Verve FX?</p></div>
             <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
               <li>• Real mid-market rates</li>
               <li>• Flat 0.5% fee — no hidden margin</li>
