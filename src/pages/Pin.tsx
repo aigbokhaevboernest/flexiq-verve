@@ -30,8 +30,8 @@ const Pin = () => {
       return;
     }
     (async () => {
-      const { data } = await supabase.from("profiles").select("pin_hash").eq("id", user.id).maybeSingle();
-      setMode(data?.pin_hash ? "enter" : "create");
+      const { data } = await (supabase as any).rpc("get_pin_hash", { _user_id: user.id });
+      setMode(data ? "enter" : "create");
     })();
   }, [user, loading, navigate]);
 
