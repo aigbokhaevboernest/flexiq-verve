@@ -57,11 +57,8 @@ const Cards = () => {
       </Card>
     );
   }
-
-  const usagePct = 0; // we don't track per-card spend yet
   const last4 = active.card_number.slice(-4);
   const masked = active.card_number.replace(/(.{4})/g, "$1 ").trim();
-  const currency = profile?.currency || "USD";
 
   return (
     <div className="space-y-6">
