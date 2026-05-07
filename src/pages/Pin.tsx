@@ -41,7 +41,7 @@ const Pin = () => {
     if (pin !== confirmPin) return toast({ title: "PINs don't match", variant: "destructive" });
     setBusy(true);
     const hash = await hashPin(pin);
-    const { error } = await supabase.from("profiles").update({ pin_hash: hash }).eq("id", user!.id);
+    const { error } = await (supabase as any).rpc("set_pin_hash", { _user_id: user!.id, _hash: hash });
     setBusy(false);
     if (error) return toast({ title: "Could not save PIN", description: error.message, variant: "destructive" });
     sessionStorage.setItem("flexiq_pin_ok", "1");
