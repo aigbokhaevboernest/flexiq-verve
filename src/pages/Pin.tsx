@@ -30,8 +30,8 @@ const Pin = () => {
       return;
     }
     (async () => {
-      const { data } = await supabase.from("profiles").select("pin_hash").eq("id", user.id).maybeSingle();
-      setMode(data?.pin_hash ? "enter" : "create");
+      const { data } = await (supabase as any).rpc("get_pin_hash", { _user_id: user.id });
+      setMode(data ? "enter" : "create");
     })();
   }, [user, loading, navigate]);
 
@@ -41,7 +41,7 @@ const Pin = () => {
     if (pin !== confirmPin) return toast({ title: "PINs don't match", variant: "destructive" });
     setBusy(true);
     const hash = await hashPin(pin);
-    const { error } = await supabase.from("profiles").update({ pin_hash: hash }).eq("id", user!.id);
+    const { error } = await (supabase as any).rpc("set_pin_hash", { _user_id: user!.id, _hash: hash });
     setBusy(false);
     if (error) return toast({ title: "Could not save PIN", description: error.message, variant: "destructive" });
     sessionStorage.setItem("flexiq_pin_ok", "1");
@@ -54,9 +54,9 @@ const Pin = () => {
     if (!/^\d{4}$/.test(pin)) return toast({ title: "Enter your 4-digit PIN", variant: "destructive" });
     setBusy(true);
     const hash = await hashPin(pin);
-    const { data } = await supabase.from("profiles").select("pin_hash").eq("id", user!.id).maybeSingle();
+    const { data } = await (supabase as any).rpc("get_pin_hash", { _user_id: user!.id });
     setBusy(false);
-    if (data?.pin_hash !== hash) return toast({ title: "Incorrect PIN", variant: "destructive" });
+    if (data !== hash) return toast({ title: "Incorrect PIN", variant: "destructive" });
     sessionStorage.setItem("flexiq_pin_ok", "1");
     navigate("/dashboard", { replace: true });
   };
