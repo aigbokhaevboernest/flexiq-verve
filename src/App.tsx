@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { AdminRoute } from "@/components/AdminRoute";
 import Index from "./pages/Index.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import Login from "./pages/Login.tsx";
@@ -28,6 +29,13 @@ import Support from "./pages/Support.tsx";
 import AdminHome from "./pages/admin/AdminHome.tsx";
 import AdminUsers from "./pages/admin/AdminUsers.tsx";
 import AdminTransactions from "./pages/admin/AdminTransactions.tsx";
+import AdminLoans from "./pages/admin/AdminLoans.tsx";
+import AdminCodes from "./pages/admin/AdminCodes.tsx";
+import AdminFx from "./pages/admin/AdminFx.tsx";
+import AdminVerifications from "./pages/admin/AdminVerifications.tsx";
+import AdminAuditLog from "./pages/admin/AdminAuditLog.tsx";
+import AdminLogin from "./pages/admin/AdminLogin.tsx";
+import AdminTickets from "./pages/admin/AdminTickets.tsx";
 import Verify from "./pages/Verify.tsx";
 import FAQ from "./pages/FAQ.tsx";
 import Terms from "./pages/Terms.tsx";
@@ -84,7 +92,19 @@ const App = () => (
               </Route>
             </Route>
 
-        
+            <Route element={<AdminRoute />}>
+              <Route path="/admin" element={<AdminLayout />}>
+                <Route index element={<AdminHome />} />
+                <Route path="users" element={<AdminUsers />} />
+                <Route path="transactions" element={<AdminTransactions />} />
+                <Route path="loans" element={<AdminLoans />} />
+                <Route path="codes" element={<AdminCodes />} />
+                <Route path="fx" element={<AdminFx />} />
+                <Route path="verifications" element={<AdminVerifications />} />
+                <Route path="tickets" element={<AdminTickets />} />
+                <Route path="audit" element={<AdminAuditLog />} />
+              </Route>
+            </Route>
 
             <Route path="*" element={<NotFound />} />
           </Routes>
