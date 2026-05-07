@@ -159,9 +159,7 @@ const SendMoney = () => {
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2"><Label>First name</Label><Input value={form.firstName} onChange={(e) => set("firstName", e.target.value)} required /></div>
                 <div className="space-y-2"><Label>Last name</Label><Input value={form.lastName} onChange={(e) => set("lastName", e.target.value)} required /></div>
-                <div className="space-y-2 sm:col-span-2"><Label>Address</Label><Input value={form.address} onChange={(e) => set("address", e.target.value)} required /></div>
-                <div className="space-y-2"><Label>Zip code</Label><Input value={form.zip} onChange={(e) => set("zip", e.target.value)} required /></div>
-                <div className="space-y-2">
+                <div className="space-y-2 sm:col-span-2">
                   <Label>Country</Label>
                   <Select value={form.country} onValueChange={(v) => set("country", v)}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
@@ -181,19 +179,8 @@ const SendMoney = () => {
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2"><Label>Bank name</Label><Input value={form.bankName} onChange={(e) => set("bankName", e.target.value)} required /></div>
                 <div className="space-y-2"><Label>Account name</Label><Input value={form.accountName} onChange={(e) => set("accountName", e.target.value)} required /></div>
-                <div className="space-y-2">
-                  <Label>Account type</Label>
-                  <Select value={form.accountType} onValueChange={(v) => set("accountType", v)}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="checking">Checking</SelectItem>
-                      <SelectItem value="savings">Savings</SelectItem>
-                      <SelectItem value="business">Business</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
                 <div className="space-y-2"><Label>Account number</Label><Input value={form.accountNumber} onChange={(e) => set("accountNumber", e.target.value)} required /></div>
-                <div className="space-y-2 sm:col-span-2"><Label>Routing / SWIFT</Label><Input value={form.routing} onChange={(e) => set("routing", e.target.value)} required /></div>
+                <div className="space-y-2"><Label>Routing / SWIFT</Label><Input value={form.routing} onChange={(e) => set("routing", e.target.value)} required /></div>
                 <div className="space-y-2 sm:col-span-2"><Label>Note (optional)</Label><Textarea value={form.note} onChange={(e) => set("note", e.target.value)} rows={3} /></div>
               </div>
             </section>
