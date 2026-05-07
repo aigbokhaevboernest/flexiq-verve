@@ -34,6 +34,41 @@ const DashboardHome = () => {
   const { data: account, isLoading: accLoading } = useAccount();
   const { data: profile } = useProfile();
 
+  // Cache + realtime for balance
+  const balanceCacheKey = user ? `cachedBalance:${user.id}` : null;
+  const accountCacheKey = user ? `cachedAccountNumber:${user.id}` : null;
+  const [cachedBalance] = useState<number | null>(() => {
+    if (!balanceCacheKey) return null;
+    const v = localStorage.getItem(balanceCacheKey);
+    return v ? Number(v) : null;
+  });
+
+  useEffect(() => {
+    if (account && balanceCacheKey) {
+      localStorage.setItem(balanceCacheKey, String(account.balance ?? 0));
+    }
+    if (account?.account_number && accountCacheKey) {
+      localStorage.setItem(accountCacheKey, account.account_number);
+    }
+  }, [account, balanceCacheKey, accountCacheKey]);
+
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase
+      .channel("balance-changes")
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "accounts", filter: `user_id=eq.${user.id}` },
+        (payload: any) => {
+          if (balanceCacheKey && payload.new?.balance != null) {
+            localStorage.setItem(balanceCacheKey, String(payload.new.balance));
+          }
+        }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [user, balanceCacheKey]);
+
   const { data: txs } = useQuery({
     queryKey: ["recent-tx", user?.id],
     enabled: !!user,
@@ -82,7 +117,13 @@ const DashboardHome = () => {
   });
 
   const currency = account?.currency || profile?.currency || "USD";
-  const greeting = profile?.first_name ? `Welcome back, ${profile.first_name} 👋` : "Welcome back 👋";
+  const displayName =
+    (profile?.first_name || profile?.last_name)
+      ? `${profile?.first_name || ""} ${profile?.last_name || ""}`.trim()
+      : profile?.email || user?.email || "";
+  const greeting = displayName ? `Welcome back, ${displayName} 👋` : "Welcome back 👋";
+  const cachedAccountNumber = accountCacheKey ? localStorage.getItem(accountCacheKey) : null;
+  const balanceToShow = account?.balance != null ? Number(account.balance) : cachedBalance;
 
   return (
     <div className="space-y-6">
