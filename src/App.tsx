@@ -5,7 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
-import { AdminRoute } from "@/components/AdminRoute";
+
 import Index from "./pages/Index.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import Login from "./pages/Login.tsx";
@@ -13,7 +13,7 @@ import Signup from "./pages/Signup.tsx";
 import ForgotPassword from "./pages/ForgotPassword.tsx";
 import ResetPassword from "./pages/ResetPassword.tsx";
 import { DashboardLayout } from "./components/DashboardLayout.tsx";
-import { AdminLayout } from "./components/AdminLayout.tsx";
+
 import DashboardHome from "./pages/DashboardHome.tsx";
 import Transactions from "./pages/Transactions.tsx";
 import SendMoney from "./pages/SendMoney.tsx";
