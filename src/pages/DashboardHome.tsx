@@ -227,7 +227,7 @@ const DashboardHome = () => {
               <span>{card?.card_type === "physical" ? "Physical" : "Virtual"} debit</span>
               <CreditCard className="h-4 w-4" />
             </div>
-            <p className="mt-6 font-mono text-sm tracking-[0.2em]">
+            <p className="mt-6 font-normal text-sm tracking-[0.2em]">
               {card?.card_number ? card.card_number.replace(/(.{4})/g, "$1 ").trim() : "•••• •••• •••• ————"}
             </p>
             <div className="mt-3 flex justify-between text-xs opacity-90">
