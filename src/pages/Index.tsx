@@ -112,13 +112,13 @@ const Index = () => {
         </div>
       </section>
 
-      {/* CORE FEATURES */}
-      <section id="features" className="py-20 sm:py-28">
+      {/* CORE FEATURES — navy */}
+      <section id="features" className="bg-navy-2 py-20 sm:py-28">
         <div className="container">
-          <motion.div {...fade()} className="mx-auto max-w-2xl text-center">
-            <p className="text-sm font-semibold uppercase tracking-widest text-primary">Core banking</p>
+          <motion.div {...fade()} className="mx-auto max-w-2xl text-center text-on-dark">
+            <p className="text-sm font-semibold uppercase tracking-widest text-[hsl(var(--mediumblue))]">Core banking</p>
             <h2 className="mt-3 font-display text-3xl font-bold sm:text-4xl">Everything you need, beautifully simple</h2>
-            <p className="mt-4 text-muted-foreground">A modern banking experience designed around how you actually live.</p>
+            <p className="mt-4 text-on-dark-muted">A modern banking experience designed around how you actually live.</p>
           </motion.div>
 
           <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
@@ -129,11 +129,11 @@ const Index = () => {
                 f.tone === "coral" ? "bg-gradient-coral" :
                 "bg-gradient-primary";
               return (
-                <motion.div key={f.title} {...fade(idx * 0.08)} className="group relative overflow-hidden rounded-3xl border border-border/60 bg-card p-6 shadow-card transition-smooth hover:-translate-y-1 hover:shadow-elev">
+                <motion.div key={f.title} {...fade(idx * 0.08)} className="group relative overflow-hidden rounded-3xl border border-white/10 bg-white p-6 shadow-card transition-smooth hover:-translate-y-1 hover:shadow-elev">
                   <div className={`mb-5 flex h-12 w-12 items-center justify-center rounded-2xl ${tone} text-white shadow-md`}>
                     <Icon className="h-6 w-6" />
                   </div>
-                  <h3 className="font-display text-lg font-semibold">{f.title}</h3>
+                  <h3 className="font-display text-lg font-semibold text-foreground">{f.title}</h3>
                   <p className="mt-2 text-sm text-muted-foreground">{f.desc}</p>
                 </motion.div>
               );
@@ -142,19 +142,19 @@ const Index = () => {
         </div>
       </section>
 
-      {/* QUICK FEATURES */}
-      <section className="py-16">
+      {/* QUICK FEATURES — medium blue */}
+      <section className="bg-blue-gradient py-16">
         <div className="container">
-          <motion.div {...fade()} className="rounded-3xl bg-gradient-mesh p-8 sm:p-12">
+          <motion.div {...fade()} className="rounded-3xl bg-white/10 p-8 backdrop-blur sm:p-12">
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {quickFeatures.map((q, i) => {
                 const Icon = q.icon;
                 return (
-                  <motion.div key={q.label} {...fade(i * 0.05)} className="flex items-center gap-4 rounded-2xl bg-card/80 p-4 backdrop-blur">
-                    <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                  <motion.div key={q.label} {...fade(i * 0.05)} className="flex items-center gap-4 rounded-2xl bg-white p-4 shadow-sm">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[hsl(var(--mediumblue))]/15 text-[hsl(var(--mediumblue))]">
                       <Icon className="h-5 w-5" />
                     </div>
-                    <p className="font-medium">{q.label}</p>
+                    <p className="font-medium text-foreground">{q.label}</p>
                   </motion.div>
                 );
               })}
@@ -163,17 +163,17 @@ const Index = () => {
         </div>
       </section>
 
-      {/* STATS */}
-      <section id="stats" className="py-20 sm:py-28">
+      {/* STATS — navy */}
+      <section id="stats" className="bg-navy py-20 sm:py-28">
         <div className="container">
-          <motion.div {...fade()} className="mx-auto max-w-2xl text-center">
-            <p className="text-sm font-semibold uppercase tracking-widest text-accent">Live numbers</p>
+          <motion.div {...fade()} className="mx-auto max-w-2xl text-center text-on-dark">
+            <p className="text-sm font-semibold uppercase tracking-widest text-[hsl(var(--mediumblue))]">Live numbers</p>
             <h2 className="mt-3 font-display text-3xl font-bold sm:text-4xl">A growing community of smart spenders</h2>
           </motion.div>
 
           <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {stats.map((s, i) => (
-              <motion.div key={s.label} {...fade(i * 0.08)} className="rounded-3xl border border-border/60 bg-card p-8 text-center shadow-card">
+              <motion.div key={s.label} {...fade(i * 0.08)} className="rounded-3xl border border-white/10 bg-white p-8 text-center shadow-card">
                 <p className="font-display text-4xl font-bold text-gradient">{s.value}</p>
                 <p className="mt-2 text-sm text-muted-foreground">{s.label}</p>
               </motion.div>
@@ -182,20 +182,20 @@ const Index = () => {
         </div>
       </section>
 
-      {/* SECURITY */}
-      <section id="security" className="py-20 sm:py-28">
+      {/* SECURITY — navy mesh */}
+      <section id="security" className="bg-navy-blue-mesh py-20 sm:py-28">
         <div className="container">
           <div className="grid items-center gap-12 lg:grid-cols-2">
-            <motion.div {...fade()}>
+            <motion.div {...fade()} className="text-on-dark">
               <p className="text-sm font-semibold uppercase tracking-widest text-success">Security first</p>
               <h2 className="mt-3 font-display text-3xl font-bold sm:text-4xl">Your money, protected by design</h2>
-              <p className="mt-4 text-muted-foreground">
+              <p className="mt-4 text-on-dark-muted">
                 Bank-grade encryption, fraud monitoring, and biometric authentication keep your account safer than your wallet.
               </p>
               <ul className="mt-6 space-y-3 text-sm">
                 {["Real-time fraud detection", "FDIC-insured accounts up to $250K", "Biometric & PIN protection", "End-to-end encryption"].map((i) => (
                   <li key={i} className="flex items-center gap-3">
-                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-success/15 text-success">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-success/20 text-success">
                       <ShieldCheck className="h-3.5 w-3.5" />
                     </span>
                     {i}
@@ -206,13 +206,13 @@ const Index = () => {
 
             <motion.div {...fade(0.15)} className="relative">
               <div className="rounded-3xl bg-gradient-primary p-1 shadow-elev">
-                <div className="rounded-[calc(theme(borderRadius.3xl)-4px)] bg-card p-8">
+                <div className="rounded-[calc(theme(borderRadius.3xl)-4px)] bg-white p-8">
                   <div className="flex items-center gap-3">
                     <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
                       <CreditCard className="h-6 w-6" />
                     </div>
                     <div>
-                      <p className="font-semibold">Card paused automatically</p>
+                      <p className="font-semibold text-foreground">Card paused automatically</p>
                       <p className="text-xs text-muted-foreground">Suspicious activity blocked at 3:42 AM</p>
                     </div>
                   </div>
@@ -223,7 +223,7 @@ const Index = () => {
                       { label: "Card payment $890", status: "Approved" },
                     ].map((r) => (
                       <div key={r.label} className="flex items-center justify-between rounded-xl bg-muted/60 px-4 py-3 text-sm">
-                        <span>{r.label}</span>
+                        <span className="text-foreground">{r.label}</span>
                         <span className="font-medium text-success">{r.status}</span>
                       </div>
                     ))}
@@ -235,22 +235,22 @@ const Index = () => {
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="pb-24">
+      {/* CTA — medium blue */}
+      <section className="bg-navy pb-24 pt-4">
         <div className="container">
-          <motion.div {...fade()} className="relative overflow-hidden rounded-3xl bg-gradient-primary p-10 text-center text-primary-foreground shadow-elev sm:p-16">
+          <motion.div {...fade()} className="relative overflow-hidden rounded-3xl bg-blue-gradient p-10 text-center text-white shadow-elev sm:p-16">
             <div className="absolute -right-20 -top-20 h-72 w-72 rounded-full bg-white/15 blur-3xl" />
-            <div className="absolute -bottom-24 -left-10 h-72 w-72 rounded-full bg-accent/40 blur-3xl" />
+            <div className="absolute -bottom-24 -left-10 h-72 w-72 rounded-full bg-[hsl(var(--navy))]/40 blur-3xl" />
             <div className="relative">
               <h2 className="mx-auto max-w-2xl font-display text-3xl font-bold sm:text-4xl">Ready to bank smarter?</h2>
-              <p className="mx-auto mt-4 max-w-xl text-primary-foreground/80">
+              <p className="mx-auto mt-4 max-w-xl text-white/85">
                 Join Flexiq Verve in under 2 minutes. No paperwork, no fees, no nonsense.
               </p>
               <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-                <Button asChild size="lg" variant="secondary" className="bg-card text-foreground hover:bg-card/90">
+                <Button asChild size="lg" className="bg-white text-foreground hover:bg-white/90">
                   <Link to="/signup">Open an Account <ArrowRight className="ml-1 h-4 w-4" /></Link>
                 </Button>
-                <Button asChild size="lg" variant="ghost" className="text-primary-foreground hover:bg-white/10">
+                <Button asChild size="lg" variant="ghost" className="text-white hover:bg-white/15 hover:text-white">
                   <Link to="/login">I already have one</Link>
                 </Button>
               </div>
