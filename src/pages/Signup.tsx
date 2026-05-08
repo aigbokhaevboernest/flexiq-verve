@@ -80,16 +80,16 @@ const Signup = () => {
   };
 
   return (
-    <div className="relative min-h-screen bg-gradient-to-br from-background via-background to-primary/5 px-4 py-10">
+    <div className="page-enter relative min-h-screen bg-navy-blue-mesh px-4 py-10">
       <div style={{ position: "fixed", top: 12, right: 12, zIndex: 9999 }}>
         <LanguageSwitcher />
       </div>
 
-      <div className="mx-auto w-full max-w-2xl rounded-3xl border border-border/60 bg-card/90 p-8 shadow-elev backdrop-blur-xl sm:p-10">
+      <div className="mx-auto w-full max-w-2xl rounded-3xl border border-white/10 bg-white p-8 shadow-elev sm:p-10 animate-fade-in">
         <div className="flex flex-col items-center text-center">
           <Link to="/" className="flex flex-col items-center">
             <img src={adminLogo} alt="Flexiq Verve" style={{ width: 96, height: "auto", display: "block" }} />
-            <span className="mt-3 font-display text-2xl font-bold">Flexiq Verve</span>
+            <span className="mt-3 font-display text-2xl font-bold text-foreground">Flexiq Verve</span>
           </Link>
           <h1 className="mt-6 font-display text-3xl font-bold tracking-tight">Open your account</h1>
           <p className="mt-2 text-sm text-muted-foreground">Takes about 2 minutes. No paperwork.</p>
