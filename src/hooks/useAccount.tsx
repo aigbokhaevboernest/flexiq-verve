@@ -9,7 +9,7 @@ export const useAccount = () => {
     enabled: !!user,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("accounts")
+        .from("profiles")
         .select("*")
         .eq("user_id", user!.id)
         .maybeSingle();
