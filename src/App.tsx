@@ -29,6 +29,16 @@ import FAQ from "./pages/FAQ.tsx";
 import Terms from "./pages/Terms.tsx";
 import Policies from "./pages/Policies.tsx";
 import Inventory from "./pages/Inventory.tsx";
+import Services from "./pages/Services.tsx";
+import Accounts from "./pages/Accounts.tsx";
+import Transfers from "./pages/Transfers.tsx";
+import CardsInfo from "./pages/CardsInfo.tsx";
+import LoansInfo from "./pages/LoansInfo.tsx";
+import About from "./pages/About.tsx";
+import Press from "./pages/Press.tsx";
+import Contact from "./pages/Contact.tsx";
+import Security from "./pages/Security.tsx";
+import Compliance from "./pages/Compliance.tsx";
 import Pin from "./pages/Pin.tsx";
 import { SplashScreen } from "./components/SplashScreen";
 import { useSessionTimeout } from "./hooks/useSessionTimeout";
@@ -60,6 +70,16 @@ const App = () => (
             <Route path="/terms" element={<Terms />} />
             <Route path="/policies" element={<Policies />} />
             <Route path="/inventory" element={<Inventory />} />
+            <Route path="/services" element={<Services />} />
+            <Route path="/accounts" element={<Accounts />} />
+            <Route path="/transfers" element={<Transfers />} />
+            <Route path="/cards-info" element={<CardsInfo />} />
+            <Route path="/loans-info" element={<LoansInfo />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/press" element={<Press />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/security" element={<Security />} />
+            <Route path="/compliance" element={<Compliance />} />
             <Route path="/pin" element={<Pin />} />
 
             <Route element={<ProtectedRoute />}>

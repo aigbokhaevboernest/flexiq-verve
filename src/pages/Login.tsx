@@ -44,17 +44,17 @@ const Login = () => {
   };
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center bg-gradient-to-br from-background via-background to-primary/5 px-4 py-10">
+    <div className="page-enter relative flex min-h-screen items-center justify-center bg-navy-blue-mesh px-4 py-10">
       <div className="absolute inset-0 -z-10 overflow-hidden">
-        <div className="absolute -top-40 left-1/2 h-96 w-96 -translate-x-1/2 rounded-full bg-primary/20 blur-3xl" />
-        <div className="absolute bottom-0 right-0 h-80 w-80 rounded-full bg-accent/20 blur-3xl" />
+        <div className="absolute -top-40 left-1/2 h-96 w-96 -translate-x-1/2 rounded-full bg-[hsl(var(--mediumblue))]/30 blur-3xl" />
+        <div className="absolute bottom-0 right-0 h-80 w-80 rounded-full bg-[hsl(var(--mediumblue))]/20 blur-3xl" />
       </div>
 
-      <div className="w-full max-w-md rounded-3xl border border-border/60 bg-card/90 p-8 shadow-elev backdrop-blur-xl sm:p-10">
+      <div className="w-full max-w-md rounded-3xl border border-white/10 bg-white p-8 shadow-elev sm:p-10 animate-fade-in">
         <div className="flex flex-col items-center text-center">
           <Link to="/" className="flex flex-col items-center">
             <img src={adminLogo} alt="Flexiq Verve" style={{ width: 96, height: "auto", display: "block" }} />
-            <span className="mt-3 font-display text-2xl font-bold">Flexiq Verve</span>
+            <span className="mt-3 font-display text-2xl font-bold text-foreground">Flexiq Verve</span>
           </Link>
           <h1 className="mt-6 font-display text-3xl font-bold tracking-tight">Welcome back</h1>
           <p className="mt-2 text-sm text-muted-foreground">Sign in to take control of your finances.</p>
