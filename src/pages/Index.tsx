@@ -55,7 +55,7 @@ const stats = [
 
 const Index = () => {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="page-enter min-h-screen bg-navy">
       <Navbar />
 
       {/* HERO */}
@@ -67,22 +67,19 @@ const Index = () => {
           height={1080}
           className="absolute inset-0 h-full w-full object-cover object-center"
         />
-        {/* Layered premium overlays */}
-        <div className="absolute inset-0 bg-background/75 md:bg-gradient-to-r md:from-background md:via-background/85 md:to-background/30" />
-        <div className="absolute inset-0 bg-gradient-to-b from-background/50 via-transparent to-background/60 md:hidden" />
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,hsl(var(--primary)/0.25),transparent_55%),radial-gradient(ellipse_at_bottom_right,hsl(var(--accent)/0.22),transparent_55%)]" />
+        {/* Dark overlay for readability */}
+        <div className="absolute inset-0 bg-black/60" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[hsl(var(--navy))]/40 via-transparent to-[hsl(var(--navy))]" />
         {/* Floating glow orbs */}
-        <div className="pointer-events-none absolute -top-24 -left-24 h-80 w-80 rounded-full bg-primary/30 blur-3xl animate-float" />
-        <div className="pointer-events-none absolute -bottom-32 right-0 h-96 w-96 rounded-full bg-accent/25 blur-3xl animate-float [animation-delay:2s]" />
+        <div className="pointer-events-none absolute -top-24 -left-24 h-80 w-80 rounded-full bg-[hsl(var(--mediumblue))]/30 blur-3xl animate-float" />
+        <div className="pointer-events-none absolute -bottom-32 right-0 h-96 w-96 rounded-full bg-[hsl(var(--mediumblue))]/20 blur-3xl animate-float [animation-delay:2s]" />
         <div className="pointer-events-none absolute top-1/3 right-1/4 h-40 w-40 rounded-full bg-primary-glow/30 blur-2xl animate-float [animation-delay:4s] hidden md:block" />
         {/* Subtle grid pattern */}
-        <div className="pointer-events-none absolute inset-0 opacity-[0.04] [background-image:linear-gradient(hsl(var(--foreground))_1px,transparent_1px),linear-gradient(90deg,hsl(var(--foreground))_1px,transparent_1px)] [background-size:48px_48px]" />
-        {/* Bottom fade for seamless section blend */}
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-32 bg-gradient-to-b from-transparent to-background" />
+        <div className="pointer-events-none absolute inset-0 opacity-[0.05] [background-image:linear-gradient(white_1px,transparent_1px),linear-gradient(90deg,white_1px,transparent_1px)] [background-size:48px_48px]" />
         <div className="container relative grid gap-14 py-16 md:grid-cols-2 md:py-24 lg:py-32">
-          <div className="flex flex-col justify-center">
-            <motion.div {...fade(0)} className="inline-flex w-fit items-center gap-2 rounded-full border border-border/60 bg-card/70 px-4 py-1.5 text-xs font-medium backdrop-blur">
-              <Sparkles className="h-3.5 w-3.5 text-primary" />
+          <div className="flex flex-col justify-center text-on-dark">
+            <motion.div {...fade(0)} className="inline-flex w-fit items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-xs font-medium text-on-dark backdrop-blur">
+              <Sparkles className="h-3.5 w-3.5 text-[hsl(var(--mediumblue))]" />
               Now offering 4.5% APY on savings
             </motion.div>
             <motion.h1 {...fade(0.05)} className="mt-6 font-display text-4xl font-bold leading-[1.05] tracking-tight sm:text-5xl lg:text-6xl">
