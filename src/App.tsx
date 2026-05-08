@@ -5,7 +5,6 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
-import { AdminRoute } from "@/components/AdminRoute";
 import Index from "./pages/Index.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import Login from "./pages/Login.tsx";
@@ -13,7 +12,6 @@ import Signup from "./pages/Signup.tsx";
 import ForgotPassword from "./pages/ForgotPassword.tsx";
 import ResetPassword from "./pages/ResetPassword.tsx";
 import { DashboardLayout } from "./components/DashboardLayout.tsx";
-import { AdminLayout } from "./components/AdminLayout.tsx";
 import DashboardHome from "./pages/DashboardHome.tsx";
 import Transactions from "./pages/Transactions.tsx";
 import SendMoney from "./pages/SendMoney.tsx";
@@ -26,16 +24,6 @@ import Bills from "./pages/Bills.tsx";
 import Settings from "./pages/Settings.tsx";
 import Profile from "./pages/Profile.tsx";
 import Support from "./pages/Support.tsx";
-import AdminHome from "./pages/admin/AdminHome.tsx";
-import AdminUsers from "./pages/admin/AdminUsers.tsx";
-import AdminTransactions from "./pages/admin/AdminTransactions.tsx";
-import AdminLoans from "./pages/admin/AdminLoans.tsx";
-import AdminCodes from "./pages/admin/AdminCodes.tsx";
-import AdminFx from "./pages/admin/AdminFx.tsx";
-import AdminVerifications from "./pages/admin/AdminVerifications.tsx";
-import AdminAuditLog from "./pages/admin/AdminAuditLog.tsx";
-import AdminLogin from "./pages/admin/AdminLogin.tsx";
-import AdminTickets from "./pages/admin/AdminTickets.tsx";
 import Verify from "./pages/Verify.tsx";
 import FAQ from "./pages/FAQ.tsx";
 import Terms from "./pages/Terms.tsx";
@@ -73,7 +61,6 @@ const App = () => (
             <Route path="/policies" element={<Policies />} />
             <Route path="/inventory" element={<Inventory />} />
             <Route path="/pin" element={<Pin />} />
-            <Route path="/admin/login" element={<AdminLogin />} />
 
             <Route element={<ProtectedRoute />}>
               <Route path="/dashboard" element={<DashboardLayout />}>
@@ -89,20 +76,6 @@ const App = () => (
                 <Route path="profile" element={<Profile />} />
                 <Route path="settings" element={<Settings />} />
                 <Route path="support" element={<Support />} />
-              </Route>
-            </Route>
-
-            <Route element={<AdminRoute />}>
-              <Route path="/admin" element={<AdminLayout />}>
-                <Route index element={<AdminHome />} />
-                <Route path="users" element={<AdminUsers />} />
-                <Route path="transactions" element={<AdminTransactions />} />
-                <Route path="loans" element={<AdminLoans />} />
-                <Route path="codes" element={<AdminCodes />} />
-                <Route path="fx" element={<AdminFx />} />
-                <Route path="verifications" element={<AdminVerifications />} />
-                <Route path="tickets" element={<AdminTickets />} />
-                <Route path="audit" element={<AdminAuditLog />} />
               </Route>
             </Route>
 
