@@ -9,7 +9,7 @@ const links: { href: string; label: string }[] = [
   { href: "/#features", label: "Features" },
   { href: "/#stats", label: "Why Flexiq?" },
   { href: "/#security", label: "Security" },
-  { href: "/inventory", label: "Inventory" },
+  { href: "/services", label: "Services" },
   { href: "/faq", label: "FAQ" },
   { href: "/terms", label: "Terms" },
   { href: "/policies", label: "Privacy" },
