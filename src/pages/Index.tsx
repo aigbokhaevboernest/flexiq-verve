@@ -87,22 +87,22 @@ const Index = () => {
               <RotatingWord />{" "}
               <span className="block">your money & build credit with Flexiq Verve</span>
             </motion.h1>
-            <motion.p {...fade(0.15)} className="mt-6 max-w-xl text-base text-muted-foreground sm:text-lg">
+            <motion.p {...fade(0.15)} className="mt-6 max-w-xl text-base text-on-dark-muted sm:text-lg">
               Flexiq Verve provides secure, fast, and reliable digital banking services to help you manage your finances with ease — from anywhere, on any device.
             </motion.p>
             <motion.div {...fade(0.25)} className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <Button asChild size="lg" className="bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-95">
+              <Button asChild size="lg" className="bg-[hsl(var(--mediumblue))] text-white shadow-glow hover:bg-[hsl(var(--mediumblue))]/90">
                 <Link to="/signup">
                   Open an Account <ArrowRight className="ml-1 h-4 w-4" />
                 </Link>
               </Button>
-              <Button asChild size="lg" variant="outline" className="border-border bg-card/60 backdrop-blur">
+              <Button asChild size="lg" variant="outline" className="border-white/30 bg-white/10 text-on-dark backdrop-blur hover:bg-white/20 hover:text-white">
                 <Link to="/login">Login</Link>
               </Button>
             </motion.div>
-            <motion.div {...fade(0.35)} className="mt-10 flex items-center gap-6 text-xs text-muted-foreground">
+            <motion.div {...fade(0.35)} className="mt-10 flex items-center gap-6 text-xs text-on-dark-muted">
               <div className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-success" /> FDIC Insured</div>
-              <div className="flex items-center gap-2"><Lock className="h-4 w-4 text-primary" /> 256-bit encryption</div>
+              <div className="flex items-center gap-2"><Lock className="h-4 w-4 text-[hsl(var(--mediumblue))]" /> 256-bit encryption</div>
             </motion.div>
           </div>
 
