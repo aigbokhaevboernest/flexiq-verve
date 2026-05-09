@@ -20,6 +20,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/EmptyState";
 
 const quickActions = [
   { icon: Send, label: "Send", to: "/dashboard/send" },
@@ -277,7 +278,7 @@ const DashboardHome = () => {
         </div>
         <div className="mt-4 divide-y divide-border/60">
           {(txs || []).length === 0 && (
-            <p className="py-8 text-center text-sm text-muted-foreground">No transactions yet — your activity will show here.</p>
+            <EmptyState icon={Receipt} title="No transactions yet" description="Your activity will show here as you spend, send, or receive money." ctaLabel="Send Money" ctaTo="/dashboard/send" />
           )}
           {(txs || []).map((t: any) => {
             const positive = Number(t.amount) > 0;
