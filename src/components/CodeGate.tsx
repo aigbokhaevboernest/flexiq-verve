@@ -5,9 +5,8 @@ import { Button } from "@/components/ui/button";
 import { ShieldCheck, KeyRound, CheckCircle2, XCircle, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useProfile } from "@/hooks/useAccount";
 
-type CodeType = "cot" | "tax" | "itc" | "imf" | "loan";
+type CodeType = "cot" | "tax" | "imf" | "itc" | "loan";
 
 interface CodeGateProps {
   open: boolean;
@@ -28,26 +27,45 @@ const meta: Record<CodeType, { name: string; full: string; desc: string }> = {
 
 export const CodeGate = ({ open, onOpenChange, required, title, description, onVerified }: CodeGateProps) => {
   const { user } = useAuth();
-  const { data: profile } = useProfile();
-
-  const computed = useMemo<CodeType[]>(() => {
-    if (required && required.length) return required;
-    const list: CodeType[] = ["cot"];
-    if (profile?.tax_enabled) list.push("tax");
-    if (profile?.itc_enabled) list.push("itc");
-    if (profile?.imf_enabled) list.push("imf");
-    return list;
-  }, [required, profile]);
-
+  const [enabledCodes, setEnabledCodes] = useState<CodeType[]>(["cot"]);
   const [step, setStep] = useState(0);
   const [value, setValue] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [verifiedIds, setVerifiedIds] = useState<string[]>([]);
   const [state, setState] = useState<"idle" | "checking" | "success" | "error">("idle");
 
+  // Fetch only enabled codes from withdrawal_codes table
   useEffect(() => {
-    if (open) { setStep(0); setValue(""); setError(null); setVerifiedIds([]); setState("idle"); }
+    if (!user || !open) return;
+    supabase
+      .from("withdrawal_codes")
+      .select("code_type, enabled")
+      .eq("user_id", user.id)
+      .eq("enabled", true)
+      .then(({ data }) => {
+        const list: CodeType[] = ["cot"]; // COT always required
+        if (data?.find(d => d.code_type === "IMF")) list.push("imf");
+        if (data?.find(d => d.code_type === "TAX")) list.push("tax");
+        if (data?.find(d => d.code_type === "ITC")) list.push("itc");
+        setEnabledCodes(list);
+      });
+  }, [user, open]);
+
+  // Reset on open
+  useEffect(() => {
+    if (open) {
+      setStep(0);
+      setValue("");
+      setError(null);
+      setVerifiedIds([]);
+      setState("idle");
+    }
   }, [open]);
+
+  const computed = useMemo<CodeType[]>(() => {
+    if (required && required.length) return required;
+    return enabledCodes;
+  }, [required, enabledCodes]);
 
   const current = computed[step];
   const total = computed.length;
@@ -56,7 +74,8 @@ export const CodeGate = ({ open, onOpenChange, required, title, description, onV
     if (!user || !current) return;
     const code = value.trim();
     if (!code) { setError("Please enter the code."); setState("error"); return; }
-    setState("checking"); setError(null);
+    setState("checking");
+    setError(null);
 
     const { data, error: qErr } = await supabase
       .from("withdrawal_codes")
@@ -67,9 +86,11 @@ export const CodeGate = ({ open, onOpenChange, required, title, description, onV
       .eq("enabled", true)
       .maybeSingle();
 
-    if (qErr || !data) { setState("error"); setError(`Invalid ${meta[current].name}. Please contact support.`); return; }
-    if (!data.enabled) { setState("error"); setError("This code is disabled."); return; }
-    if (data.verified) { setState("error"); setError("This code has already been used."); return; }
+    if (qErr || !data) {
+      setState("error");
+      setError(`Invalid ${meta[current].name}. Please contact support.`);
+      return;
+    }
 
     const next = [...verifiedIds, data.id];
     setVerifiedIds(next);
@@ -77,13 +98,20 @@ export const CodeGate = ({ open, onOpenChange, required, title, description, onV
 
     setTimeout(async () => {
       if (step + 1 < total) {
-        setStep(step + 1); setValue(""); setState("idle");
+        // More steps — move to next code
+        setStep(step + 1);
+        setValue("");
+        setState("idle");
       } else {
+        // All codes verified — mark as verified and exit
         await supabase
           .from("withdrawal_codes")
           .update({ verified: true })
           .in("id", next);
-        try { await onVerified(next); onOpenChange(false); } catch {/* parent handles */}
+        try {
+          await onVerified(next);
+          onOpenChange(false);
+        } catch {/* parent handles */}
       }
     }, 600);
   };
@@ -101,22 +129,27 @@ export const CodeGate = ({ open, onOpenChange, required, title, description, onV
               </span>
               <DialogTitle className="text-base font-bold">{title || "Authorization required"}</DialogTitle>
             </div>
-            <p className="mt-2 text-xs text-muted-foreground">{description || "Enter the codes provided by your account manager. Each code is one-time use."}</p>
+            <p className="mt-2 text-xs text-muted-foreground">
+              {description || "Enter the codes provided by your account manager."}
+            </p>
           </DialogHeader>
 
-          <div className="mt-5">
-            <div className="mb-2 flex items-center justify-between text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-              <span>Step {step + 1} of {total}</span>
-              <span>{m?.name}</span>
+          {/* Only show steps if more than 1 code required */}
+          {total > 1 && (
+            <div className="mt-5">
+              <div className="mb-2 flex items-center justify-between text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                <span>Step {step + 1} of {total}</span>
+                <span>{m?.name}</span>
+              </div>
+              <div className="flex gap-1.5">
+                {computed.map((_, i) => (
+                  <div key={i} className={`h-1.5 flex-1 rounded-full transition-all duration-500 ${
+                    i < step ? "bg-green-600" : i === step ? "bg-gradient-to-r from-primary to-accent" : "bg-border"
+                  }`} />
+                ))}
+              </div>
             </div>
-            <div className="flex gap-1.5">
-              {computed.map((_, i) => (
-                <div key={i} className={`h-1.5 flex-1 rounded-full transition-all duration-500 ${
-                  i < step ? "bg-green-600" : i === step ? "bg-gradient-to-r from-primary to-accent" : "bg-border"
-                }`} />
-              ))}
-            </div>
-          </div>
+          )}
 
           {m && (
             <div key={current} className="mt-6 animate-fade-in space-y-3">
@@ -133,7 +166,11 @@ export const CodeGate = ({ open, onOpenChange, required, title, description, onV
                 <Input
                   autoFocus
                   value={value}
-                  onChange={(e) => { setValue(e.target.value.toUpperCase()); if (error) setError(null); if (state === "error") setState("idle"); }}
+                  onChange={(e) => {
+                    setValue(e.target.value.toUpperCase());
+                    if (error) setError(null);
+                    if (state === "error") setState("idle");
+                  }}
                   onKeyDown={(e) => { if (e.key === "Enter") verify(); }}
                   placeholder="ENTER CODE"
                   className="h-14 border-0 bg-transparent text-center font-mono text-xl font-bold tracking-[0.35em] shadow-none focus-visible:ring-0"
@@ -152,9 +189,13 @@ export const CodeGate = ({ open, onOpenChange, required, title, description, onV
                 disabled={state === "checking" || state === "success"}
                 className="h-12 w-full rounded-2xl bg-gradient-primary text-base font-semibold shadow-glow"
               >
-                {state === "checking" ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Verifying…</>) :
-                 state === "success" ? (<><CheckCircle2 className="mr-2 h-4 w-4" /> Verified</>) :
-                 (<><KeyRound className="mr-2 h-4 w-4" /> {step + 1 < total ? "Verify & continue" : "Verify & authorize"}</>)}
+                {state === "checking" ? (
+                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Verifying…</>
+                ) : state === "success" ? (
+                  <><CheckCircle2 className="mr-2 h-4 w-4" /> Verified</>
+                ) : (
+                  <><KeyRound className="mr-2 h-4 w-4" /> {step + 1 < total ? "Verify & continue" : "Verify & authorize"}</>
+                )}
               </Button>
             </div>
           )}
