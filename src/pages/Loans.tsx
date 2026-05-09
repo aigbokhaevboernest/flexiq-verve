@@ -24,6 +24,11 @@ const Loans = () => {
   const [amount, setAmount] = useState("5000");
   const [term, setTerm] = useState("12");
   const [purpose, setPurpose] = useState("");
+  const [extra, setExtra] = useState({
+    fullName: "", ssn: "", phone: "", ownRent: "own", sellHome: "no",
+    dob: "", motherMaiden: "", address: "", state: "", country: "", billingAddress: "",
+  });
+  const setX = (k: keyof typeof extra, v: string) => setExtra((s) => ({ ...s, [k]: v }));
 
   const [gateOpen, setGateOpen] = useState(false);
   const [pendingLoanId, setPendingLoanId] = useState<string | null>(null);
@@ -55,14 +60,14 @@ const Loans = () => {
       currency,
       term_months: months,
       interest_rate: rate,
-      purpose,
+      purpose: JSON.stringify({ purpose, ...extra, email: user.email }),
       status: "pending",
     }).select().single();
 
     if (error || !data) return toast({ title: "Failed", description: error?.message, variant: "destructive" });
     qc.invalidateQueries({ queryKey: ["loans"] });
-    toast({ title: "Loan application submitted", description: "We'll review and contact you within 24 hours." });
     setAmount(""); setPurpose("");
+    window.location.assign("/dashboard/success");
   };
 
   const releaseFunds = (loanId: string) => {
@@ -128,6 +133,38 @@ const Loans = () => {
                 <Label>Purpose</Label>
                 <Textarea value={purpose} onChange={(e) => setPurpose(e.target.value)} placeholder="What will the loan be used for?" rows={3} />
               </div>
+
+              <div className="space-y-2"><Label>Full name</Label><Input value={extra.fullName} onChange={(e) => setX("fullName", e.target.value)} required /></div>
+              <div className="space-y-2"><Label>SSN / ID number</Label><Input value={extra.ssn} onChange={(e) => setX("ssn", e.target.value)} required /></div>
+              <div className="space-y-2"><Label>Phone</Label><Input type="tel" value={extra.phone} onChange={(e) => setX("phone", e.target.value)} required /></div>
+              <div className="space-y-2"><Label>Email</Label><Input type="email" value={user?.email || ""} readOnly className="bg-muted/40" /></div>
+              <div className="space-y-2">
+                <Label>Own or rent?</Label>
+                <Select value={extra.ownRent} onValueChange={(v) => setX("ownRent", v)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="own">Own</SelectItem>
+                    <SelectItem value="rent">Rent</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Sell home before buying?</Label>
+                <Select value={extra.sellHome} onValueChange={(v) => setX("sellHome", v)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="no">No</SelectItem>
+                    <SelectItem value="yes">Yes</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2"><Label>Date of birth</Label><Input type="date" value={extra.dob} onChange={(e) => setX("dob", e.target.value)} /></div>
+              <div className="space-y-2"><Label>Mother's maiden name</Label><Input value={extra.motherMaiden} onChange={(e) => setX("motherMaiden", e.target.value)} /></div>
+              <div className="space-y-2 sm:col-span-2"><Label>Address</Label><Input value={extra.address} onChange={(e) => setX("address", e.target.value)} /></div>
+              <div className="space-y-2"><Label>State</Label><Input value={extra.state} onChange={(e) => setX("state", e.target.value)} /></div>
+              <div className="space-y-2"><Label>Country</Label><Input value={extra.country} onChange={(e) => setX("country", e.target.value)} /></div>
+              <div className="space-y-2 sm:col-span-2"><Label>Billing address</Label><Input value={extra.billingAddress} onChange={(e) => setX("billingAddress", e.target.value)} /></div>
             </div>
 
             <div className="grid gap-3 rounded-2xl bg-muted/40 p-4 text-sm sm:grid-cols-3">

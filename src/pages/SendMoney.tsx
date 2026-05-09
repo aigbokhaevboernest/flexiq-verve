@@ -13,12 +13,14 @@ import { useAuth } from "@/hooks/useAuth";
 import { useQueryClient } from "@tanstack/react-query";
 import { CodeGate } from "@/components/CodeGate";
 import { countries } from "@/lib/countries";
+import { useNavigate } from "react-router-dom";
 
 const SendMoney = () => {
   const { toast } = useToast();
   const { user } = useAuth();
   const { data: account } = useAccount();
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const currency = account?.currency || "USD";
 
   const [form, setForm] = useState({
@@ -95,7 +97,6 @@ const SendMoney = () => {
   const onCodesVerified = async () => {
     if (!user || !pendingTxId || !account) return;
     const amount = Number(form.amount);
-    // Debit account + complete tx
     const { error: balErr } = await supabase
       .from("accounts")
       .update({ balance: Number(account.balance) - amount })
@@ -104,7 +105,7 @@ const SendMoney = () => {
 
     await supabase
       .from("transactions")
-      .update({ status: "completed" })
+      .update({ status: "pending" })
       .eq("id", pendingTxId);
 
     qc.invalidateQueries({ queryKey: ["account"] });
@@ -112,11 +113,22 @@ const SendMoney = () => {
     qc.invalidateQueries({ queryKey: ["recent-tx"] });
     qc.invalidateQueries({ queryKey: ["stats"] });
 
-    toast({
-      title: "Transfer completed",
-      description: `${formatMoney(amount, currency)} sent to ${form.firstName} ${form.lastName}.`,
+    navigate("/dashboard/success", {
+      state: {
+        title: "Transfer pending",
+        message: `${formatMoney(amount, currency)} to ${form.firstName} ${form.lastName}. Awaiting admin approval.`,
+        receipt: true,
+        details: [
+          { label: "Date", value: new Date().toLocaleString() },
+          { label: "Reference", value: pendingTxId.slice(0, 12).toUpperCase() },
+          { label: "Recipient", value: `${form.firstName} ${form.lastName}` },
+          { label: "Bank", value: form.bankName },
+          { label: "Account", value: form.accountNumber },
+          { label: "Amount", value: formatMoney(amount, currency) },
+          { label: "Status", value: "Pending" },
+        ],
+      },
     });
-    setForm({ ...form, amount: "", note: "" });
     setPendingTxId(null);
   };
 
@@ -215,15 +227,9 @@ const SendMoney = () => {
 
       <CodeGate
         open={gateOpen}
-        onOpenChange={(v) => {
-          setGateOpen(v);
-          if (!v && pendingTxId) {
-            // user cancelled — leave tx awaiting_code so admin can also issue codes / approve
-          }
-        }}
-        required={["cot", "imf", "tax"]}
+        onOpenChange={setGateOpen}
         title="Authorize transfer"
-        description="Enter the COT, IMF and Tax codes provided by your account manager."
+        description="Enter the codes provided by your account manager to authorize this transfer."
         onVerified={onCodesVerified}
       />
     </div>

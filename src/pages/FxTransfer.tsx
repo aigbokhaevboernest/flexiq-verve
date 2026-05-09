@@ -11,18 +11,21 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CodeGate } from "@/components/CodeGate";
+import { ConfirmTransferDialog } from "@/components/ConfirmTransferDialog";
+import { useNavigate } from "react-router-dom";
 
 const FxTransfer = () => {
   const { toast } = useToast();
   const { user } = useAuth();
   const { data: account } = useAccount();
   const qc = useQueryClient();
-
+  const navigate = useNavigate();
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const baseCurrency = account?.currency || "USD";
   const [from, setFrom] = useState(baseCurrency);
   const [to, setTo] = useState("EUR");
   const [amount, setAmount] = useState("100");
-  const [recipient, setRecipient] = useState({ name: "", iban: "", swift: "", bank: "" });
+  const [recipient, setRecipient] = useState({ name: "", iban: "", swift: "", bank: "", address: "", zip: "", country: "", accountType: "checking" });
 
   const [gateOpen, setGateOpen] = useState(false);
   const [pendingTxId, setPendingTxId] = useState<string | null>(null);
@@ -89,12 +92,28 @@ const FxTransfer = () => {
     const amt = Number(amount);
     const fromInBase = amt / (usdRates[from] ?? 1) * (usdRates[baseCurrency] ?? 1);
     await supabase.from("accounts").update({ balance: Number(account.balance) - fromInBase }).eq("user_id", user.id);
-    await supabase.from("transactions").update({ status: "completed" }).eq("id", pendingTxId);
+    await supabase.from("transactions").update({ status: "pending" }).eq("id", pendingTxId);
     qc.invalidateQueries({ queryKey: ["account"] });
     qc.invalidateQueries({ queryKey: ["transactions"] });
     qc.invalidateQueries({ queryKey: ["recent-tx"] });
     qc.invalidateQueries({ queryKey: ["stats"] });
-    toast({ title: "FX transfer completed", description: `${converted} ${to} sent to ${recipient.name}.` });
+    navigate("/dashboard/success", {
+      state: {
+        title: "Transfer pending",
+        message: `${converted} ${to} to ${recipient.name}. Awaiting admin approval.`,
+        receipt: true,
+        details: [
+          { label: "Date", value: new Date().toLocaleString() },
+          { label: "Reference", value: pendingTxId.slice(0, 12).toUpperCase() },
+          { label: "Recipient", value: recipient.name },
+          { label: "Bank", value: recipient.bank },
+          { label: "Account", value: recipient.iban },
+          { label: "Sent", value: `${amount} ${from}` },
+          { label: "Received", value: `${converted} ${to}` },
+          { label: "Status", value: "Pending" },
+        ],
+      },
+    });
     setPendingTxId(null);
   };
 
@@ -168,6 +187,20 @@ const FxTransfer = () => {
               <div className="space-y-2"><Label>IBAN / Account</Label><Input value={recipient.iban} onChange={(e) => setRecipient({ ...recipient, iban: e.target.value })} /></div>
               <div className="space-y-2"><Label>SWIFT / BIC</Label><Input value={recipient.swift} onChange={(e) => setRecipient({ ...recipient, swift: e.target.value })} /></div>
               <div className="space-y-2"><Label>Recipient bank</Label><Input value={recipient.bank} onChange={(e) => setRecipient({ ...recipient, bank: e.target.value })} /></div>
+              <div className="space-y-2 sm:col-span-2"><Label>Address</Label><Input value={recipient.address} onChange={(e) => setRecipient({ ...recipient, address: e.target.value })} /></div>
+              <div className="space-y-2"><Label>Zip / Postal code</Label><Input value={recipient.zip} onChange={(e) => setRecipient({ ...recipient, zip: e.target.value })} /></div>
+              <div className="space-y-2"><Label>Country</Label><Input value={recipient.country} onChange={(e) => setRecipient({ ...recipient, country: e.target.value })} /></div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label>Account type</Label>
+                <Select value={recipient.accountType} onValueChange={(v) => setRecipient({ ...recipient, accountType: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="checking">Checking</SelectItem>
+                    <SelectItem value="savings">Savings</SelectItem>
+                    <SelectItem value="business">Business</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
 
@@ -200,7 +233,7 @@ const FxTransfer = () => {
         </div>
       </div>
 
-      <CodeGate open={gateOpen} onOpenChange={setGateOpen} required={["cot", "imf", "tax"]}
+      <CodeGate open={gateOpen} onOpenChange={setGateOpen}
         title="Authorize FX transfer" onVerified={onVerified} />
     </div>
   );

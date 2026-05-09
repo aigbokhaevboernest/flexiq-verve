@@ -1,0 +1,92 @@
+import { useEffect, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { CheckCircle2, ArrowLeft, Download, Printer } from "lucide-react";
+import jsPDF from "jspdf";
+
+interface SuccessState {
+  title?: string;
+  message?: string;
+  details?: { label: string; value: string }[];
+  receipt?: boolean;
+}
+
+const Success = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const state = (location.state as SuccessState) || {};
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const t = setTimeout(() => setLoading(false), 1500);
+    return () => clearTimeout(t);
+  }, []);
+
+  const downloadPdf = () => {
+    const doc = new jsPDF();
+    doc.setFontSize(18); doc.text("Flexiq Verve Wealth", 20, 20);
+    doc.setFontSize(13); doc.text(state.title || "Transaction Receipt", 20, 32);
+    doc.setFontSize(10); doc.text(state.message || "", 20, 40);
+    let y = 56;
+    (state.details || []).forEach((d) => {
+      doc.setFont("helvetica", "bold"); doc.text(d.label + ":", 20, y);
+      doc.setFont("helvetica", "normal"); doc.text(String(d.value || ""), 75, y);
+      y += 8;
+    });
+    doc.save("flexiq-receipt.pdf");
+  };
+
+  return (
+    <div className="font-sans flex min-h-[60vh] items-center justify-center">
+      <Card className="w-full max-w-lg rounded-3xl border-border/60 p-8 shadow-elev animate-scale-in">
+        {loading ? (
+          <div className="space-y-4">
+            <div className="flex justify-center"><Skeleton className="h-20 w-20 rounded-full" /></div>
+            <Skeleton className="mx-auto h-7 w-2/3" />
+            <Skeleton className="mx-auto h-4 w-3/4" />
+            <div className="space-y-2 pt-4">
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-5/6" />
+              <Skeleton className="h-4 w-4/5" />
+            </div>
+          </div>
+        ) : (
+          <div className="text-center animate-fade-in">
+            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-green-100 ring-4 ring-green-200">
+              <CheckCircle2 className="h-12 w-12 text-green-600" />
+            </div>
+            <h1 className="mt-5 font-display text-2xl font-bold">{state.title || "Success!"}</h1>
+            <p className="mt-1 text-sm text-muted-foreground">{state.message || "Your action was completed successfully."}</p>
+
+            {state.details && state.details.length > 0 && (
+              <div className="mt-6 space-y-2 rounded-2xl border border-border/60 bg-muted/30 p-4 text-left">
+                {state.details.map((d) => (
+                  <div key={d.label} className="flex items-start justify-between gap-3 text-sm">
+                    <span className="text-muted-foreground">{d.label}</span>
+                    <span className="text-right font-medium break-all">{d.value || "—"}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
+              <Button onClick={() => navigate("/dashboard")} className="rounded-xl bg-gradient-primary shadow-glow">
+                <ArrowLeft className="mr-2 h-4 w-4" /> Back to Dashboard
+              </Button>
+              {state.receipt && (
+                <>
+                  <Button variant="outline" onClick={downloadPdf} className="rounded-xl"><Download className="mr-2 h-4 w-4" /> Download</Button>
+                  <Button variant="outline" onClick={() => window.print()} className="rounded-xl"><Printer className="mr-2 h-4 w-4" /> Print</Button>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+      </Card>
+    </div>
+  );
+};
+
+export default Success;

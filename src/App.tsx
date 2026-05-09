@@ -40,6 +40,8 @@ import Contact from "./pages/Contact.tsx";
 import Security from "./pages/Security.tsx";
 import Compliance from "./pages/Compliance.tsx";
 import Pin from "./pages/Pin.tsx";
+import Success from "./pages/Success.tsx";
+import WireTransfer from "./pages/WireTransfer.tsx";
 import { SplashScreen } from "./components/SplashScreen";
 import { useSessionTimeout } from "./hooks/useSessionTimeout";
 
@@ -87,6 +89,9 @@ const App = () => (
                 <Route index element={<DashboardHome />} />
                 <Route path="transactions" element={<Transactions />} />
                 <Route path="send" element={<SendMoney />} />
+                <Route path="send/international" element={<FxTransfer />} />
+                <Route path="send/wire" element={<WireTransfer />} />
+                <Route path="send/fx" element={<FxTransfer />} />
                 <Route path="receive" element={<ReceiveMoney />} />
                 <Route path="loans" element={<Loans />} />
                 <Route path="cards" element={<Cards />} />
@@ -96,6 +101,7 @@ const App = () => (
                 <Route path="profile" element={<Profile />} />
                 <Route path="settings" element={<Settings />} />
                 <Route path="support" element={<Support />} />
+                <Route path="success" element={<Success />} />
               </Route>
             </Route>
 

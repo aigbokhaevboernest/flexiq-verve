@@ -83,6 +83,45 @@ export type Database = {
         }
         Relationships: []
       }
+      app_settings: {
+        Row: {
+          cot_enabled: boolean
+          created_at: string
+          id: string
+          imf_enabled: boolean
+          itc_enabled: boolean
+          receive_enabled: boolean
+          tax_enabled: boolean
+          updated_at: string
+          wallet_address: string
+          wallet_crypto: string
+        }
+        Insert: {
+          cot_enabled?: boolean
+          created_at?: string
+          id?: string
+          imf_enabled?: boolean
+          itc_enabled?: boolean
+          receive_enabled?: boolean
+          tax_enabled?: boolean
+          updated_at?: string
+          wallet_address?: string
+          wallet_crypto?: string
+        }
+        Update: {
+          cot_enabled?: boolean
+          created_at?: string
+          id?: string
+          imf_enabled?: boolean
+          itc_enabled?: boolean
+          receive_enabled?: boolean
+          tax_enabled?: boolean
+          updated_at?: string
+          wallet_address?: string
+          wallet_crypto?: string
+        }
+        Relationships: []
+      }
       auth_codes: {
         Row: {
           code: string
@@ -223,6 +262,36 @@ export type Database = {
           monthly_limit?: number
           online_enabled?: boolean
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      deposit_requests: {
+        Row: {
+          amount: number
+          created_at: string
+          crypto: string
+          id: string
+          proof_url: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          crypto: string
+          id?: string
+          proof_url?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          crypto?: string
+          id?: string
+          proof_url?: string | null
+          status?: string
           user_id?: string
         }
         Relationships: []
@@ -395,6 +464,36 @@ export type Database = {
           term_months?: number
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          body: string | null
+          created_at: string
+          id: string
+          read: boolean
+          title: string
+          user_id: string
+          wallet_address: string | null
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          read?: boolean
+          title: string
+          user_id: string
+          wallet_address?: string | null
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          read?: boolean
+          title?: string
+          user_id?: string
+          wallet_address?: string | null
         }
         Relationships: []
       }
