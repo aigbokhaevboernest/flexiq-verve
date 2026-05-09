@@ -1,57 +1,65 @@
-import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { useEffect, useMemo, useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { ShieldCheck, KeyRound, AlertTriangle } from "lucide-react";
+import { ShieldCheck, KeyRound, CheckCircle2, XCircle, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useToast } from "@/hooks/use-toast";
+import { useAppSettings } from "@/hooks/useAppSettings";
+
+type CodeType = "cot" | "tax" | "itc" | "imf" | "loan";
 
 interface CodeGateProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** Ordered list of code types required (e.g. ["cot","imf","tax"]). */
-  required: ("cot" | "imf" | "tax" | "loan")[];
+  /** Optional explicit list (e.g. ["loan"]). When omitted, codes are derived from app_settings (cot + tax/itc/imf if enabled). */
+  required?: CodeType[];
   title?: string;
   description?: string;
   onVerified: (codeIds: string[]) => Promise<void> | void;
 }
 
-const labels: Record<string, string> = {
-  cot: "COT (Cost of Transfer) Code",
-  imf: "IMF Authorization Code",
-  tax: "Tax Clearance Code",
-  loan: "Loan Authorization Code",
+const meta: Record<CodeType, { name: string; full: string; desc: string }> = {
+  cot: { name: "COT Code", full: "Cost of Transfer", desc: "Enter your Cost of Transfer Code to continue." },
+  tax: { name: "Tax Code", full: "Tax Clearance", desc: "Enter your Tax Clearance Code to continue." },
+  itc: { name: "ITC Code", full: "International Transfer", desc: "Enter your International Transfer Code to continue." },
+  imf: { name: "IMF Code", full: "International Monetary Fund", desc: "Enter your IMF Authorization Code to continue." },
+  loan: { name: "Loan Code", full: "Loan Authorization", desc: "Enter your Loan Authorization Code to continue." },
 };
 
 export const CodeGate = ({ open, onOpenChange, required, title, description, onVerified }: CodeGateProps) => {
   const { user } = useAuth();
-  const { toast } = useToast();
+  const { data: settings } = useAppSettings();
+
+  const computed = useMemo<CodeType[]>(() => {
+    if (required && required.length) return required;
+    const list: CodeType[] = ["cot"];
+    if (settings?.tax_enabled) list.push("tax");
+    if (settings?.itc_enabled) list.push("itc");
+    if (settings?.imf_enabled) list.push("imf");
+    return list;
+  }, [required, settings]);
+
   const [step, setStep] = useState(0);
-  const [values, setValues] = useState<Record<string, string>>({});
+  const [value, setValue] = useState("");
+  const [error, setError] = useState<string | null>(null);
   const [verifiedIds, setVerifiedIds] = useState<string[]>([]);
-  const [busy, setBusy] = useState(false);
+  const [state, setState] = useState<"idle" | "checking" | "success" | "error">("idle");
 
-  const current = required[step];
+  useEffect(() => {
+    if (open) { setStep(0); setValue(""); setError(null); setVerifiedIds([]); setState("idle"); }
+  }, [open]);
 
-  const reset = () => {
-    setStep(0);
-    setValues({});
-    setVerifiedIds([]);
-    setBusy(false);
-  };
+  const current = computed[step];
+  const total = computed.length;
 
-  const verifyCurrent = async () => {
+  const verify = async () => {
     if (!user || !current) return;
-    setBusy(true);
-    const code = (values[current] || "").trim();
-    if (!code) {
-      toast({ title: "Enter the code", variant: "destructive" });
-      setBusy(false);
-      return;
-    }
-    const { data, error } = await supabase
+    const code = value.trim();
+    if (!code) { setError("Please enter the code."); setState("error"); return; }
+    setState("checking"); setError(null);
+
+    const { data, error: qErr } = await supabase
       .from("auth_codes")
       .select("id, used, expires_at")
       .eq("user_id", user.id)
@@ -59,92 +67,96 @@ export const CodeGate = ({ open, onOpenChange, required, title, description, onV
       .eq("code", code)
       .maybeSingle();
 
-    if (error || !data) {
-      toast({ title: "Invalid code", description: `The ${labels[current]} you entered is not valid. Contact support to obtain a valid code.`, variant: "destructive" });
-      setBusy(false);
-      return;
-    }
-    if (data.used) {
-      toast({ title: "Code already used", description: "This code has already been redeemed.", variant: "destructive" });
-      setBusy(false);
-      return;
-    }
-    if (data.expires_at && new Date(data.expires_at) < new Date()) {
-      toast({ title: "Code expired", variant: "destructive" });
-      setBusy(false);
-      return;
-    }
+    if (qErr || !data) { setState("error"); setError(`Invalid ${meta[current].name}. Please contact support.`); return; }
+    if (data.used) { setState("error"); setError("This code has already been used."); return; }
+    if (data.expires_at && new Date(data.expires_at) < new Date()) { setState("error"); setError("This code has expired."); return; }
 
-    const nextVerified = [...verifiedIds, data.id];
-    setVerifiedIds(nextVerified);
+    const next = [...verifiedIds, data.id];
+    setVerifiedIds(next);
+    setState("success");
 
-    if (step + 1 < required.length) {
-      setStep(step + 1);
-      setBusy(false);
-    } else {
-      // Mark all codes as used
-      await supabase
-        .from("auth_codes")
-        .update({ used: true, used_at: new Date().toISOString() })
-        .in("id", nextVerified);
-
-      try {
-        await onVerified(nextVerified);
-        onOpenChange(false);
-        reset();
-      } catch (e: any) {
-        toast({ title: "Action failed", description: e.message, variant: "destructive" });
-      } finally {
-        setBusy(false);
+    setTimeout(async () => {
+      if (step + 1 < total) {
+        setStep(step + 1); setValue(""); setState("idle");
+      } else {
+        await supabase.from("auth_codes").update({ used: true, used_at: new Date().toISOString() }).in("id", next);
+        try { await onVerified(next); onOpenChange(false); } catch {/* parent handles */}
       }
-    }
+    }, 600);
   };
 
+  const m = current ? meta[current] : null;
+
   return (
-    <Dialog open={open} onOpenChange={(v) => { if (!v) reset(); onOpenChange(v); }}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <ShieldCheck className="h-5 w-5 text-primary" />
-            {title || "Authorization required"}
-          </DialogTitle>
-          <DialogDescription>
-            {description || "Enter the codes provided by your account manager to authorize this action."}
-          </DialogDescription>
-        </DialogHeader>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md font-sans p-0 overflow-hidden border-0 shadow-2xl rounded-3xl">
+        <div className="bg-gradient-to-br from-primary/10 via-background to-accent/5 p-7">
+          <DialogHeader>
+            <div className="flex items-center gap-2">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/15 ring-1 ring-primary/30">
+                <ShieldCheck className="h-5 w-5 text-primary" />
+              </span>
+              <DialogTitle className="text-base font-bold">{title || "Authorization required"}</DialogTitle>
+            </div>
+            <p className="mt-2 text-xs text-muted-foreground">{description || "Enter the codes provided by your account manager. Each code is one-time use."}</p>
+          </DialogHeader>
 
-        <div className="rounded-xl border border-warning/30 bg-warning/10 p-3 text-xs text-foreground/80">
-          <div className="flex items-start gap-2">
-            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
-            <p>
-              Step {step + 1} of {required.length}. Each code can only be used once and must be issued by the bank.
-            </p>
+          {/* Step indicator */}
+          <div className="mt-5">
+            <div className="mb-2 flex items-center justify-between text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              <span>Step {step + 1} of {total}</span>
+              <span>{m?.name}</span>
+            </div>
+            <div className="flex gap-1.5">
+              {computed.map((_, i) => (
+                <div key={i} className={`h-1.5 flex-1 rounded-full transition-all duration-500 ${
+                  i < step ? "bg-green-600" : i === step ? "bg-gradient-to-r from-primary to-accent" : "bg-border"
+                }`} />
+              ))}
+            </div>
           </div>
+
+          {m && (
+            <div key={current} className="mt-6 animate-fade-in space-y-3">
+              <div>
+                <p className="font-display text-xl font-bold leading-tight">{m.full} Code</p>
+                <p className="mt-1 text-xs text-muted-foreground">{m.desc}</p>
+              </div>
+
+              <div className={`rounded-2xl border-2 bg-card p-1 transition-all duration-300 ${
+                state === "error" ? "border-red-500 shadow-[0_0_0_4px_rgba(239,68,68,0.15)]" :
+                state === "success" ? "border-green-600 shadow-[0_0_0_4px_rgba(22,163,74,0.18)]" :
+                "border-border focus-within:border-primary focus-within:shadow-[0_0_0_4px_hsl(var(--primary)/0.15)]"
+              }`}>
+                <Input
+                  autoFocus
+                  value={value}
+                  onChange={(e) => { setValue(e.target.value.toUpperCase()); if (error) setError(null); if (state === "error") setState("idle"); }}
+                  onKeyDown={(e) => { if (e.key === "Enter") verify(); }}
+                  placeholder="ENTER CODE"
+                  className="h-14 border-0 bg-transparent text-center font-mono text-xl font-bold tracking-[0.35em] shadow-none focus-visible:ring-0"
+                  disabled={state === "checking" || state === "success"}
+                />
+              </div>
+
+              {error && (
+                <div className="flex items-center gap-2 rounded-xl bg-red-50 px-3 py-2 text-xs font-medium text-red-700 dark:bg-red-950/40 dark:text-red-300 animate-fade-in">
+                  <XCircle className="h-3.5 w-3.5" /> {error}
+                </div>
+              )}
+
+              <Button
+                onClick={verify}
+                disabled={state === "checking" || state === "success"}
+                className="h-12 w-full rounded-2xl bg-gradient-primary text-base font-semibold shadow-glow"
+              >
+                {state === "checking" ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Verifying…</>) :
+                 state === "success" ? (<><CheckCircle2 className="mr-2 h-4 w-4" /> Verified</>) :
+                 (<><KeyRound className="mr-2 h-4 w-4" /> {step + 1 < total ? "Verify & continue" : "Verify & authorize"}</>)}
+              </Button>
+            </div>
+          )}
         </div>
-
-        {current && (
-          <div className="space-y-2">
-            <Label className="flex items-center gap-2">
-              <KeyRound className="h-3.5 w-3.5" />
-              {labels[current]}
-            </Label>
-            <Input
-              value={values[current] || ""}
-              onChange={(e) => setValues({ ...values, [current]: e.target.value.toUpperCase() })}
-              placeholder="e.g. NX-A4F2-9KQ7"
-              className="font-mono tracking-widest"
-              autoFocus
-            />
-          </div>
-        )}
-
-        <Button
-          onClick={verifyCurrent}
-          disabled={busy}
-          className="w-full bg-gradient-primary"
-        >
-          {busy ? "Verifying…" : step + 1 < required.length ? "Verify & continue" : "Verify & authorize"}
-        </Button>
       </DialogContent>
     </Dialog>
   );
