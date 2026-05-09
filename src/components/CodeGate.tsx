@@ -44,9 +44,9 @@ export const CodeGate = ({ open, onOpenChange, required, title, description, onV
       .eq("enabled", true)
       .then(({ data }) => {
         const list: CodeType[] = ["cot"]; // COT always required
-        if (data?.find(d => d.code_type === "IMF")) list.push("imf");
         if (data?.find(d => d.code_type === "TAX")) list.push("tax");
         if (data?.find(d => d.code_type === "ITC")) list.push("itc");
+        if (data?.find(d => d.code_type === "IMF")) list.push("imf");
         setEnabledCodes(list);
       });
   }, [user, open]);
