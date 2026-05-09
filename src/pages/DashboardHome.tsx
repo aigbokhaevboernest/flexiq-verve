@@ -59,7 +59,7 @@ const DashboardHome = () => {
       .channel("balance-changes")
       .on(
         "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "profiles", filter: `user_id=eq.${user.id}` },
+        { event: "UPDATE", schema: "public", table: "profiles", filter: `id=eq.${user.id}` },
         (payload: any) => {
           if (balanceCacheKey && payload.new?.balance != null) {
             localStorage.setItem(balanceCacheKey, String(payload.new.balance));
