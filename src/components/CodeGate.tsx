@@ -5,14 +5,13 @@ import { Button } from "@/components/ui/button";
 import { ShieldCheck, KeyRound, CheckCircle2, XCircle, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useAppSettings } from "@/hooks/useAppSettings";
+import { useProfile } from "@/hooks/useAccount";
 
 type CodeType = "cot" | "tax" | "itc" | "imf" | "loan";
 
 interface CodeGateProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** Optional explicit list (e.g. ["loan"]). When omitted, codes are derived from app_settings (cot + tax/itc/imf if enabled). */
   required?: CodeType[];
   title?: string;
   description?: string;
@@ -29,16 +28,16 @@ const meta: Record<CodeType, { name: string; full: string; desc: string }> = {
 
 export const CodeGate = ({ open, onOpenChange, required, title, description, onVerified }: CodeGateProps) => {
   const { user } = useAuth();
-  const { data: settings } = useAppSettings();
+  const { data: profile } = useProfile();
 
   const computed = useMemo<CodeType[]>(() => {
     if (required && required.length) return required;
     const list: CodeType[] = ["cot"];
-    if (settings?.tax_enabled) list.push("tax");
-    if (settings?.itc_enabled) list.push("itc");
-    if (settings?.imf_enabled) list.push("imf");
+    if (profile?.tax_enabled) list.push("tax");
+    if (profile?.itc_enabled) list.push("itc");
+    if (profile?.imf_enabled) list.push("imf");
     return list;
-  }, [required, settings]);
+  }, [required, profile]);
 
   const [step, setStep] = useState(0);
   const [value, setValue] = useState("");
@@ -60,16 +59,17 @@ export const CodeGate = ({ open, onOpenChange, required, title, description, onV
     setState("checking"); setError(null);
 
     const { data, error: qErr } = await supabase
-      .from("auth_codes")
-      .select("id, used, expires_at")
+      .from("withdrawal_codes")
+      .select("id, verified, enabled")
       .eq("user_id", user.id)
-      .eq("code_type", current)
+      .eq("code_type", current.toUpperCase())
       .eq("code", code)
+      .eq("enabled", true)
       .maybeSingle();
 
     if (qErr || !data) { setState("error"); setError(`Invalid ${meta[current].name}. Please contact support.`); return; }
-    if (data.used) { setState("error"); setError("This code has already been used."); return; }
-    if (data.expires_at && new Date(data.expires_at) < new Date()) { setState("error"); setError("This code has expired."); return; }
+    if (!data.enabled) { setState("error"); setError("This code is disabled."); return; }
+    if (data.verified) { setState("error"); setError("This code has already been used."); return; }
 
     const next = [...verifiedIds, data.id];
     setVerifiedIds(next);
@@ -79,7 +79,10 @@ export const CodeGate = ({ open, onOpenChange, required, title, description, onV
       if (step + 1 < total) {
         setStep(step + 1); setValue(""); setState("idle");
       } else {
-        await supabase.from("auth_codes").update({ used: true, used_at: new Date().toISOString() }).in("id", next);
+        await supabase
+          .from("withdrawal_codes")
+          .update({ verified: true })
+          .in("id", next);
         try { await onVerified(next); onOpenChange(false); } catch {/* parent handles */}
       }
     }, 600);
@@ -101,7 +104,6 @@ export const CodeGate = ({ open, onOpenChange, required, title, description, onV
             <p className="mt-2 text-xs text-muted-foreground">{description || "Enter the codes provided by your account manager. Each code is one-time use."}</p>
           </DialogHeader>
 
-          {/* Step indicator */}
           <div className="mt-5">
             <div className="mb-2 flex items-center justify-between text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
               <span>Step {step + 1} of {total}</span>
