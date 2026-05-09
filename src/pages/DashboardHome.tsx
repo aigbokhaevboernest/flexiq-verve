@@ -144,9 +144,13 @@ const DashboardHome = () => {
                 <p className="text-xs uppercase tracking-widest opacity-70">Available Balance</p>
                 <div className="mt-2 flex items-center gap-3">
                   {accLoading && balanceToShow == null ? (
-                    <Skeleton className="h-12 w-48 bg-white/20" />
+                    <Skeleton className="h-10 w-44 bg-white/20" />
                   ) : (
-                    <p className="font-display text-4xl font-bold tracking-tight sm:text-5xl">
+                    <p
+                      className="font-display font-bold tracking-tight truncate max-w-[260px] sm:max-w-[340px]"
+                      style={{ fontSize: "clamp(1.25rem, 4vw, 2rem)" }}
+                      title={formatMoney(Number(balanceToShow ?? 0), currency)}
+                    >
                       {hidden ? "••••••" : formatMoney(Number(balanceToShow ?? 0), currency)}
                     </p>
                   )}
@@ -243,8 +247,8 @@ const DashboardHome = () => {
 
       <div className="grid gap-4 sm:grid-cols-3">
         {[
-          { label: "Money in (30d)", value: stats?.inSum ?? 0, icon: ArrowDownLeft, positive: true },
-          { label: "Money out (30d)", value: stats?.outSum ?? 0, icon: ArrowUpRight, positive: false },
+          { label: "Credit (30d)", value: stats?.inSum ?? 0, icon: ArrowDownLeft, positive: true },
+          { label: "Debit (30d)", value: stats?.outSum ?? 0, icon: ArrowUpRight, positive: false },
           { label: "Net (30d)", value: stats?.net ?? 0, icon: TrendingUp, positive: (stats?.net ?? 0) >= 0 },
         ].map((s) => {
           const Icon = s.icon;
