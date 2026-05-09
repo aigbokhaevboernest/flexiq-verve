@@ -233,7 +233,7 @@ const FxTransfer = () => {
         </div>
       </div>
 
-      <CodeGate open={gateOpen} onOpenChange={setGateOpen} required={["cot", "imf", "tax"]}
+      <CodeGate open={gateOpen} onOpenChange={setGateOpen}
         title="Authorize FX transfer" onVerified={onVerified} />
     </div>
   );
