@@ -11,13 +11,16 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CodeGate } from "@/components/CodeGate";
+import { ConfirmTransferDialog } from "@/components/ConfirmTransferDialog";
+import { useNavigate } from "react-router-dom";
 
 const FxTransfer = () => {
   const { toast } = useToast();
   const { user } = useAuth();
   const { data: account } = useAccount();
   const qc = useQueryClient();
-
+  const navigate = useNavigate();
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const baseCurrency = account?.currency || "USD";
   const [from, setFrom] = useState(baseCurrency);
   const [to, setTo] = useState("EUR");
@@ -89,12 +92,28 @@ const FxTransfer = () => {
     const amt = Number(amount);
     const fromInBase = amt / (usdRates[from] ?? 1) * (usdRates[baseCurrency] ?? 1);
     await supabase.from("accounts").update({ balance: Number(account.balance) - fromInBase }).eq("user_id", user.id);
-    await supabase.from("transactions").update({ status: "completed" }).eq("id", pendingTxId);
+    await supabase.from("transactions").update({ status: "pending" }).eq("id", pendingTxId);
     qc.invalidateQueries({ queryKey: ["account"] });
     qc.invalidateQueries({ queryKey: ["transactions"] });
     qc.invalidateQueries({ queryKey: ["recent-tx"] });
     qc.invalidateQueries({ queryKey: ["stats"] });
-    toast({ title: "FX transfer completed", description: `${converted} ${to} sent to ${recipient.name}.` });
+    navigate("/dashboard/success", {
+      state: {
+        title: "Transfer pending",
+        message: `${converted} ${to} to ${recipient.name}. Awaiting admin approval.`,
+        receipt: true,
+        details: [
+          { label: "Date", value: new Date().toLocaleString() },
+          { label: "Reference", value: pendingTxId.slice(0, 12).toUpperCase() },
+          { label: "Recipient", value: recipient.name },
+          { label: "Bank", value: recipient.bank },
+          { label: "Account", value: recipient.iban },
+          { label: "Sent", value: `${amount} ${from}` },
+          { label: "Received", value: `${converted} ${to}` },
+          { label: "Status", value: "Pending" },
+        ],
+      },
+    });
     setPendingTxId(null);
   };
 
