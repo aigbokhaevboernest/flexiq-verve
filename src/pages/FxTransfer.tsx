@@ -22,7 +22,7 @@ const FxTransfer = () => {
   const [from, setFrom] = useState(baseCurrency);
   const [to, setTo] = useState("EUR");
   const [amount, setAmount] = useState("100");
-  const [recipient, setRecipient] = useState({ name: "", iban: "", swift: "", bank: "" });
+  const [recipient, setRecipient] = useState({ name: "", iban: "", swift: "", bank: "", address: "", zip: "", country: "", accountType: "checking" });
 
   const [gateOpen, setGateOpen] = useState(false);
   const [pendingTxId, setPendingTxId] = useState<string | null>(null);
@@ -168,6 +168,20 @@ const FxTransfer = () => {
               <div className="space-y-2"><Label>IBAN / Account</Label><Input value={recipient.iban} onChange={(e) => setRecipient({ ...recipient, iban: e.target.value })} /></div>
               <div className="space-y-2"><Label>SWIFT / BIC</Label><Input value={recipient.swift} onChange={(e) => setRecipient({ ...recipient, swift: e.target.value })} /></div>
               <div className="space-y-2"><Label>Recipient bank</Label><Input value={recipient.bank} onChange={(e) => setRecipient({ ...recipient, bank: e.target.value })} /></div>
+              <div className="space-y-2 sm:col-span-2"><Label>Address</Label><Input value={recipient.address} onChange={(e) => setRecipient({ ...recipient, address: e.target.value })} /></div>
+              <div className="space-y-2"><Label>Zip / Postal code</Label><Input value={recipient.zip} onChange={(e) => setRecipient({ ...recipient, zip: e.target.value })} /></div>
+              <div className="space-y-2"><Label>Country</Label><Input value={recipient.country} onChange={(e) => setRecipient({ ...recipient, country: e.target.value })} /></div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label>Account type</Label>
+                <Select value={recipient.accountType} onValueChange={(v) => setRecipient({ ...recipient, accountType: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="checking">Checking</SelectItem>
+                    <SelectItem value="savings">Savings</SelectItem>
+                    <SelectItem value="business">Business</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
 
