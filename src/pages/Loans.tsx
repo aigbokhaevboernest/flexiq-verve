@@ -60,14 +60,14 @@ const Loans = () => {
       currency,
       term_months: months,
       interest_rate: rate,
-      purpose,
+      purpose: JSON.stringify({ purpose, ...extra, email: user.email }),
       status: "pending",
     }).select().single();
 
     if (error || !data) return toast({ title: "Failed", description: error?.message, variant: "destructive" });
     qc.invalidateQueries({ queryKey: ["loans"] });
-    toast({ title: "Loan application submitted", description: "We'll review and contact you within 24 hours." });
     setAmount(""); setPurpose("");
+    window.location.assign("/dashboard/success");
   };
 
   const releaseFunds = (loanId: string) => {
