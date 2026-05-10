@@ -1,26 +1,27 @@
+import { useFrozenGuard } from "@/hooks/useFrozenGuard";
 import { useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowDownUp, Globe2, TrendingUp, Lock, Zap } from "lucide-react";
+import { ArrowDownUp, TrendingUp, Lock, Zap } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAccount, formatMoney } from "@/hooks/useAccount";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CodeGate } from "@/components/CodeGate";
-import { ConfirmTransferDialog } from "@/components/ConfirmTransferDialog";
 import { useNavigate } from "react-router-dom";
 
 const FxTransfer = () => {
+  useFrozenGuard();
+
   const { toast } = useToast();
   const { user } = useAuth();
   const { data: account } = useAccount();
   const qc = useQueryClient();
   const navigate = useNavigate();
-  const [confirmOpen, setConfirmOpen] = useState(false);
   const baseCurrency = account?.currency || "USD";
   const [from, setFrom] = useState(baseCurrency);
   const [to, setTo] = useState("EUR");
@@ -30,7 +31,6 @@ const FxTransfer = () => {
   const [gateOpen, setGateOpen] = useState(false);
   const [pendingTxId, setPendingTxId] = useState<string | null>(null);
 
-  // Live FX rates from free public API (USD base) with DB fallback
   const { data: liveRates } = useQuery({
     queryKey: ["fx_live"],
     queryFn: async () => {
@@ -54,7 +54,7 @@ const FxTransfer = () => {
   const usdRates = useMemo(() => {
     const m: Record<string, number> = { USD: 1 };
     rates.forEach((r: any) => { m[r.quote_currency] = Number(r.rate); });
-    if (liveRates) Object.assign(m, liveRates); // live takes precedence
+    if (liveRates) Object.assign(m, liveRates);
     return m;
   }, [rates, liveRates]);
 
@@ -74,10 +74,9 @@ const FxTransfer = () => {
     const amt = Number(amount);
     if (!amt || amt <= 0) return toast({ title: "Enter amount", variant: "destructive" });
     if (!recipient.name || !recipient.iban) return toast({ title: "Recipient details required", variant: "destructive" });
+    if (account?.status === "frozen") return toast({ title: "Account frozen", variant: "destructive" });
 
-    // Convert from->base for balance check
     const fromInBase = Number(amount) / (usdRates[from] ?? 1) * (usdRates[baseCurrency] ?? 1);
-    if (account.frozen) return toast({ title: "Account frozen", variant: "destructive" });
     if (fromInBase > Number(account.balance)) return toast({ title: "Insufficient funds", description: `Need ${formatMoney(fromInBase, baseCurrency)}`, variant: "destructive" });
 
     const { data: tx, error } = await supabase.from("transactions").insert({
