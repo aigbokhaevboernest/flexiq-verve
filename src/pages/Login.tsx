@@ -122,6 +122,7 @@ const Login = () => {
           New to Flexiq Verve?{" "}
           <Link to="/signup" className="font-medium text-primary hover:underline">Open an account</Link>
         </p>
+        </div>
       </div>
     </div>
   );
