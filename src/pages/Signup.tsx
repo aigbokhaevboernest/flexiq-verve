@@ -9,7 +9,7 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import adminLogo from "@/assets/logo.png";
-import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+// LanguageSwitcher removed — using Google Translate widget in index.html
 
 const nativeSelectClass =
   "mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring";
