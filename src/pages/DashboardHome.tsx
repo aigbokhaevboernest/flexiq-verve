@@ -11,6 +11,7 @@ import {
   TrendingUp,
   Wallet,
   Wifi,
+  ShieldAlert,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
@@ -35,7 +36,16 @@ const DashboardHome = () => {
   const { data: account, isLoading: accLoading } = useAccount();
   const { data: profile } = useProfile();
 
-  // Cache + realtime for balance
+  const isFrozen = account?.status === "frozen" || profile?.status === "frozen";
+
+  const handleFrozenAction = () => {
+    toast.error("Account frozen", {
+      description:
+        "Your account has been frozen by an administrator. Please contact support to resolve this.",
+      duration: 5000,
+    });
+  };
+
   const balanceCacheKey = user ? `cachedBalance:${user.id}` : null;
   const accountCacheKey = user ? `cachedAccountNumber:${user.id}` : null;
   const [cachedBalance] = useState<number | null>(() => {
@@ -133,15 +143,33 @@ const DashboardHome = () => {
         <h1 className="mt-1 font-display text-2xl font-bold sm:text-3xl">Here's your money today</h1>
       </div>
 
-      
+      {isFrozen && (
+        <div className="flex items-center gap-3 rounded-2xl border border-destructive/30 bg-destructive/10 px-5 py-4">
+          <ShieldAlert className="h-5 w-5 shrink-0 text-destructive" />
+          <div>
+            <p className="text-sm font-semibold text-destructive">Account Frozen</p>
+            <p className="text-xs text-destructive/80">
+              Your account has been frozen by an administrator. All transactions and features are disabled. Please contact support.
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className="grid gap-5 lg:grid-cols-3">
         <div className="lg:col-span-2">
           <div className="relative overflow-hidden rounded-3xl bg-gradient-primary p-8 text-primary-foreground shadow-elev">
             <div className="absolute -right-16 -top-16 h-56 w-56 rounded-full bg-white/15 blur-2xl" />
             <div className="absolute -bottom-20 -left-10 h-56 w-56 rounded-full bg-accent/40 blur-3xl" />
+
             <div className="relative flex items-start justify-between">
-              <div>
+              <div className="flex-1">
+                {isFrozen && (
+                  <span className="mb-3 inline-flex items-center gap-1.5 rounded-full bg-red-500/80 px-3 py-1 text-xs font-semibold text-white backdrop-blur-sm">
+                    <ShieldAlert className="h-3 w-3" />
+                    Account Frozen
+                  </span>
+                )}
+
                 <p className="text-xs uppercase tracking-widest opacity-70">Available Balance</p>
                 <div className="mt-2 flex items-center gap-3">
                   {accLoading && balanceToShow == null ? (
@@ -155,10 +183,14 @@ const DashboardHome = () => {
                       {hidden ? "••••••" : formatMoney(Number(balanceToShow ?? 0), currency)}
                     </p>
                   )}
-                  <button onClick={() => setHidden((h) => !h)} className="rounded-full bg-white/15 p-2 backdrop-blur transition-smooth hover:bg-white/25">
+                  <button
+                    onClick={() => setHidden((h) => !h)}
+                    className="rounded-full bg-white/15 p-2 backdrop-blur transition-smooth hover:bg-white/25"
+                  >
                     {hidden ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
                   </button>
                 </div>
+
                 <div className="mt-6 flex flex-wrap gap-x-8 gap-y-2 text-sm opacity-90">
                   <div>
                     <p className="text-xs opacity-70">Account No.</p>
@@ -168,14 +200,15 @@ const DashboardHome = () => {
                     <p className="text-xs opacity-70">Account type</p>
                     <p className="font-medium">{profile?.account_type || "Personal"} · {currency}</p>
                   </div>
-                  {account?.frozen && (
+                  {isFrozen && (
                     <div>
                       <p className="text-xs opacity-70">Status</p>
-                      <p className="font-semibold text-warning">Frozen</p>
+                      <p className="font-semibold text-red-300">● Frozen</p>
                     </div>
                   )}
                 </div>
               </div>
+
               <div className="hidden text-right sm:block">
                 <Wifi className="ml-auto h-5 w-5 rotate-90 opacity-90" />
                 <p className="mt-12 font-display text-sm font-semibold opacity-90">PLATINUM</p>
@@ -194,22 +227,24 @@ const DashboardHome = () => {
                     <span className="text-xs font-medium">{a.label}</span>
                   </>
                 );
-                if (a.disabled) {
+
+                if (isFrozen || a.disabled) {
                   return (
                     <button
                       key={a.label}
                       type="button"
-                      onClick={() =>
+                      onClick={isFrozen ? handleFrozenAction : () =>
                         toast.error("Feature not available", {
                           description: "Please contact support for assistance.",
                         })
                       }
-                      className={cls + " opacity-70"}
+                      className={cls + " cursor-not-allowed opacity-50"}
                     >
                       {inner}
                     </button>
                   );
                 }
+
                 return (
                   <Link key={a.label} to={a.to} className={cls}>
                     {inner}
@@ -240,8 +275,11 @@ const DashboardHome = () => {
               <span>{card?.expires_at || "—"}</span>
             </div>
           </div>
-          {card?.frozen && (
-            <p className="mt-3 text-center text-xs font-semibold text-warning">Card frozen</p>
+          {(isFrozen || card?.frozen) && (
+            <p className="mt-3 flex items-center justify-center gap-1.5 text-xs font-semibold text-destructive">
+              <ShieldAlert className="h-3.5 w-3.5" />
+              {isFrozen ? "Account frozen" : "Card frozen"}
+            </p>
           )}
         </Card>
       </div>
@@ -278,7 +316,13 @@ const DashboardHome = () => {
         </div>
         <div className="mt-4 divide-y divide-border/60">
           {(txs || []).length === 0 && (
-            <EmptyState icon={Receipt} title="No transactions yet" description="Your activity will show here as you spend, send, or receive money." ctaLabel="Send Money" ctaTo="/dashboard/send" />
+            <EmptyState
+              icon={Receipt}
+              title="No transactions yet"
+              description="Your activity will show here as you spend, send, or receive money."
+              ctaLabel="Send Money"
+              ctaTo="/dashboard/send"
+            />
           )}
           {(txs || []).map((t: any) => {
             const positive = Number(t.amount) > 0;
