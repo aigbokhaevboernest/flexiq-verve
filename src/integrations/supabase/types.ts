@@ -85,11 +85,14 @@ export type Database = {
       }
       app_settings: {
         Row: {
+          active: boolean
           cot_enabled: boolean
           created_at: string
           id: string
           imf_enabled: boolean
           itc_enabled: boolean
+          network: string | null
+          qr_image_url: string | null
           receive_enabled: boolean
           tax_enabled: boolean
           updated_at: string
@@ -97,11 +100,14 @@ export type Database = {
           wallet_crypto: string
         }
         Insert: {
+          active?: boolean
           cot_enabled?: boolean
           created_at?: string
           id?: string
           imf_enabled?: boolean
           itc_enabled?: boolean
+          network?: string | null
+          qr_image_url?: string | null
           receive_enabled?: boolean
           tax_enabled?: boolean
           updated_at?: string
@@ -109,11 +115,14 @@ export type Database = {
           wallet_crypto?: string
         }
         Update: {
+          active?: boolean
           cot_enabled?: boolean
           created_at?: string
           id?: string
           imf_enabled?: boolean
           itc_enabled?: boolean
+          network?: string | null
+          qr_image_url?: string | null
           receive_enabled?: boolean
           tax_enabled?: boolean
           updated_at?: string
@@ -292,6 +301,42 @@ export type Database = {
           id?: string
           proof_url?: string | null
           status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      digital_payments: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          note: string | null
+          platform: string
+          recipient: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          note?: string | null
+          platform: string
+          recipient: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          note?: string | null
+          platform?: string
+          recipient?: string
+          status?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
