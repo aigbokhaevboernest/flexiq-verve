@@ -1,17 +1,14 @@
 import { useState } from "react";
-import { useEffect, useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ShieldCheck, KeyRound, CheckCircle2, XCircle, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
 
 interface LoanCodeGateProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   loanId: string | null;
-  userId: string;
   onVerified: () => void;
 }
 
@@ -19,80 +16,137 @@ export const LoanCodeGate = ({
   open,
   onOpenChange,
   loanId,
-  userId,
   onVerified,
 }: LoanCodeGateProps) => {
   const [code, setCode] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [state, setState] = useState<"idle" | "checking" | "success" | "error">("idle");
+  const [error, setError] = useState<string | null>(null);
+
+  const reset = () => {
+    setCode("");
+    setError(null);
+    setState("idle");
+  };
 
   const verify = async () => {
-    if (!code.trim()) return toast.error("Please enter your loan authorization code");
+    const trimmed = code.trim().toUpperCase();
+    if (!trimmed) {
+      setError("Please enter your authorization code.");
+      setState("error");
+      return;
+    }
     if (!loanId) return;
+    setState("checking");
+    setError(null);
 
-    setLoading(true);
-
-    const { data, error } = await supabase
-      .from("loan_codes")
-      .select("*")
-      .eq("loan_id", loanId)
-      .eq("user_id", userId)
-      .eq("code", code.trim())
-      .eq("used", false)
+    const { data, error: dbErr } = await supabase
+      .from("loans")
+      .select("disbursement_code, code_used")
+      .eq("id", loanId)
       .maybeSingle();
 
-    if (error || !data) {
-      setLoading(false);
-      return toast.error("Invalid or already used authorization code");
+    if (dbErr || !data) {
+      setState("error");
+      setError("Could not verify code. Try again.");
+      return;
     }
 
-    // Check expiry
-    if (data.expires_at && new Date(data.expires_at) < new Date()) {
-      setLoading(false);
-      return toast.error("This code has expired. Please contact support.");
+    if (data.code_used) {
+      setState("error");
+      setError("This code has already been used.");
+      return;
     }
 
-    // Mark code as used
+    if (!data.disbursement_code || data.disbursement_code.toUpperCase() !== trimmed) {
+      setState("error");
+      setError("Invalid Loan Code. Please contact support.");
+      return;
+    }
+
     await supabase
-      .from("loan_codes")
-      .update({ used: true })
-      .eq("id", data.id);
+      .from("loans")
+      .update({ code_used: true })
+      .eq("id", loanId);
 
-    setLoading(false);
-    setCode("");
-    onOpenChange(false);
-    onVerified();
+    setState("success");
+
+    setTimeout(() => {
+      reset();
+      onOpenChange(false);
+      onVerified();
+    }, 700);
   };
 
   return (
-    <Dialog open={open} onOpenChange={(o) => { if (!o) setCode(""); onOpenChange(o); }}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Lock className="h-4 w-4 text-primary" />
-            Loan Authorization Code
-          </DialogTitle>
-          <DialogDescription>
-            Enter the Loan Authorization Code provided by your account manager to release your funds.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="space-y-4 py-2">
-          <div className="space-y-2">
-            <Label>Authorization Code</Label>
-            <Input
-              placeholder="Enter code"
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && verify()}
-              autoFocus
-            />
+    <Dialog open={open} onOpenChange={(o) => { if (!o) reset(); onOpenChange(o); }}>
+      <DialogContent className="sm:max-w-md font-sans p-0 overflow-hidden border-0 shadow-2xl rounded-3xl">
+        <div className="bg-gradient-to-br from-primary/10 via-background to-accent/5 p-7">
+          <DialogHeader>
+            <div className="flex items-center gap-2">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/15 ring-1 ring-primary/30">
+                <ShieldCheck className="h-5 w-5 text-primary" />
+              </span>
+              <DialogTitle className="text-base font-bold">
+                Authorize loan disbursement
+              </DialogTitle>
+            </div>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Enter the Loan Authorization Code provided by your account manager to release funds.
+            </p>
+          </DialogHeader>
+
+          <div className="mt-6 space-y-3">
+            <div>
+              <p className="font-display text-xl font-bold leading-tight">
+                Loan Authorization Code
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Enter your code to release your loan funds.
+              </p>
+            </div>
+
+            <div className={`rounded-2xl border-2 bg-card p-1 transition-all duration-300 ${
+              state === "error"
+                ? "border-red-500 shadow-[0_0_0_4px_rgba(239,68,68,0.15)]"
+                : state === "success"
+                ? "border-green-600 shadow-[0_0_0_4px_rgba(22,163,74,0.18)]"
+                : "border-border focus-within:border-primary focus-within:shadow-[0_0_0_4px_hsl(var(--primary)/0.15)]"
+            }`}>
+              <Input
+                autoFocus
+                value={code}
+                onChange={(e) => {
+                  setCode(e.target.value.toUpperCase());
+                  if (error) setError(null);
+                  if (state === "error") setState("idle");
+                }}
+                onKeyDown={(e) => { if (e.key === "Enter") verify(); }}
+                placeholder="ENTER CODE"
+                className="h-14 border-0 bg-transparent text-center font-mono text-xl font-bold tracking-[0.35em] shadow-none focus-visible:ring-0"
+                disabled={state === "checking" || state === "success"}
+              />
+            </div>
+
+            {error && (
+              <div className="flex items-center gap-2 rounded-xl bg-red-50 px-3 py-2 text-xs font-medium text-red-700 dark:bg-red-950/40 dark:text-red-300 animate-fade-in">
+                <XCircle className="h-3.5 w-3.5" /> {error}
+              </div>
+            )}
+
+            <Button
+              onClick={verify}
+              disabled={state === "checking" || state === "success"}
+              className="h-12 w-full rounded-2xl bg-gradient-primary text-base font-semibold shadow-glow"
+            >
+              {state === "checking" ? (
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Verifying…</>
+              ) : state === "success" ? (
+                <><CheckCircle2 className="mr-2 h-4 w-4" /> Verified</>
+              ) : (
+                <><KeyRound className="mr-2 h-4 w-4" /> Verify & release funds</>
+              )}
+            </Button>
           </div>
-          <Button
-            className="w-full bg-gradient-primary"
-            onClick={verify}
-            disabled={loading}
-          >
-            {loading ? "Verifying…" : "Release Funds"}
-          </Button>
         </div>
       </DialogContent>
     </Dialog>
