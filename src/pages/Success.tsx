@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CheckCircle2, ArrowLeft, Download, Printer } from "lucide-react";
+import { CheckCircle2, ArrowLeft, Download, Printer, X, Clock } from "lucide-react";
 import jsPDF from "jspdf";
 
 interface SuccessState {
@@ -11,6 +11,7 @@ interface SuccessState {
   message?: string;
   details?: { label: string; value: string }[];
   receipt?: boolean;
+  pending?: boolean;
 }
 
 const Success = () => {
