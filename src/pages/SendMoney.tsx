@@ -17,6 +17,14 @@ import { formatMoney } from "@/hooks/useAccount";
 import { EmptyState } from "@/components/EmptyState";
 import { Inbox } from "lucide-react";
 
+const SendMoney = () => {
+  useFrozenGuard(); // ← ADD THIS LINE HERE
+
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const navigate = useNavigate();
+  // ... rest unchanged
+
 type Platform = {
   key: string;
   name: string;
