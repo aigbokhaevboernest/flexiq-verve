@@ -25,48 +25,55 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [profile, setProfile] = useState<{ status: string; frozen: boolean } | null>(null);
 
   const checkStatus = async (userId: string) => {
-    const { data } = await supabase
-      .from("profiles")
-      .select("status, frozen")
-      .eq("id", userId)
-      .maybeSingle();
-    if (data) {
-      setProfile(data);
-      if (data.status === "blocked") {
-        await supabase.auth.signOut();
-        setUser(null);
-        setSession(null);
-        setProfile(null);
-        alert("Your account has been blocked. Please contact support.");
-        return;
+    try {
+      const { data } = await supabase
+        .from("profiles")
+        .select("status, frozen")
+        .eq("id", userId)
+        .maybeSingle();
+      if (data) {
+        setProfile(data);
+        if (data.status === "blocked") {
+          await supabase.auth.signOut();
+          setUser(null);
+          setSession(null);
+          setProfile(null);
+          alert("Your account has been blocked. Please contact support.");
+        }
       }
+    } catch {
+      // silently fail — don't block loading
     }
   };
 
   useEffect(() => {
+    // Safety timeout — force loading to false after 5 seconds no matter what
+    const timeout = setTimeout(() => setLoading(false), 5000);
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
       setSession(newSession);
       setUser(newSession?.user ?? null);
       if (newSession?.user) {
-        await checkStatus(newSession.user.id);
+        await Promise.race([
+          checkStatus(newSession.user.id),
+          new Promise<void>(resolve => setTimeout(resolve, 4000)),
+        ]);
       }
+      clearTimeout(timeout);
       setLoading(false);
     });
 
-    supabase.auth.getSession().then(async ({ data: { session: existing } }) => {
-      setSession(existing);
-      setUser(existing?.user ?? null);
-      if (existing?.user) {
-        await checkStatus(existing.user.id);
-      }
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(timeout);
+    };
   }, []);
 
   const signOut = async () => {
     await supabase.auth.signOut();
+    setUser(null);
+    setSession(null);
+    setProfile(null);
   };
 
   return (
