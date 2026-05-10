@@ -1,10 +1,11 @@
+import { useFrozenGuard } from "@/hooks/useFrozenGuard";
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Lock, Globe2 } from "lucide-react";
+import { Lock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAccount, formatMoney, currencySymbol } from "@/hooks/useAccount";
 import { useAuth } from "@/hooks/useAuth";
@@ -25,6 +26,8 @@ const Section = ({ title, children }: { title: string; children: React.ReactNode
 );
 
 const WireTransfer = () => {
+  useFrozenGuard();
+
   const { toast } = useToast();
   const { user } = useAuth();
   const { data: account } = useAccount();
@@ -58,7 +61,7 @@ const WireTransfer = () => {
   const startConfirm = (e: React.FormEvent) => {
     e.preventDefault();
     if (!amt || amt <= 0) return toast({ title: "Enter a valid amount", variant: "destructive" });
-    if (account?.frozen) return toast({ title: "Account frozen", variant: "destructive" });
+    if (account?.status === "frozen") return toast({ title: "Account frozen", variant: "destructive" });
     if (amt > Number(account?.balance ?? 0)) return toast({ title: "Insufficient funds", variant: "destructive" });
     setConfirmOpen(true);
   };
