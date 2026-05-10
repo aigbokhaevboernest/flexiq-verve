@@ -23,7 +23,7 @@ type Platform = {
   bg: string;
   fg?: string;
   send: string;
-  initials: string;
+  logo: string;
   fields: { key: string; label: string; placeholder?: string }[];
 };
 
@@ -40,8 +40,6 @@ const platforms: Platform[] = [
   { key: "worldremit", name: "WorldRemit", bg: "#E2001A", fg: "#fff", send: "#E2001A", logo: "https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/worldremit.svg", fields: [{ key: "phone", label: "Phone", placeholder: "+1 555 555 5555" }] },
   { key: "chime", name: "Chime", bg: "#1EC677", fg: "#fff", send: "#1EC677", logo: "https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/chime.svg", fields: [{ key: "username", label: "Chime username/email", placeholder: "$ChimeSign" }] },
 ];
-
-
 
 const StatusBadge = ({ s }: { s: string }) => {
   const map: Record<string, string> = {
@@ -156,10 +154,18 @@ const SendMoney = () => {
         {platforms.map((p) => (
           <Card key={p.key} className="overflow-hidden rounded-2xl border-border/60 p-4 text-center shadow-card transition hover:shadow-glow">
             <div
-              className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl text-lg font-bold"
-              style={{ background: p.bg, color: p.fg || "#fff" }}
+              className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl"
+              style={{ background: p.bg }}
             >
-              {p.initials}
+              <img
+                src={p.logo}
+                alt={p.name}
+                className="h-8 w-8 object-contain"
+                style={{ filter: "brightness(0) invert(1)" }}
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = "none";
+                }}
+              />
             </div>
             <p className="mt-3 text-sm font-semibold">{p.name}</p>
             <Button
@@ -205,10 +211,18 @@ const SendMoney = () => {
             <DialogTitle className="flex items-center gap-3">
               {selected && (
                 <span
-                  className="flex h-9 w-9 items-center justify-center rounded-xl text-sm font-bold"
-                  style={{ background: selected.bg, color: selected.fg || "#fff" }}
+                  className="flex h-9 w-9 items-center justify-center rounded-xl"
+                  style={{ background: selected.bg }}
                 >
-                  {selected.initials}
+                  <img
+                    src={selected.logo}
+                    alt={selected.name}
+                    className="h-5 w-5 object-contain"
+                    style={{ filter: "brightness(0) invert(1)" }}
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = "none";
+                    }}
+                  />
                 </span>
               )}
               Send via {selected?.name}
