@@ -88,7 +88,7 @@ const WireTransfer = () => {
 
   const onVerified = async () => {
     if (!user || !account || !pendingTxId) return;
-    await supabase.from("accounts").update({ balance: Number(account.balance) - amt }).eq("user_id", user.id);
+    await supabase.from("profile").update({ balance: Number(account.balance) - amt }).eq("user_id", user.id);
     await supabase.from("transactions").update({ status: "pending" }).eq("id", pendingTxId);
     qc.invalidateQueries({ queryKey: ["account"] });
     qc.invalidateQueries({ queryKey: ["transactions"] });
