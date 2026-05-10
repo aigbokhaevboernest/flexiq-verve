@@ -17,6 +17,7 @@ import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Lock as LockIcon } from "lucide-react";
 import { toast as sonnerToast } from "sonner";
+import { LoanCodeGate } from "@/components/LoanCodeGate";
 
 // ── Inline LoanCodeGate — completely separate, checks loans.disbursement_code only ──
 const LoanCodeGate = ({
