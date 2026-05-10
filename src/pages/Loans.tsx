@@ -13,8 +13,10 @@ import { useAccount, formatMoney } from "@/hooks/useAccount";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CodeGate } from "@/components/CodeGate";
+import { useNavigate } from "react-router-dom";
 
 const Loans = () => {
+  const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
   const { data: account } = useAccount();
