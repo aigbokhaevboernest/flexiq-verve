@@ -1,10 +1,11 @@
+import { useFrozenGuard } from "@/hooks/useFrozenGuard";
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowRight, Repeat, Shield, Lock } from "lucide-react";
+import { ArrowRight, Shield, Lock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAccount, formatMoney, currencySymbol } from "@/hooks/useAccount";
 import { useAuth } from "@/hooks/useAuth";
@@ -13,6 +14,8 @@ import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { CodeGate } from "@/components/CodeGate";
 
 const LocalTransfer = () => {
+  useFrozenGuard();
+
   const { toast } = useToast();
   const { user } = useAuth();
   const { data: account } = useAccount();
@@ -42,7 +45,7 @@ const LocalTransfer = () => {
     if (!user || !account) return;
     const amt = Number(amount);
     if (!amt || amt <= 0) return toast({ title: "Enter amount", variant: "destructive" });
-    if (account.frozen) return toast({ title: "Account frozen", variant: "destructive" });
+    if (account?.status === "frozen") return toast({ title: "Account frozen", variant: "destructive" });
     if (amt > Number(account.balance)) return toast({ title: "Insufficient funds", variant: "destructive" });
 
     setSubmitting(true);
