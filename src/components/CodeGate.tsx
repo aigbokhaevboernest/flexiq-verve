@@ -77,7 +77,7 @@ export const CodeGate = ({ open, onOpenChange, required, title, description, onV
     setState("checking");
     setError(null);
 
-    const { data, error: qErr } = await supabase
+    const { data, error: qErr } = await (supabase as any)
       .from("withdrawal_codes")
       .select("id, verified, enabled")
       .eq("user_id", user.id)
@@ -92,7 +92,7 @@ export const CodeGate = ({ open, onOpenChange, required, title, description, onV
       return;
     }
 
-    const next = [...verifiedIds, data.id];
+    const next = [...verifiedIds, (data as any).id];
     setVerifiedIds(next);
     setState("success");
 
