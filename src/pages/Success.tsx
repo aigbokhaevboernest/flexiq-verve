@@ -39,9 +39,23 @@ const Success = () => {
     doc.save("flexiq-receipt.pdf");
   };
 
+  const isPending = !!state.pending;
+  const iconWrap = isPending ? "bg-yellow-100 ring-yellow-200" : "bg-green-100 ring-green-200";
+  const iconColor = isPending ? "text-yellow-600" : "text-green-600";
+  const Icon = isPending ? Clock : CheckCircle2;
+
   return (
     <div className="font-sans flex min-h-[60vh] items-center justify-center">
-      <Card className="w-full max-w-lg rounded-3xl border-border/60 p-8 shadow-elev animate-scale-in">
+      <Card className="relative w-full max-w-lg rounded-3xl border-border/60 p-8 shadow-elev animate-scale-in">
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() => navigate("/dashboard")}
+          className="absolute right-3 top-3 gap-1 rounded-full text-muted-foreground hover:text-foreground"
+        >
+          <X className="h-4 w-4" /> Cancel
+        </Button>
         {loading ? (
           <div className="space-y-4">
             <div className="flex justify-center"><Skeleton className="h-20 w-20 rounded-full" /></div>
@@ -55,11 +69,11 @@ const Success = () => {
           </div>
         ) : (
           <div className="text-center animate-fade-in">
-            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-green-100 ring-4 ring-green-200">
-              <CheckCircle2 className="h-12 w-12 text-green-600" />
+            <div className={`mx-auto flex h-20 w-20 items-center justify-center rounded-full ring-4 ${iconWrap}`}>
+              <Icon className={`h-12 w-12 ${iconColor}`} />
             </div>
-            <h1 className="mt-5 font-display text-2xl font-bold">{state.title || "Success!"}</h1>
-            <p className="mt-1 text-sm text-muted-foreground">{state.message || "Your action was completed successfully."}</p>
+            <h1 className="mt-5 font-display text-2xl font-bold">{state.title || "Transfer Successful"}</h1>
+            <p className="mt-1 text-sm text-muted-foreground">{state.message || "Pending system verification."}</p>
 
             {state.details && state.details.length > 0 && (
               <div className="mt-6 space-y-2 rounded-2xl border border-border/60 bg-muted/30 p-4 text-left">
