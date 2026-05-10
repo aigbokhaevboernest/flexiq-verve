@@ -39,7 +39,6 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
 
   const sendItems = [
     { to: "/dashboard/send", label: "Digital Payments", icon: Smartphone },
-    { to: "/dashboard/send/international", label: "International Transfer", icon: Globe2 },
     { to: "/dashboard/send/wire", label: "Wire Transfer", icon: Building2 },
     { to: "/dashboard/send/fx", label: "FX Transfer", icon: ArrowRightLeft },
   ];
@@ -51,6 +50,13 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
       isActive
         ? "bg-gradient-primary text-primary-foreground shadow-md"
         : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+    }`;
+
+  const subLinkClass = ({ isActive }: { isActive: boolean }) =>
+    `group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-300 ${
+      isActive
+        ? "bg-primary/15 text-primary"
+        : "text-sidebar-foreground/80 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground"
     }`;
 
   return (
@@ -72,14 +78,26 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
             }`}
           >
             <Send className="h-4 w-4" /> Send Money
-            <ChevronDown className={`ml-auto h-4 w-4 transition-transform ${sendOpen ? "rotate-180" : ""}`} />
+            <ChevronDown className={`ml-auto h-4 w-4 transition-transform duration-300 ${sendOpen ? "rotate-180" : ""}`} />
           </CollapsibleTrigger>
-          <CollapsibleContent className="space-y-1 pl-4 pt-1">
-            {sendItems.map((s) => (
-              <NavLink key={s.to} to={s.to} end onClick={onNavigate} className={linkClass}>
-                <s.icon className="h-4 w-4" /> {s.label}
-              </NavLink>
-            ))}
+          <CollapsibleContent
+            className="overflow-hidden data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up"
+          >
+            <div className="ml-3 mt-1 space-y-1 rounded-xl border-l-2 border-primary/60 bg-sidebar-accent/40 py-2 pl-2 pr-1">
+              {sendItems.map((s) => (
+                <NavLink key={s.to} to={s.to} end onClick={onNavigate} className={subLinkClass}>
+                  {({ isActive }) => (
+                    <>
+                      <span className={`flex h-3.5 w-3.5 items-center justify-center rounded-full border ${isActive ? "border-primary" : "border-muted-foreground/40"}`}>
+                        {isActive && <span className="h-1.5 w-1.5 rounded-full bg-primary" />}
+                      </span>
+                      <s.icon className="h-4 w-4" />
+                      <span>{s.label}</span>
+                    </>
+                  )}
+                </NavLink>
+              ))}
+            </div>
           </CollapsibleContent>
         </Collapsible>
 

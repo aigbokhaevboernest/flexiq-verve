@@ -13,8 +13,10 @@ import { useAccount, formatMoney } from "@/hooks/useAccount";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CodeGate } from "@/components/CodeGate";
+import { useNavigate } from "react-router-dom";
 
 const Loans = () => {
+  const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
   const { data: account } = useAccount();
@@ -67,7 +69,19 @@ const Loans = () => {
     if (error || !data) return toast({ title: "Failed", description: error?.message, variant: "destructive" });
     qc.invalidateQueries({ queryKey: ["loans"] });
     setAmount(""); setPurpose("");
-    window.location.assign("/dashboard/success");
+    navigate("/dashboard/success", {
+      state: {
+        pending: true,
+        title: "Loan submitted",
+        message: "Pending system verification.",
+        receipt: false,
+        details: [
+          { label: "Amount", value: formatMoney(Number(amount || 0), currency) },
+          { label: "Term", value: `${months} months` },
+          { label: "Status", value: "Pending review" },
+        ],
+      },
+    });
   };
 
   const releaseFunds = (loanId: string) => {

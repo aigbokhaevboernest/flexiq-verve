@@ -74,7 +74,15 @@ const Pin = () => {
 
   return (
     <div className="page-enter flex min-h-screen items-center justify-center bg-navy-blue-mesh px-4">
-      <div className="w-full max-w-sm rounded-2xl border border-white/10 bg-white p-8 shadow-elev animate-fade-in">
+      <div className="relative w-full max-w-sm rounded-2xl border border-white/10 bg-white p-8 shadow-elev animate-fade-in">
+        <button
+          type="button"
+          aria-label="Close"
+          onClick={() => navigate("/login", { replace: true })}
+          className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition hover:bg-muted hover:text-foreground"
+        >
+          ✕
+        </button>
         <div className="mb-6 flex flex-col items-center text-center">
           <img src={adminLogo} alt="Flexiq Verve" style={{ width: 64, height: "auto" }} />
           <h1 className="mt-4 font-display text-2xl font-bold">Flexiq Verve</h1>

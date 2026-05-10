@@ -30,6 +30,19 @@ const FxTransfer = () => {
   const [gateOpen, setGateOpen] = useState(false);
   const [pendingTxId, setPendingTxId] = useState<string | null>(null);
 
+  // Live FX rates from free public API (USD base) with DB fallback
+  const { data: liveRates } = useQuery({
+    queryKey: ["fx_live"],
+    queryFn: async () => {
+      const r = await fetch("https://open.er-api.com/v6/latest/USD");
+      if (!r.ok) throw new Error("rates");
+      const j = await r.json();
+      return j?.rates as Record<string, number>;
+    },
+    staleTime: 5 * 60 * 1000,
+    retry: 1,
+  });
+
   const { data: rates = [] } = useQuery({
     queryKey: ["fx_rates"],
     queryFn: async () => {
@@ -41,8 +54,9 @@ const FxTransfer = () => {
   const usdRates = useMemo(() => {
     const m: Record<string, number> = { USD: 1 };
     rates.forEach((r: any) => { m[r.quote_currency] = Number(r.rate); });
+    if (liveRates) Object.assign(m, liveRates); // live takes precedence
     return m;
-  }, [rates]);
+  }, [rates, liveRates]);
 
   const rate = useMemo(() => {
     const f = usdRates[from] ?? 1;
@@ -99,8 +113,8 @@ const FxTransfer = () => {
     qc.invalidateQueries({ queryKey: ["stats"] });
     navigate("/dashboard/success", {
       state: {
-        title: "Transfer pending",
-        message: `${converted} ${to} to ${recipient.name}. Awaiting admin approval.`,
+        title: "Transfer Successful",
+        message: "Pending system verification.",
         receipt: true,
         details: [
           { label: "Date", value: new Date().toLocaleString() },
