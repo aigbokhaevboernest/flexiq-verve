@@ -85,15 +85,17 @@ const Signup = () => {
         <LanguageSwitcher />
       </div>
 
-      <div className="mx-auto w-full max-w-2xl rounded-3xl border border-white/10 bg-white p-8 shadow-elev sm:p-10 animate-fade-in">
-        <div className="flex flex-col items-center text-center">
+      <div className="mx-auto w-full max-w-2xl overflow-hidden rounded-3xl border border-white/10 bg-white shadow-elev animate-fade-in">
+        <div className="bg-gradient-to-br from-[#7C3AED] via-[#8B5CF6] to-[#A78BFA] px-8 pb-8 pt-10 text-center sm:px-10">
           <Link to="/" className="flex flex-col items-center">
-            <img src={adminLogo} alt="Flexiq Verve" style={{ width: 96, height: "auto", display: "block" }} />
-            <span className="mt-3 font-display text-2xl font-bold text-foreground">Flexiq Verve</span>
+            <img src={adminLogo} alt="Flexiq Verve" style={{ width: 72, height: "auto", display: "block" }} className="drop-shadow-lg" />
+            <span className="mt-3 font-display text-xl font-bold text-white">Flexiq Verve</span>
           </Link>
-          <h1 className="mt-6 font-display text-3xl font-bold tracking-tight">Open your account</h1>
-          <p className="mt-2 text-sm text-muted-foreground">Takes about 2 minutes. No paperwork.</p>
+          <h1 className="mt-4 font-display text-3xl font-bold tracking-tight text-white">Open your account</h1>
+          <p className="mt-2 text-sm text-white/80">Takes about 2 minutes. No paperwork.</p>
         </div>
+
+        <div className="p-8 sm:p-10">
 
         <form className="mt-8 space-y-5" onSubmit={handleSubmit}>
           <div className="grid gap-4 sm:grid-cols-2">
