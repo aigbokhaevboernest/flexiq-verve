@@ -17,14 +17,6 @@ import { formatMoney } from "@/hooks/useAccount";
 import { EmptyState } from "@/components/EmptyState";
 import { Inbox } from "lucide-react";
 
-const SendMoney = () => {
-  useFrozenGuard(); // ← ADD THIS LINE HERE
-
-  const { user } = useAuth();
-  const { toast } = useToast();
-  const navigate = useNavigate();
-  // ... rest unchanged
-
 type Platform = {
   key: string;
   name: string;
@@ -59,6 +51,8 @@ const StatusBadge = ({ s }: { s: string }) => {
 };
 
 const SendMoney = () => {
+  useFrozenGuard();
+
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -110,7 +104,6 @@ const SendMoney = () => {
   };
 
   const handleConfirm = () => {
-    // Save pending data before closing dialogs
     setPendingPlatform(selected);
     setPendingAmount(Number(amount));
     setPendingRecipient(recipient);
@@ -204,7 +197,6 @@ const SendMoney = () => {
         </div>
       </Card>
 
-      {/* Send dialog */}
       <Dialog open={!!selected} onOpenChange={(v) => !v && setSelected(null)}>
         <DialogContent className="font-sans sm:max-w-md">
           <DialogHeader>
