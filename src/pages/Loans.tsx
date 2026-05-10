@@ -14,110 +14,8 @@ import { useAccount, formatMoney } from "@/hooks/useAccount";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Lock as LockIcon } from "lucide-react";
-import { toast as sonnerToast } from "sonner";
 import { LoanCodeGate } from "@/components/LoanCodeGate";
 
-// ── Inline LoanCodeGate — completely separate, checks loans.disbursement_code only ──
-const LoanCodeGate = ({
-  open, onOpenChange, loanId, onVerified,
-}: {
-  open: boolean;
-  onOpenChange: (o: boolean) => void;
-  loanId: string | null;
-  onVerified: () => void;
-}) => {
-  const [code, setCode] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-
-  const verify = async () => {
-    if (!code.trim()) return setError("Please enter your authorization code");
-    if (!loanId) return;
-    setLoading(true);
-    setError("");
-
-    const { data, error: dbErr } = await supabase
-      .from("loans")
-      .select("disbursement_code, code_used, code_expires_at")
-      .eq("id", loanId)
-      .maybeSingle();
-
-    if (dbErr || !data) {
-      setLoading(false);
-      return setError("Could not verify code. Try again.");
-    }
-    if (data.code_used) {
-      setLoading(false);
-      return setError("This code has already been used.");
-    }
-    if (data.code_expires_at && new Date(data.code_expires_at) < new Date()) {
-      setLoading(false);
-      return setError("This code has expired. Contact support.");
-    }
-    if (data.disbursement_code !== code.trim()) {
-      setLoading(false);
-      return setError("Invalid code. Please contact support.");
-    }
-
-    // Mark code as used
-    await supabase
-      .from("loans")
-      .update({ code_used: true })
-      .eq("id", loanId);
-
-    setLoading(false);
-    setCode("");
-    setError("");
-    onOpenChange(false);
-    onVerified();
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={(o) => { if (!o) { setCode(""); setError(""); } onOpenChange(o); }}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <LockIcon className="h-4 w-4 text-primary" />
-            Authorize loan disbursement
-          </DialogTitle>
-          <DialogDescription>
-            Enter the Loan Authorization Code provided by your account manager to release funds.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="space-y-4 py-2">
-          <div className="space-y-2">
-            <Label>Loan Authorization Code</Label>
-            <Input
-              placeholder="Enter code"
-              value={code}
-              onChange={(e) => { setCode(e.target.value); setError(""); }}
-              onKeyDown={(e) => e.key === "Enter" && verify()}
-              className={error ? "border-destructive" : ""}
-              autoFocus
-            />
-            {error && (
-              <p className="flex items-center gap-1 text-xs text-destructive">
-                ⊗ {error}
-              </p>
-            )}
-          </div>
-          <Button
-            className="w-full bg-gradient-primary"
-            onClick={verify}
-            disabled={loading}
-          >
-            <LockIcon className="mr-2 h-4 w-4" />
-            {loading ? "Verifying…" : "Verify & authorize"}
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-};
-
-// ── Main Loans page ──
 const Loans = () => {
   useFrozenGuard();
 
@@ -144,7 +42,11 @@ const Loans = () => {
     queryKey: ["loans", user?.id],
     enabled: !!user,
     queryFn: async () => {
-      const { data } = await supabase.from("loans").select("*").eq("user_id", user!.id).order("created_at", { ascending: false });
+      const { data } = await supabase
+        .from("loans")
+        .select("*")
+        .eq("user_id", user!.id)
+        .order("created_at", { ascending: false });
       return data || [];
     },
   });
@@ -153,7 +55,9 @@ const Loans = () => {
   const months = Number(term);
   const principal = Number(amount);
   const monthlyRate = rate / 100 / 12;
-  const monthlyPayment = principal && months ? (principal * monthlyRate) / (1 - Math.pow(1 + monthlyRate, -months)) : 0;
+  const monthlyPayment = principal && months
+    ? (principal * monthlyRate) / (1 - Math.pow(1 + monthlyRate, -months))
+    : 0;
   const totalPayable = monthlyPayment * months;
 
   const apply = async (e: React.FormEvent) => {
@@ -167,7 +71,7 @@ const Loans = () => {
       currency,
       term_months: months,
       interest_rate: rate,
-      purpose: purpose,
+      purpose,
       full_name: extra.fullName,
       ssn_id: extra.ssn,
       phone: extra.phone,
@@ -184,8 +88,10 @@ const Loans = () => {
     }).select().single();
 
     if (error || !data) return toast({ title: "Failed", description: error?.message, variant: "destructive" });
+
     qc.invalidateQueries({ queryKey: ["loans"] });
-    setAmount(""); setPurpose("");
+    setAmount("");
+    setPurpose("");
     navigate("/dashboard/success", {
       state: {
         pending: true,
@@ -193,7 +99,7 @@ const Loans = () => {
         message: "Pending system verification.",
         receipt: false,
         details: [
-          { label: "Amount", value: formatMoney(Number(amount || 0), currency) },
+          { label: "Amount", value: formatMoney(principal, currency) },
           { label: "Term", value: `${months} months` },
           { label: "Status", value: "Pending review" },
         ],
@@ -211,7 +117,11 @@ const Loans = () => {
     const loan = loans.find((l: any) => l.id === pendingLoanId);
     if (!loan) return;
 
-    await supabase.from("profiles").update({ balance: Number(account.balance) + Number(loan.amount) }).eq("id", user.id);
+    await supabase
+      .from("profiles")
+      .update({ total_balance: Number(account.total_balance) + Number(loan.amount) })
+      .eq("id", user.id);
+
     await supabase.from("transactions").insert({
       user_id: user.id,
       type: "loan_disbursement",
@@ -220,13 +130,21 @@ const Loans = () => {
       currency: loan.currency,
       description: `Loan disbursement (${loan.term_months} months @ ${loan.interest_rate}%)`,
     });
-    await supabase.from("loans").update({ status: "active", disbursed_at: new Date().toISOString() }).eq("id", loan.id);
+
+    await supabase
+      .from("loans")
+      .update({ status: "active", disbursed_at: new Date().toISOString() })
+      .eq("id", loan.id);
 
     qc.invalidateQueries({ queryKey: ["account"] });
     qc.invalidateQueries({ queryKey: ["loans"] });
     qc.invalidateQueries({ queryKey: ["transactions"] });
     qc.invalidateQueries({ queryKey: ["recent-tx"] });
-    toast({ title: "Funds released", description: `${formatMoney(Number(loan.amount), loan.currency)} added to your balance.` });
+
+    toast({
+      title: "Funds released",
+      description: `${formatMoney(Number(loan.amount), loan.currency)} added to your balance.`,
+    });
     setPendingLoanId(null);
   };
 
@@ -234,7 +152,9 @@ const Loans = () => {
     <div className="space-y-6">
       <div>
         <h1 className="font-display text-2xl font-bold sm:text-3xl">Quick Loans</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Borrow up to 5x your monthly deposit. Disbursement requires authorization codes.</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Borrow up to 5x your monthly deposit. Disbursement requires authorization codes.
+        </p>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1.4fr,1fr]">
@@ -309,7 +229,10 @@ const Loans = () => {
 
         <div className="space-y-4">
           <Card className="rounded-3xl border-border/60 p-6 shadow-card">
-            <div className="flex items-center gap-2"><Calculator className="h-4 w-4 text-primary" /><p className="text-sm font-semibold">How it works</p></div>
+            <div className="flex items-center gap-2">
+              <Calculator className="h-4 w-4 text-primary" />
+              <p className="text-sm font-semibold">How it works</p>
+            </div>
             <ol className="mt-3 space-y-2 text-sm text-muted-foreground list-decimal list-inside">
               <li>Submit your application</li>
               <li>Account manager reviews & approves</li>
@@ -318,8 +241,13 @@ const Loans = () => {
             </ol>
           </Card>
           <Card className="rounded-3xl border-border/60 p-6 shadow-card">
-            <div className="flex items-center gap-2"><Shield className="h-4 w-4 text-success" /><p className="text-sm font-semibold">Secure disbursement</p></div>
-            <p className="mt-2 text-sm text-muted-foreground">Loan funds are released only after Loan Authorization Code verification.</p>
+            <div className="flex items-center gap-2">
+              <Shield className="h-4 w-4 text-success" />
+              <p className="text-sm font-semibold">Secure disbursement</p>
+            </div>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Loan funds are released only after Loan Authorization Code verification.
+            </p>
           </Card>
         </div>
       </div>
@@ -327,21 +255,28 @@ const Loans = () => {
       <Card className="rounded-3xl border-border/60 p-6 shadow-card">
         <h2 className="font-display text-lg font-bold">Your loans</h2>
         <div className="mt-4 space-y-3">
-          {loans.length === 0 && <p className="py-6 text-center text-sm text-muted-foreground">No loans yet — apply above.</p>}
+          {loans.length === 0 && (
+            <p className="py-6 text-center text-sm text-muted-foreground">No loans yet — apply above.</p>
+          )}
           {loans.map((l: any) => (
             <div key={l.id} className="flex flex-wrap items-center gap-4 rounded-2xl border border-border/60 p-4">
               <div className="flex-1 min-w-[200px]">
                 <p className="font-display text-lg font-bold">{formatMoney(Number(l.amount), l.currency)}</p>
-                <p className="text-xs text-muted-foreground">{l.term_months} months · {l.interest_rate}% · {new Date(l.created_at).toLocaleDateString()}</p>
+                <p className="text-xs text-muted-foreground">
+                  {l.term_months} months · {l.interest_rate}% · {new Date(l.created_at).toLocaleDateString()}
+                </p>
                 {l.purpose && <p className="mt-1 text-xs text-muted-foreground">"{l.purpose}"</p>}
                 {l.rejection_reason && <p className="mt-1 text-xs text-destructive">Reason: {l.rejection_reason}</p>}
               </div>
-              <Badge className={
-                l.status === "active" || l.status === "approved" ? "bg-success/15 text-success border-success/30" :
-                l.status === "rejected" ? "bg-destructive/15 text-destructive border-destructive/30" :
-                l.status === "paid" ? "bg-primary/15 text-primary border-primary/30" :
-                "bg-warning/15 text-warning border-warning/30"
-              } variant="outline">
+              <Badge
+                className={
+                  l.status === "active" || l.status === "approved" ? "bg-success/15 text-success border-success/30" :
+                  l.status === "rejected" ? "bg-destructive/15 text-destructive border-destructive/30" :
+                  l.status === "paid" ? "bg-primary/15 text-primary border-primary/30" :
+                  "bg-warning/15 text-warning border-warning/30"
+                }
+                variant="outline"
+              >
                 {l.status === "approved" ? "Awaiting code" : l.status}
               </Badge>
               {l.status === "approved" && (
