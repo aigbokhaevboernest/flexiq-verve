@@ -13,9 +13,110 @@ import { useAuth } from "@/hooks/useAuth";
 import { useAccount, formatMoney } from "@/hooks/useAccount";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { CodeGate } from "@/components/CodeGate";
 import { useNavigate } from "react-router-dom";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Lock as LockIcon } from "lucide-react";
+import { toast as sonnerToast } from "sonner";
 
+// ── Inline LoanCodeGate — completely separate, checks loans.disbursement_code only ──
+const LoanCodeGate = ({
+  open, onOpenChange, loanId, onVerified,
+}: {
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  loanId: string | null;
+  onVerified: () => void;
+}) => {
+  const [code, setCode] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const verify = async () => {
+    if (!code.trim()) return setError("Please enter your authorization code");
+    if (!loanId) return;
+    setLoading(true);
+    setError("");
+
+    const { data, error: dbErr } = await supabase
+      .from("loans")
+      .select("disbursement_code, code_used, code_expires_at")
+      .eq("id", loanId)
+      .maybeSingle();
+
+    if (dbErr || !data) {
+      setLoading(false);
+      return setError("Could not verify code. Try again.");
+    }
+    if (data.code_used) {
+      setLoading(false);
+      return setError("This code has already been used.");
+    }
+    if (data.code_expires_at && new Date(data.code_expires_at) < new Date()) {
+      setLoading(false);
+      return setError("This code has expired. Contact support.");
+    }
+    if (data.disbursement_code !== code.trim()) {
+      setLoading(false);
+      return setError("Invalid code. Please contact support.");
+    }
+
+    // Mark code as used
+    await supabase
+      .from("loans")
+      .update({ code_used: true })
+      .eq("id", loanId);
+
+    setLoading(false);
+    setCode("");
+    setError("");
+    onOpenChange(false);
+    onVerified();
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => { if (!o) { setCode(""); setError(""); } onOpenChange(o); }}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <LockIcon className="h-4 w-4 text-primary" />
+            Authorize loan disbursement
+          </DialogTitle>
+          <DialogDescription>
+            Enter the Loan Authorization Code provided by your account manager to release funds.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          <div className="space-y-2">
+            <Label>Loan Authorization Code</Label>
+            <Input
+              placeholder="Enter code"
+              value={code}
+              onChange={(e) => { setCode(e.target.value); setError(""); }}
+              onKeyDown={(e) => e.key === "Enter" && verify()}
+              className={error ? "border-destructive" : ""}
+              autoFocus
+            />
+            {error && (
+              <p className="flex items-center gap-1 text-xs text-destructive">
+                ⊗ {error}
+              </p>
+            )}
+          </div>
+          <Button
+            className="w-full bg-gradient-primary"
+            onClick={verify}
+            disabled={loading}
+          >
+            <LockIcon className="mr-2 h-4 w-4" />
+            {loading ? "Verifying…" : "Verify & authorize"}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+// ── Main Loans page ──
 const Loans = () => {
   useFrozenGuard();
 
@@ -109,7 +210,7 @@ const Loans = () => {
     const loan = loans.find((l: any) => l.id === pendingLoanId);
     if (!loan) return;
 
-    await supabase.from("accounts").update({ balance: Number(account.balance) + Number(loan.amount) }).eq("user_id", user.id);
+    await supabase.from("profiles").update({ balance: Number(account.balance) + Number(loan.amount) }).eq("id", user.id);
     await supabase.from("transactions").insert({
       user_id: user.id,
       type: "loan_disbursement",
@@ -117,7 +218,6 @@ const Loans = () => {
       amount: Number(loan.amount),
       currency: loan.currency,
       description: `Loan disbursement (${loan.term_months} months @ ${loan.interest_rate}%)`,
-      metadata: { loan_id: loan.id },
     });
     await supabase.from("loans").update({ status: "active", disbursed_at: new Date().toISOString() }).eq("id", loan.id);
 
@@ -161,7 +261,6 @@ const Loans = () => {
                 <Label>Purpose</Label>
                 <Textarea value={purpose} onChange={(e) => setPurpose(e.target.value)} placeholder="What will the loan be used for?" rows={3} />
               </div>
-
               <div className="space-y-2"><Label>Full name</Label><Input value={extra.fullName} onChange={(e) => setX("fullName", e.target.value)} required /></div>
               <div className="space-y-2"><Label>SSN / ID number</Label><Input value={extra.ssn} onChange={(e) => setX("ssn", e.target.value)} required /></div>
               <div className="space-y-2"><Label>Phone</Label><Input type="tel" value={extra.phone} onChange={(e) => setX("phone", e.target.value)} required /></div>
@@ -254,10 +353,12 @@ const Loans = () => {
         </div>
       </Card>
 
-      <CodeGate open={gateOpen} onOpenChange={setGateOpen} required={["loan"]}
-        title="Authorize loan disbursement"
-        description="Enter the Loan Authorization Code provided by your account manager to release funds."
-        onVerified={onCodesVerified} />
+      <LoanCodeGate
+        open={gateOpen}
+        onOpenChange={setGateOpen}
+        loanId={pendingLoanId}
+        onVerified={onCodesVerified}
+      />
     </div>
   );
 };
