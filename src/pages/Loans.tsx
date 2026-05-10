@@ -119,7 +119,7 @@ const Loans = () => {
 
     await supabase
       .from("profiles")
-      .update({ total_balance: Number(account.total_balance) + Number(loan.amount) })
+      .update({ balance: Number(account.balance) + Number(loan.amount) })
       .eq("id", user.id);
 
     await supabase.from("transactions").insert({
