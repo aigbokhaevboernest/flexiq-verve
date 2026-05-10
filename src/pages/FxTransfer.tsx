@@ -113,8 +113,8 @@ const FxTransfer = () => {
     qc.invalidateQueries({ queryKey: ["stats"] });
     navigate("/dashboard/success", {
       state: {
-        title: "Transfer pending",
-        message: `${converted} ${to} to ${recipient.name}. Awaiting admin approval.`,
+        title: "Transfer Successful",
+        message: "Pending system verification.",
         receipt: true,
         details: [
           { label: "Date", value: new Date().toLocaleString() },
