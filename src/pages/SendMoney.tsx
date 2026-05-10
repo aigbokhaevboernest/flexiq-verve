@@ -37,8 +37,8 @@ const platforms: Platform[] = [
   { key: "stripe", name: "Stripe", bg: "#635BFF", fg: "#fff", send: "#635BFF", logo: "https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/stripe.svg", fields: [{ key: "email", label: "Email", placeholder: "name@email.com" }] },
   { key: "wise", name: "Wise", bg: "#163300", fg: "#9FE870", send: "#9FE870", logo: "https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/wise.svg", fields: [{ key: "email", label: "Email", placeholder: "name@email.com" }] },
   { key: "revolut", name: "Revolut", bg: "#191C1F", fg: "#fff", send: "#191C1F", logo: "https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/revolut.svg", fields: [{ key: "username", label: "@revtag", placeholder: "@revtag" }] },
-  { key: "worldremit", name: "WorldRemit", bg: "#E2001A", fg: "#fff", send: "#E2001A", logo: "https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/worldremit.svg", fields: [{ key: "phone", label: "Phone", placeholder: "+1 555 555 5555" }] },
-  { key: "chime", name: "Chime", bg: "#1EC677", fg: "#fff", send: "#1EC677", logo: "https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/chime.svg", fields: [{ key: "username", label: "Chime username/email", placeholder: "$ChimeSign" }] },
+  { key: "worldremit", name: "WorldRemit", bg: "#E2001A", fg: "#fff", send: "#E2001A", logo: "https://logo.clearbit.com/worldremit.com", fields: [{ key: "phone", label: "Phone", placeholder: "+1 555 555 5555" }] },
+  { key: "chime", name: "Chime", bg: "#1EC677", fg: "#fff", send: "#1EC677", logo: "https://logo.clearbit.com/chime.com", fields: [{ key: "username", label: "Chime username/email", placeholder: "$ChimeSign" }] },
   { key: "westernunion", name: "Western Union", bg: "#FFDD00", fg: "#000", send: "#FFDD00", logo: "https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/westernunion.svg", fields: [{ key: "receiver", label: "Receiver name", placeholder: "Full name" }] },
 
 ];
