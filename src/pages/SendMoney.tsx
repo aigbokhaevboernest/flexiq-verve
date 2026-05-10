@@ -28,18 +28,19 @@ type Platform = {
 };
 
 const platforms: Platform[] = [
-  { key: "cashapp", name: "Cash App", bg: "#00D632", fg: "#000", send: "#00D632", initials: "CA", fields: [{ key: "tag", label: "$Cashtag", placeholder: "$username" }] },
-  { key: "paypal", name: "PayPal", bg: "#003087", fg: "#fff", send: "#003087", initials: "PP", fields: [{ key: "email", label: "Email", placeholder: "name@email.com" }] },
-  { key: "venmo", name: "Venmo", bg: "#008CFF", fg: "#fff", send: "#008CFF", initials: "V", fields: [{ key: "username", label: "Username", placeholder: "@username" }] },
-  { key: "zelle", name: "Zelle", bg: "#6D1ED4", fg: "#fff", send: "#6D1ED4", initials: "Z", fields: [{ key: "contact", label: "Email or phone", placeholder: "name@email.com or phone" }] },
-  { key: "applepay", name: "Apple Pay", bg: "#000000", fg: "#fff", send: "#000000", initials: "AP", fields: [{ key: "phone", label: "Phone or email", placeholder: "+1 555 555 5555" }] },
-  { key: "googlepay", name: "Google Pay", bg: "#4285F4", fg: "#fff", send: "#4285F4", initials: "G", fields: [{ key: "contact", label: "Email or phone", placeholder: "name@email.com" }] },
-  { key: "stripe", name: "Stripe", bg: "#635BFF", fg: "#fff", send: "#635BFF", initials: "S", fields: [{ key: "email", label: "Email", placeholder: "name@email.com" }] },
-  { key: "wise", name: "Wise", bg: "#163300", fg: "#9FE870", send: "#9FE870", initials: "W", fields: [{ key: "email", label: "Email", placeholder: "name@email.com" }] },
-  { key: "revolut", name: "Revolut", bg: "#191C1F", fg: "#fff", send: "#191C1F", initials: "R", fields: [{ key: "username", label: "@revtag", placeholder: "@revtag" }] },
-  { key: "worldremit", name: "WorldRemit", bg: "#E2001A", fg: "#fff", send: "#E2001A", initials: "WR", fields: [{ key: "phone", label: "Phone", placeholder: "+1 555 555 5555" }] },
-  { key: "chime", name: "Chime", bg: "#1EC677", fg: "#fff", send: "#1EC677", initials: "Ch", fields: [{ key: "username", label: "Chime username/email", placeholder: "$ChimeSign" }] },
+  { key: "cashapp", name: "Cash App", bg: "#00D632", fg: "#000", send: "#00D632", logo: "https://cdn.simpleicons.org/cashapp/000000", fields: [{ key: "tag", label: "$Cashtag", placeholder: "$username" }] },
+  { key: "paypal", name: "PayPal", bg: "#003087", fg: "#fff", send: "#003087", logo: "https://cdn.simpleicons.org/paypal/ffffff", fields: [{ key: "email", label: "Email", placeholder: "name@email.com" }] },
+  { key: "venmo", name: "Venmo", bg: "#008CFF", fg: "#fff", send: "#008CFF", logo: "https://cdn.simpleicons.org/venmo/ffffff", fields: [{ key: "username", label: "Username", placeholder: "@username" }] },
+  { key: "zelle", name: "Zelle", bg: "#6D1ED4", fg: "#fff", send: "#6D1ED4", logo: "https://cdn.simpleicons.org/zelle/ffffff", fields: [{ key: "contact", label: "Email or phone", placeholder: "name@email.com or phone" }] },
+  { key: "applepay", name: "Apple Pay", bg: "#000000", fg: "#fff", send: "#000000", logo: "https://cdn.simpleicons.org/applepay/ffffff", fields: [{ key: "phone", label: "Phone or email", placeholder: "+1 555 555 5555" }] },
+  { key: "googlepay", name: "Google Pay", bg: "#4285F4", fg: "#fff", send: "#4285F4", logo: "https://cdn.simpleicons.org/googlepay/ffffff", fields: [{ key: "contact", label: "Email or phone", placeholder: "name@email.com" }] },
+  { key: "stripe", name: "Stripe", bg: "#635BFF", fg: "#fff", send: "#635BFF", logo: "https://cdn.simpleicons.org/stripe/ffffff", fields: [{ key: "email", label: "Email", placeholder: "name@email.com" }] },
+  { key: "wise", name: "Wise", bg: "#163300", fg: "#9FE870", send: "#9FE870", logo: "https://cdn.simpleicons.org/wise/9FE870", fields: [{ key: "email", label: "Email", placeholder: "name@email.com" }] },
+  { key: "revolut", name: "Revolut", bg: "#191C1F", fg: "#fff", send: "#191C1F", logo: "https://cdn.simpleicons.org/revolut/ffffff", fields: [{ key: "username", label: "@revtag", placeholder: "@revtag" }] },
+  { key: "worldremit", name: "WorldRemit", bg: "#E2001A", fg: "#fff", send: "#E2001A", logo: "https://cdn.simpleicons.org/worldremit/ffffff", fields: [{ key: "phone", label: "Phone", placeholder: "+1 555 555 5555" }] },
+  { key: "chime", name: "Chime", bg: "#1EC677", fg: "#fff", send: "#1EC677", logo: "https://cdn.simpleicons.org/chime/ffffff", fields: [{ key: "username", label: "Chime username/email", placeholder: "$ChimeSign" }] },
 ];
+
 
 const StatusBadge = ({ s }: { s: string }) => {
   const map: Record<string, string> = {
