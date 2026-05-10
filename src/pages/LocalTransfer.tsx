@@ -69,9 +69,9 @@ const LocalTransfer = () => {
     if (!user || !account || !pendingTxId) return;
     const amt = Number(amount);
     await supabase
-      .from("profiles")
-      .update({ total_balance: Number(account.balance) - amt })
-      .eq("id", user.id);
+      .from("accounts")
+      .update({ balance: Number(account.balance) - amt })
+      .eq("user_id", user.id);
     await supabase.from("transactions").update({ status: "completed" }).eq("id", pendingTxId);
     qc.invalidateQueries({ queryKey: ["account"] });
     qc.invalidateQueries({ queryKey: ["transactions"] });
