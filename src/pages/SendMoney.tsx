@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { ConfirmTransferDialog } from "@/components/ConfirmTransferDialog";
+import { CodeGate } from "@/components/CodeGate";
 import { formatMoney } from "@/hooks/useAccount";
 import { EmptyState } from "@/components/EmptyState";
 import { Inbox } from "lucide-react";
@@ -58,9 +59,14 @@ const SendMoney = () => {
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [codeGateOpen, setCodeGateOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [history, setHistory] = useState<any[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(true);
+  const [pendingPlatform, setPendingPlatform] = useState<Platform | null>(null);
+  const [pendingAmount, setPendingAmount] = useState(0);
+  const [pendingRecipient, setPendingRecipient] = useState("");
+  const [pendingNote, setPendingNote] = useState("");
 
   const recipient = useMemo(() => Object.values(form).find(Boolean) || "", [form]);
 
@@ -77,7 +83,7 @@ const SendMoney = () => {
     setLoadingHistory(false);
   };
 
-  useEffect(() => { loadHistory(); /* eslint-disable-next-line */ }, [user]);
+  useEffect(() => { loadHistory(); }, [user]);
 
   const open = (p: Platform) => {
     setSelected(p);
@@ -94,34 +100,42 @@ const SendMoney = () => {
     setConfirmOpen(true);
   };
 
-  const confirm = async () => {
-    if (!selected || !user) return;
+  const handleConfirm = () => {
+    // Save pending data before closing dialogs
+    setPendingPlatform(selected);
+    setPendingAmount(Number(amount));
+    setPendingRecipient(recipient);
+    setPendingNote(note);
+    setConfirmOpen(false);
+    setSelected(null);
+    setCodeGateOpen(true);
+  };
+
+  const onVerified = async () => {
+    if (!pendingPlatform || !user) return;
     setBusy(true);
-    const amt = Number(amount);
     const { error } = await (supabase as any).from("digital_payments").insert({
       user_id: user.id,
-      platform: selected.name,
-      amount: amt,
-      recipient,
-      note: note || null,
+      platform: pendingPlatform.name,
+      amount: pendingAmount,
+      recipient: pendingRecipient,
+      note: pendingNote || null,
       status: "pending",
     });
     setBusy(false);
-    setConfirmOpen(false);
     if (error) return toast({ title: "Could not submit", description: error.message, variant: "destructive" });
-    setSelected(null);
     loadHistory();
     navigate("/dashboard/success", {
       state: {
-        title: "Transfer Successful",
-        message: "Awaiting system review.",
+        title: "Transfer Submitted",
+        message: "Pending system verification. Your transfer is under review.",
         receipt: true,
         details: [
           { label: "Date", value: new Date().toLocaleString() },
-          { label: "Platform", value: selected.name },
-          { label: "Recipient", value: recipient },
-          { label: "Amount", value: formatMoney(amt) },
-          { label: "Status", value: "Pending" },
+          { label: "Platform", value: pendingPlatform.name },
+          { label: "Recipient", value: pendingRecipient },
+          { label: "Amount", value: formatMoney(pendingAmount) },
+          { label: "Status", value: "Pending Review" },
         ],
       },
     });
@@ -187,8 +201,12 @@ const SendMoney = () => {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-3">
               {selected && (
-                <span className="flex h-9 w-9 items-center justify-center rounded-xl text-sm font-bold"
-                  style={{ background: selected.bg, color: selected.fg || "#fff" }}>{selected.initials}</span>
+                <span
+                  className="flex h-9 w-9 items-center justify-center rounded-xl text-sm font-bold"
+                  style={{ background: selected.bg, color: selected.fg || "#fff" }}
+                >
+                  {selected.initials}
+                </span>
               )}
               Send via {selected?.name}
             </DialogTitle>
@@ -216,7 +234,11 @@ const SendMoney = () => {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setSelected(null)} className="rounded-xl">Close</Button>
-            <Button onClick={submit} className="rounded-xl" style={{ background: selected?.send || "", color: selected?.send === "#9FE870" ? "#163300" : "#fff" }}>
+            <Button
+              onClick={submit}
+              className="rounded-xl"
+              style={{ background: selected?.send || "", color: selected?.send === "#9FE870" ? "#163300" : "#fff" }}
+            >
               Continue
             </Button>
           </DialogFooter>
@@ -233,8 +255,15 @@ const SendMoney = () => {
           { label: "Recipient", value: recipient },
           { label: "Note", value: note || "—" },
         ]}
-        onConfirm={confirm}
+        onConfirm={handleConfirm}
         busy={busy}
+      />
+
+      <CodeGate
+        open={codeGateOpen}
+        onOpenChange={setCodeGateOpen}
+        title="Authorize Digital Payment"
+        onVerified={onVerified}
       />
     </div>
   );
