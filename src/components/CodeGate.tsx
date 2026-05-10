@@ -37,7 +37,7 @@ export const CodeGate = ({ open, onOpenChange, required, title, description, onV
   // Fetch only enabled codes from withdrawal_codes table
   useEffect(() => {
     if (!user || !open) return;
-    supabase
+    (supabase as any)
       .from("withdrawal_codes")
       .select("code_type, enabled")
       .eq("user_id", user.id)
