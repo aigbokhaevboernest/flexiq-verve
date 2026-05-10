@@ -13,6 +13,7 @@ import { useNavigate } from "react-router-dom";
 import { ConfirmTransferDialog } from "@/components/ConfirmTransferDialog";
 import { formatMoney } from "@/hooks/useAccount";
 import { EmptyState } from "@/components/EmptyState";
+import { Inbox } from "lucide-react";
 
 type Platform = {
   key: string;
