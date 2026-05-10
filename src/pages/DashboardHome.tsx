@@ -176,7 +176,8 @@ const DashboardHome = () => {
                     <Skeleton className="h-10 w-44 bg-white/20" />
                   ) : (
                     <p
-                      className="font-display font-bold tracking-tight truncate max-w-[260px] sm:max-w-[340px]"
+                    className="font-sans font-bold tracking-tight truncate max-w-[260px] sm:max-w-[340px]"
+
                       style={{ fontSize: "clamp(2rem, 6vw, 3.5rem)" }}
                       title={formatMoney(Number(balanceToShow ?? 0), currency)}
                     >
