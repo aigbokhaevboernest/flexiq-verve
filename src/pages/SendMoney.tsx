@@ -163,7 +163,7 @@ const SendMoney = () => {
               {[0, 1, 2].map((i) => <div key={i} className="h-12 animate-pulse rounded-xl bg-muted" />)}
             </div>
           ) : history.length === 0 ? (
-            <EmptyState title="No payments yet" description="Send money to a wallet to see it here." />
+            <EmptyState icon={Inbox} title="No payments yet" description="Send money to a wallet to see it here." />
           ) : (
             history.map((h) => (
               <div key={h.id} className="flex items-center justify-between gap-3 py-3">
