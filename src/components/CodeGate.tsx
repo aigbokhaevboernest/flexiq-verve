@@ -104,7 +104,7 @@ export const CodeGate = ({ open, onOpenChange, required, title, description, onV
         setState("idle");
       } else {
         // All codes verified — mark as verified and exit
-        await supabase
+        await (supabase as any)
           .from("withdrawal_codes")
           .update({ verified: true })
           .in("id", next);
