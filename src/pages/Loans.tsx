@@ -1,3 +1,4 @@
+import { useFrozenGuard } from "@/hooks/useFrozenGuard";
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,8 @@ import { CodeGate } from "@/components/CodeGate";
 import { useNavigate } from "react-router-dom";
 
 const Loans = () => {
+  useFrozenGuard();
+
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
@@ -94,7 +97,6 @@ const Loans = () => {
     const loan = loans.find((l: any) => l.id === pendingLoanId);
     if (!loan) return;
 
-    // Disburse: credit account + create tx + mark loan active
     await supabase.from("accounts").update({ balance: Number(account.balance) + Number(loan.amount) }).eq("user_id", user.id);
     await supabase.from("transactions").insert({
       user_id: user.id,
