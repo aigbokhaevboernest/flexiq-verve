@@ -69,7 +69,7 @@ const LocalTransfer = () => {
     setGateOpen(true);
   };
 
-  const navigate = useNavigateImpl();
+  const navigate = useNavigate();
   const onVerified = async () => {
     if (!user || !account || !pendingTxId) return;
     const amt = Number(amount);
