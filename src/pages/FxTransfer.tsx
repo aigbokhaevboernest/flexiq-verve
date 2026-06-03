@@ -219,7 +219,7 @@ const FxTransfer = () => {
           </div>
 
           <Button onClick={handleSend} className="mt-8 h-12 w-full gap-2 rounded-2xl bg-gradient-primary text-base font-semibold shadow-glow">
-            <Lock className="h-4 w-4" /> Authorize & send {converted} {to}
+            <Lock className="h-4 w-4" /> Send {converted} {to}
           </Button>
         </Card>
 
