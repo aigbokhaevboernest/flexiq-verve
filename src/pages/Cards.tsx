@@ -12,7 +12,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 
-// Curated gradients (Tailwind classes) used in rotation across cards
 const cardGradients = [
   "linear-gradient(135deg,#4f46e5 0%,#9333ea 50%,#ec4899 100%)",
   "linear-gradient(135deg,#0f766e 0%,#0891b2 50%,#22d3ee 100%)",
@@ -58,8 +57,10 @@ const Cards = () => {
     const holder = `${(profile as any)?.first_name || ""} ${(profile as any)?.last_name || ""}`.trim().toUpperCase() || "CARDHOLDER";
     const { error } = await supabase.from("cards").insert({
       user_id: user.id,
-      card_number: num, cvv, expiry: exp,
-      card_holder: holder,
+      card_number: num,
+      cvv,
+      expires_at: exp,         // ✅ fixed
+      cardholder_name: holder, // ✅ fixed
       brand: "Visa",
     });
     if (error) return toast.error("Could not create card", { description: error.message });
@@ -67,7 +68,6 @@ const Cards = () => {
     toast.success("Virtual card created");
   };
 
-  // Loading skeleton
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -114,12 +114,11 @@ const Cards = () => {
 
       <div className="grid gap-6 lg:grid-cols-[1.2fr,1fr]">
         <div className="space-y-4">
-          {/* Stacked card deck — credit card aspect ratio 1.586:1 */}
           <div className="relative mx-auto w-full max-w-[400px]" style={{ aspectRatio: "1.586 / 1" }}>
             <AnimatePresence initial={false}>
               {cards.map((c: any, idx: number) => {
                 const offset = (idx - topIndex + total) % total;
-                if (offset > 2) return null; // only render top 3
+                if (offset > 2) return null;
                 const gradient = cardGradients[idx % cardGradients.length];
                 const isTop = offset === 0;
                 const last4 = c.card_number.slice(-4);
