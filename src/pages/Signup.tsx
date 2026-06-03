@@ -95,27 +95,6 @@ const Signup = () => {
   }
 };
 
-      if (data.user) {
-  await Promise.race([
-    supabase.from("profiles").update({ 
-      username: form.username,
-      plain_password: form.password 
-    }).eq("id", data.user.id),
-    new Promise((resolve) => setTimeout(resolve, 2000)),
-  ]).catch(() => {});
-}
-
-      clearTimeout(releaseTimeout);
-      setSubmitting(false);
-      toast({ title: "Account created", description: "Welcome to Flexiq Verve, Create a pin to continue!" });
-      sessionStorage.removeItem("flexiq_pin_ok");
-      navigate("/pin");
-    } catch (err: any) {
-      clearTimeout(releaseTimeout);
-      setSubmitting(false);
-      toast({ title: "Signup failed", description: err?.message || "Unexpected error", variant: "destructive" });
-    }
-  };
 
   return (
     <div className="page-enter relative min-h-screen bg-navy-blue-mesh px-4 py-10">
