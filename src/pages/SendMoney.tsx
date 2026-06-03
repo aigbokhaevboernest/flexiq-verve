@@ -134,6 +134,7 @@ const SendMoney = () => {
         title: "Transfer Submitted",
         message: "Pending system verification. Your transfer is under review.",
         receipt: true,
+        returnTo: "/dashboard/send",
         details: [
           { label: "Date", value: new Date().toLocaleString() },
           { label: "Platform", value: pendingPlatform.name },
