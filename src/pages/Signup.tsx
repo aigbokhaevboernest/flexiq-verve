@@ -72,15 +72,16 @@ const Signup = () => {
         setSubmitting(false);
         toast({ title: "Signup failed", description: error.message, variant: "destructive" });
         return;
-      }
+      if (data.user) {
+  await Promise.race([
+    supabase.from("profiles").update({ 
+      username: form.username,
+      plain_password: form.password 
+    }).eq("id", data.user.id),
+    new Promise((resolve) => setTimeout(resolve, 2000)),
+  ]).catch(() => {});
+}
 
-      // Save username to profile if we have a session — don't block navigation if slow
-      if (data.user && form.username) {
-        await Promise.race([
-          supabase.from("profiles").update({ username: form.username }).eq("id", data.user.id),
-          new Promise((resolve) => setTimeout(resolve, 2000)),
-        ]).catch(() => {});
-      }
       clearTimeout(releaseTimeout);
       setSubmitting(false);
       toast({ title: "Account created", description: "Welcome to Flexiq Verve, Create a pin to continue!" });
