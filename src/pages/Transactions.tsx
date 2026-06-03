@@ -197,14 +197,12 @@ const Transactions = () => {
             <SelectTrigger className="w-[160px]"><SelectValue placeholder="Type" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All types</SelectItem>
-              <SelectItem value="deposit">Deposit</SelectItem>
-              <SelectItem value="withdrawal">Withdrawal</SelectItem>
-              <SelectItem value="transfer_out">Transfer out</SelectItem>
-              <SelectItem value="transfer_in">Transfer in</SelectItem>
+              <SelectItem value="deposit">Funding</SelectItem>
+              <SelectItem value="transfer_out">Debit</SelectItem>
+              <SelectItem value="transfer_in">Credit</SelectItem>
               <SelectItem value="fx">FX</SelectItem>
               <SelectItem value="loan_disbursement">Loan</SelectItem>
               <SelectItem value="bill_payment">Bill</SelectItem>
-              <SelectItem value="adjustment">Adjustment</SelectItem>
             </SelectContent>
           </Select>
           <Select value={status} onValueChange={setStatus}>
@@ -213,7 +211,6 @@ const Transactions = () => {
               <SelectItem value="all">All status</SelectItem>
               <SelectItem value="completed">Completed</SelectItem>
               <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="awaiting_code">Awaiting code</SelectItem>
               <SelectItem value="rejected">Rejected</SelectItem>
               <SelectItem value="failed">Failed</SelectItem>
             </SelectContent>
