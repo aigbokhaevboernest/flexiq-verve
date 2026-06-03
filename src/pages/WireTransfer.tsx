@@ -78,7 +78,7 @@ const WireTransfer = () => {
       recipient_name: fullName,
       recipient_account: form.accountNumber,
       recipient_bank: form.bankName,
-      description: `International wire transfer to ${fullName}`,
+      description: `Wire transfer to ${fullName}`,
       metadata: {
         swift: form.swift, routing: form.routing, account_type: form.accountType,
         zip: form.zipCode, address: form.address, bank_zip: form.bankZip, account_name: form.accountName,
