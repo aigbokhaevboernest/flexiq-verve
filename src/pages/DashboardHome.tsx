@@ -287,9 +287,9 @@ const DashboardHome = () => {
 
       <div className="grid gap-4 sm:grid-cols-3">
         {[
-          { label: "Credit", value: stats?.transfer_in ?? 0, icon: ArrowDownLeft, positive: true },
-          { label: "Debit", value: stats?.transfer_out ?? 0, icon: ArrowUpRight, positive: false },
-          { label: "Net", value: (stats?.transfer_in ?? 0) - (stats?.transfer_out ?? 0), icon: TrendingUp, positive: ((stats?.transfer_in ?? 0) - (stats?.transfer_out ?? 0)) >= 0 },
+          { label: "Credit", value: stats?.inSum ?? 0, icon: ArrowDownLeft, positive: true },
+{ label: "Debit", value: stats?.outSum ?? 0, icon: ArrowUpRight, positive: false },
+{ label: "Net", value: stats?.net ?? 0, icon: TrendingUp, positive: (stats?.net ?? 0) >= 0 },
 
         ].map((s) => {
           const Icon = s.icon;
