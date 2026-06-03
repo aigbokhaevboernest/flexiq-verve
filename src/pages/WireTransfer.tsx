@@ -167,7 +167,7 @@ const WireTransfer = () => {
           </Section>
 
           <Button type="submit" className="h-12 w-full gap-2 rounded-2xl bg-gradient-primary text-base font-semibold shadow-glow">
-            <Lock className="h-4 w-4" /> Continue & authorize
+            <Lock className="h-4 w-4" /> Continue
           </Button>
         </form>
       </Card>
