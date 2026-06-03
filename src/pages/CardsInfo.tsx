@@ -1,5 +1,3 @@
-
-last month
 import { MarketingPage } from "@/components/MarketingPage";
 import { CreditCard, Snowflake, Smartphone, Gift, Shield, Globe2 } from "lucide-react";
 
