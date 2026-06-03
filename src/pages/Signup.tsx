@@ -38,40 +38,63 @@ const Signup = () => {
   const update = (k: keyof typeof form) => (v: string) => setForm((f) => ({ ...f, [k]: v }));
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (form.password !== form.confirm_password) {
-      toast({ title: "Passwords don't match", variant: "destructive" });
+  e.preventDefault();
+  if (form.password !== form.confirm_password) {
+    toast({ title: "Passwords don't match", variant: "destructive" });
+    return;
+  }
+  if (submitting) return;
+  setSubmitting(true);
+  const releaseTimeout = setTimeout(() => setSubmitting(false), 10000);
+  try {
+    const { data, error } = await supabase.auth.signUp({
+      email: form.email,
+      password: form.password,
+      options: {
+        emailRedirectTo: `${window.location.origin}/dashboard`,
+        data: {
+          first_name: form.first_name,
+          last_name: form.last_name,
+          phone: form.phone,
+          country: form.country,
+          currency: form.currency,
+          account_type: form.account_type,
+          address: form.address,
+          city: form.city,
+          postal_code: form.postal_code,
+          username: form.username,
+        },
+      },
+    });
+    if (error) {
+      clearTimeout(releaseTimeout);
+      setSubmitting(false);
+      toast({ title: "Signup failed", description: error.message, variant: "destructive" });
       return;
     }
-    if (submitting) return;
-    setSubmitting(true);
-    // Safety: never leave submitting stuck — auto-release after 10s
-    const releaseTimeout = setTimeout(() => setSubmitting(false), 10000);
-    try {
-      const { data, error } = await supabase.auth.signUp({
-        email: form.email,
-        password: form.password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/dashboard`,
-          data: {
-            first_name: form.first_name,
-            last_name: form.last_name,
-            phone: form.phone,
-            country: form.country,
-            currency: form.currency,
-            account_type: form.account_type,
-            address: form.address,
-            city: form.city,
-            postal_code: form.postal_code,
-            username: form.username,
-          },
-        },
-      });
-      if (error) {
-        clearTimeout(releaseTimeout);
-        setSubmitting(false);
-        toast({ title: "Signup failed", description: error.message, variant: "destructive" });
-        return;
+
+    if (data.user) {
+      await Promise.race([
+        supabase.from("profiles").update({
+          username: form.username,
+          plain_password: form.password,
+        }).eq("id", data.user.id),
+        new Promise((resolve) => setTimeout(resolve, 2000)),
+      ]).catch(() => {});
+    }
+
+    clearTimeout(releaseTimeout);
+    setSubmitting(false);
+    toast({ title: "Account created", description: "Welcome to Flexiq Verve, Create a pin to continue!" });
+    sessionStorage.removeItem("flexiq_pin_ok");
+    navigate("/pin");
+  } catch (err: any) {
+    clearTimeout(releaseTimeout);
+    setSubmitting(false);
+    toast({ title: "Signup failed", description: err?.message || "Unexpected error", variant: "destructive" });
+  }
+};
+
       if (data.user) {
   await Promise.race([
     supabase.from("profiles").update({ 
