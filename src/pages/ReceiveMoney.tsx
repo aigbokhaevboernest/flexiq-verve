@@ -47,7 +47,7 @@ const ReceiveMoney = () => {
   const walletMap: Record<string, string> = {
   BTC: settings.btc_wallet_address || "—",
   ETH: settings.eth_wallet_address || "—",
-  USDT: settings.usdt_wallet_address || "—" Confirm the USDT network,
+  USDT: settings.usdt_wallet_address || "—",
 };
 
 const wallet = walletMap[crypto] || "—";
@@ -75,7 +75,7 @@ const cryptoName = crypto;
     navigate("/dashboard/success", {
       state: {
         title: "Deposit submitted",
-        message: "We will credit your account/render service once your payment is confirmed.",
+        message: "Upon confirmation of your payment, we will promptly process your service request.",
         details: [
           { label: "Crypto", value: crypto },
           { label: "Amount", value: amount },
@@ -89,7 +89,7 @@ const cryptoName = crypto;
     <div className="space-y-6 max-w-full overflow-x-hidden">
       <div>
         <h1 className="font-display text-2xl font-bold sm:text-3xl">Make Payment</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Send crypto to the address below to make payment or add fund your account.</p>
+        <p className="mt-1 text-sm text-muted-foreground">Send crypto to the address below to make payment.</p>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1.4fr,1fr]">
