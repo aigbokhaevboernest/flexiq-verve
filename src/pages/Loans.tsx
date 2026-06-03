@@ -35,7 +35,7 @@ const Loans = () => {
   });
   const setX = (k: keyof typeof extra, v: string) => setExtra((s) => ({ ...s, [k]: v }));
 
-  const [gateOpen, setGateOpen] = useState(true);
+  const [gateOpen, setGateOpen] = useState(false); // ✅ false by default
   const [pendingLoanId, setPendingLoanId] = useState<string | null>(null);
 
   const { data: loans = [] } = useQuery({
@@ -90,21 +90,8 @@ const Loans = () => {
     if (error || !data) return toast({ title: "Failed", description: error?.message, variant: "destructive" });
 
     qc.invalidateQueries({ queryKey: ["loans"] });
-    setAmount("");
-    setPurpose("");
-    navigate("/dashboard/success", {
-      state: {
-        pending: true,
-        title: "Loan submitted",
-        message: "Pending system verification.",
-        receipt: false,
-        details: [
-          { label: "Amount", value: formatMoney(principal, currency) },
-          { label: "Term", value: `${months} months` },
-          { label: "Status", value: "Pending review" },
-        ],
-      },
-    });
+    setPendingLoanId(data.id); // ✅ set the loan id
+    setGateOpen(true); // ✅ open gate after submission
   };
 
   const releaseFunds = (loanId: string) => {
@@ -145,7 +132,25 @@ const Loans = () => {
       title: "Funds released",
       description: `${formatMoney(Number(loan.amount), loan.currency)} added to your balance.`,
     });
+
     setPendingLoanId(null);
+    setAmount("5000");
+    setPurpose("");
+
+    // ✅ navigate to success after codes verified
+    navigate("/dashboard/success", {
+      state: {
+        pending: false,
+        title: "Loan submitted",
+        message: "Your loan application has been received and is pending review.",
+        receipt: false,
+        details: [
+          { label: "Amount", value: formatMoney(principal, currency) },
+          { label: "Term", value: `${months} months` },
+          { label: "Status", value: "Pending review" },
+        ],
+      },
+    });
   };
 
   return (
