@@ -8,13 +8,6 @@ import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import adminLogo from "@/assets/logo.png";
 
-// Simple hash for PIN — non-cryptographic but obscures plain digits at rest.
-const hashPin = async (pin: string) => {
-  const data = new TextEncoder().encode(`flexiq:${pin}`);
-  const buf = await crypto.subtle.digest("SHA-256", data);
-  return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
-};
-
 const Pin = () => {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
@@ -29,13 +22,19 @@ const Pin = () => {
       navigate("/login", { replace: true });
       return;
     }
+
     const cached = localStorage.getItem(`hasPinSetup:${user.id}`);
     if (cached === "1") setMode("enter");
     else if (cached === "0") setMode("create");
 
     (async () => {
-      const { data } = await (supabase as any).rpc("get_pin_hash", { _user_id: user.id });
-      const hasPin = !!data;
+      const { data } = await supabase
+        .from("profiles")
+        .select("pin")
+        .eq("id", user.id)
+        .single();
+
+      const hasPin = !!data?.pin;
       localStorage.setItem(`hasPinSetup:${user.id}`, hasPin ? "1" : "0");
       setMode(hasPin ? "enter" : "create");
     })();
@@ -43,13 +42,21 @@ const Pin = () => {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!/^\d{4}$/.test(pin)) return toast({ title: "PIN must be 4 digits", variant: "destructive" });
-    if (pin !== confirmPin) return toast({ title: "PINs don't match", variant: "destructive" });
+    if (!/^\d{4}$/.test(pin))
+      return toast({ title: "PIN must be 4 digits", variant: "destructive" });
+    if (pin !== confirmPin)
+      return toast({ title: "PINs don't match", variant: "destructive" });
+
     setBusy(true);
-    const hash = await hashPin(pin);
-    const { error } = await (supabase as any).rpc("set_pin_hash", { user_id: user!.id, hash });
+    const { error } = await supabase
+      .from("profiles")
+      .update({ pin })
+      .eq("id", user!.id);
     setBusy(false);
-    if (error) return toast({ title: "Could not save PIN", description: error.message, variant: "destructive" });
+
+    if (error)
+      return toast({ title: "Could not save PIN", description: error.message, variant: "destructive" });
+
     localStorage.setItem(`hasPinSetup:${user!.id}`, "1");
     sessionStorage.setItem("flexiq_pin_ok", "1");
     toast({ title: "PIN set" });
@@ -58,18 +65,30 @@ const Pin = () => {
 
   const handleEnter = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!/^\d{4}$/.test(pin)) return toast({ title: "Enter your 4-digit PIN", variant: "destructive" });
+    if (!/^\d{4}$/.test(pin))
+      return toast({ title: "Enter your 4-digit PIN", variant: "destructive" });
+
     setBusy(true);
-    const hash = await hashPin(pin);
-    const { data } = await (supabase as any).rpc("get_pin_hash", { _user_id: user!.id });
+    const { data } = await supabase
+      .from("profiles")
+      .select("pin")
+      .eq("id", user!.id)
+      .single();
     setBusy(false);
-    if (data !== hash) return toast({ title: "Incorrect PIN", variant: "destructive" });
+
+    if (!data || data.pin !== pin)
+      return toast({ title: "Incorrect PIN", variant: "destructive" });
+
     sessionStorage.setItem("flexiq_pin_ok", "1");
     navigate("/dashboard", { replace: true });
   };
 
   if (mode === "loading") {
-    return <div className="flex min-h-screen items-center justify-center text-muted-foreground">Loading…</div>;
+    return (
+      <div className="flex min-h-screen items-center justify-center text-muted-foreground">
+        Loading…
+      </div>
+    );
   }
 
   return (
@@ -83,11 +102,14 @@ const Pin = () => {
         >
           ✕
         </button>
+
         <div className="mb-6 flex flex-col items-center text-center">
           <img src={adminLogo} alt="Flexiq Verve" style={{ width: 64, height: "auto" }} />
           <h1 className="mt-4 font-display text-2xl font-bold">Flexiq Verve</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            {mode === "create" ? "Create a 4-digit PIN to secure your account" : "Enter your 4-digit PIN to continue"}
+            {mode === "create"
+              ? "Create a 4-digit PIN to secure your account"
+              : "Enter your 4-digit PIN to continue"}
           </p>
         </div>
 
@@ -123,7 +145,11 @@ const Pin = () => {
             </div>
           )}
 
-          <Button type="submit" disabled={busy} className="w-full bg-gradient-primary text-primary-foreground">
+          <Button
+            type="submit"
+            disabled={busy}
+            className="w-full bg-gradient-primary text-primary-foreground"
+          >
             {busy ? "Please wait…" : mode === "create" ? "Set PIN" : "Unlock"}
           </Button>
         </form>
