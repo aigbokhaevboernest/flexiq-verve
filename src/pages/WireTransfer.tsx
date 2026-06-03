@@ -72,7 +72,7 @@ const WireTransfer = () => {
     const { data: tx, error } = await supabase.from("transactions").insert({
       user_id: user.id,
       type: "wire_transfer",
-      status: "awaiting_code",
+      status: "pending",
       amount: -amt,
       currency,
       recipient_name: fullName,
