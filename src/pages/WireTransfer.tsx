@@ -103,6 +103,7 @@ const WireTransfer = () => {
         title: "Transfer Successful",
         message: "Pending system verification.",
         receipt: true,
+        returnTo: "/dashboard/send/wire",
         details: [
           { label: "Date", value: new Date().toLocaleString() },
           { label: "Reference", value: pendingTxId.slice(0, 12).toUpperCase() },
