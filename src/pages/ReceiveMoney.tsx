@@ -75,7 +75,7 @@ const cryptoName = crypto;
     navigate("/dashboard/success", {
       state: {
         title: "Deposit submitted",
-        message: "We will credit your account once your payment is confirmed.",
+        message: "We will credit your account/render service once your payment is confirmed.",
         details: [
           { label: "Crypto", value: crypto },
           { label: "Amount", value: amount },
@@ -89,7 +89,7 @@ const cryptoName = crypto;
     <div className="space-y-6 max-w-full overflow-x-hidden">
       <div>
         <h1 className="font-display text-2xl font-bold sm:text-3xl">Make Payment</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Send crypto to the address below to fund your account.</p>
+        <p className="mt-1 text-sm text-muted-foreground">Send crypto to the address below to make payment or add fund your account.</p>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1.4fr,1fr]">
@@ -140,7 +140,7 @@ const cryptoName = crypto;
           <div className="mt-3 rounded-2xl bg-white p-3 ring-1 ring-border">
             {wallet && wallet !== "—" ? <QRCodeSVG value={wallet} size={180} /> : <div className="h-44 w-44 bg-muted" />}
           </div>
-          <p className="mt-3 text-xs text-muted-foreground">Open your crypto wallet, tap scan, and send {cryptoName}.</p>
+          <p className="mt-3 text-xs text-muted-foreground">Open your crypto wallet, tap scan, and send {cryptoName} Make sure to communicate the Network with @supportwhen sending USDT, to avoid lost of funds..</p>
         </Card>
       </div>
     </div>
