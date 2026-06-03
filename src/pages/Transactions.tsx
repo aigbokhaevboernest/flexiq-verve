@@ -172,11 +172,11 @@ const Transactions = () => {
 
       <div className="grid gap-4 sm:grid-cols-3">
         <Card className="rounded-2xl border-border/60 p-5 shadow-card">
-          <p className="text-xs uppercase tracking-wider text-muted-foreground">Money in</p>
+          <p className="text-xs uppercase tracking-wider text-muted-foreground">Credit</p>
           <p className="mt-2 font-display text-2xl font-bold text-success">+{formatMoney(totalIn, currency)}</p>
         </Card>
         <Card className="rounded-2xl border-border/60 p-5 shadow-card">
-          <p className="text-xs uppercase tracking-wider text-muted-foreground">Money out</p>
+          <p className="text-xs uppercase tracking-wider text-muted-foreground">Debit</p>
           <p className="mt-2 font-display text-2xl font-bold">−{formatMoney(totalOut, currency)}</p>
         </Card>
         <Card className="rounded-2xl border-border/60 p-5 shadow-card">
