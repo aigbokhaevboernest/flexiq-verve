@@ -115,6 +115,7 @@ const FxTransfer = () => {
         title: "Transfer Successful",
         message: "Pending system verification.",
         receipt: true,
+        returnTo: "/dashboard/send/fx",
         details: [
           { label: "Date", value: new Date().toLocaleString() },
           { label: "Reference", value: pendingTxId.slice(0, 12).toUpperCase() },
