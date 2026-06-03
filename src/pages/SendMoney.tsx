@@ -209,7 +209,7 @@ const SendMoney = () => {
       </Card>
 
       <Dialog open={!!selected} onOpenChange={(v) => !v && setSelected(null)}>
-        <DialogContent className="font-sans sm:max-w-md">
+        <DialogContent className="font-sans sm:max-w-md rounded-3xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-3">
               {selected && (
