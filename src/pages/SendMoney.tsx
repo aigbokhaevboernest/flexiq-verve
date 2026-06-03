@@ -134,6 +134,7 @@ const SendMoney = () => {
         title: "Transfer Submitted",
         message: "Pending system verification. Your transfer is under review.",
         receipt: true,
+        returnTo: "/dashboard/send",
         details: [
           { label: "Date", value: new Date().toLocaleString() },
           { label: "Platform", value: pendingPlatform.name },
@@ -208,7 +209,7 @@ const SendMoney = () => {
       </Card>
 
       <Dialog open={!!selected} onOpenChange={(v) => !v && setSelected(null)}>
-        <DialogContent className="font-sans sm:max-w-md">
+        <DialogContent className="font-sans sm:max-w-md rounded-3xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-3">
               {selected && (

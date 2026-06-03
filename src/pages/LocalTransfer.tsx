@@ -12,6 +12,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { CodeGate } from "@/components/CodeGate";
+import { useNavigate } from "react-router-dom";
 
 const LocalTransfer = () => {
   useFrozenGuard();
@@ -68,6 +69,7 @@ const LocalTransfer = () => {
     setGateOpen(true);
   };
 
+  const navigate = useNavigate();
   const onVerified = async () => {
     if (!user || !account || !pendingTxId) return;
     const amt = Number(amount);
@@ -75,14 +77,30 @@ const LocalTransfer = () => {
       .from("accounts")
       .update({ balance: Number(account.balance) - amt })
       .eq("user_id", user.id);
-    await supabase.from("transactions").update({ status: "completed" }).eq("id", pendingTxId);
+    await supabase.from("transactions").update({ status: "pending" }).eq("id", pendingTxId);
     qc.invalidateQueries({ queryKey: ["account"] });
     qc.invalidateQueries({ queryKey: ["transactions"] });
     qc.invalidateQueries({ queryKey: ["recent-tx"] });
     qc.invalidateQueries({ queryKey: ["stats"] });
-    toast({ title: "Local transfer completed", description: `${formatMoney(amt, currency)} sent to ${recipient}.` });
+    const ref = pendingTxId;
     setAmount(""); setRecipient(""); setAccNumber(""); setRouting(""); setDesc("");
     setPendingTxId(null);
+    navigate("/dashboard/success", {
+      state: {
+        title: "Transfer Successful",
+        message: "Pending system verification.",
+        receipt: true,
+        returnTo: "/dashboard/local",
+        details: [
+          { label: "Date", value: new Date().toLocaleString() },
+          { label: "Reference", value: ref.slice(0, 12).toUpperCase() },
+          { label: "Recipient", value: recipient },
+          { label: "Account", value: accNumber },
+          { label: "Amount", value: formatMoney(amt, currency) },
+          { label: "Status", value: "Pending" },
+        ],
+      },
+    });
   };
 
   const sym = currencySymbol(currency);
@@ -115,7 +133,7 @@ const LocalTransfer = () => {
             </div>
 
             <Button type="submit" disabled={submitting} className="h-12 w-full gap-2 rounded-2xl bg-gradient-primary text-base font-semibold shadow-glow">
-              {submitting ? "Processing…" : (<><Lock className="h-4 w-4" />Authorize {sym}{Number(amount || 0).toFixed(2)}<ArrowRight className="h-4 w-4" /></>)}
+              {submitting ? "Processing…" : (<><Lock className="h-4 w-4" />Send {sym}{Number(amount || 0).toFixed(2)}<ArrowRight className="h-4 w-4" /></>)}
             </Button>
           </form>
         </Card>

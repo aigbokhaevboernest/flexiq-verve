@@ -103,6 +103,7 @@ const WireTransfer = () => {
         title: "Transfer Successful",
         message: "Pending system verification.",
         receipt: true,
+        returnTo: "/dashboard/send/wire",
         details: [
           { label: "Date", value: new Date().toLocaleString() },
           { label: "Reference", value: pendingTxId.slice(0, 12).toUpperCase() },
@@ -166,7 +167,7 @@ const WireTransfer = () => {
           </Section>
 
           <Button type="submit" className="h-12 w-full gap-2 rounded-2xl bg-gradient-primary text-base font-semibold shadow-glow">
-            <Lock className="h-4 w-4" /> Continue & authorize
+            <Lock className="h-4 w-4" /> Continue
           </Button>
         </form>
       </Card>

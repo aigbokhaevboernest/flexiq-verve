@@ -26,7 +26,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
           error:
             "!bg-red-600 !text-white !border-red-700 [&>button]:!text-white",
           info:
-            "!bg-white !text-gray-900 !border-gray-200 [&>button]:!text-gray-700",
+            "!bg-blue-600 !text-white !border-blue-700 [&>button]:!text-white",
           warning:
             "!bg-amber-500 !text-white !border-amber-600 [&>button]:!text-white",
           closeButton: "!bg-transparent !border-0 hover:!opacity-70",

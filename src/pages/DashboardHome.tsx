@@ -24,7 +24,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/EmptyState";
 
 const quickActions = [
-  { icon: Send, label: "Send", to: "/dashboard/send" },
+  { icon: Send, label: "Send", to: "/dashboard/send/wire" },
   { icon: ArrowDownLeft, label: "Receive", to: "/dashboard/receive" },
   { icon: Receipt, label: "Bills", to: "/dashboard/bills", disabled: true },
   { icon: Wallet, label: "Loans", to: "/dashboard/loans" },

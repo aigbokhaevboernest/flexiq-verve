@@ -80,25 +80,36 @@ const ReceiveMoney = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-full overflow-x-hidden">
       <div>
         <h1 className="font-display text-2xl font-bold sm:text-3xl">Make Payment</h1>
         <p className="mt-1 text-sm text-muted-foreground">Send crypto to the address below to fund your account.</p>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1.4fr,1fr]">
-        <Card className="rounded-3xl border-border/60 p-6 shadow-card sm:p-8">
+        <Card className="rounded-3xl border-border/60 p-4 shadow-card sm:p-8 min-w-0">
           <form onSubmit={submit} className="space-y-5">
             <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2"><Label>Crypto</Label><Input value={crypto} onChange={(e) => setCrypto(e.target.value.toUpperCase())} placeholder="BTC" /></div>
+              <div className="space-y-2">
+                <Label>Payment method</Label>
+                <select
+                  value={crypto}
+                  onChange={(e) => setCrypto(e.target.value)}
+                  className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  <option value="BTC">BTC — Bitcoin</option>
+                  <option value="ETH">ETH — Ethereum</option>
+                  <option value="USDT">USDT — Tether</option>
+                </select>
+              </div>
               <div className="space-y-2"><Label>Amount</Label><Input type="number" step="0.0001" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" required /></div>
             </div>
 
-            <div className="rounded-2xl border border-border/60 bg-muted/30 p-4">
+            <div className="rounded-2xl border border-border/60 bg-muted/30 p-4 min-w-0">
               <p className="text-xs uppercase tracking-wider text-muted-foreground">Wallet address ({cryptoName})</p>
-              <div className="mt-2 flex items-center gap-2">
-                <code className="flex-1 truncate rounded-lg bg-background px-3 py-2 font-mono text-xs">{wallet}</code>
-                <Button type="button" variant="outline" size="icon" onClick={copy}><Copy className="h-4 w-4" /></Button>
+              <div className="mt-2 flex items-center gap-2 min-w-0">
+                <code className="flex-1 min-w-0 truncate rounded-lg bg-background px-3 py-2 font-mono text-xs">{wallet}</code>
+                <Button type="button" variant="outline" size="icon" onClick={copy} className="shrink-0"><Copy className="h-4 w-4" /></Button>
               </div>
             </div>
 
@@ -118,7 +129,7 @@ const ReceiveMoney = () => {
           </form>
         </Card>
 
-        <Card className="flex flex-col items-center rounded-3xl border-border/60 p-6 shadow-card text-center">
+        <Card className="flex flex-col items-center rounded-3xl border-border/60 p-6 shadow-card text-center min-w-0">
           <p className="text-xs uppercase tracking-wider text-muted-foreground">Scan to pay</p>
           <div className="mt-3 rounded-2xl bg-white p-3 ring-1 ring-border">
             {wallet && wallet !== "—" ? <QRCodeSVG value={wallet} size={180} /> : <div className="h-44 w-44 bg-muted" />}

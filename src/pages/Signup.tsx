@@ -43,40 +43,54 @@ const Signup = () => {
       toast({ title: "Passwords don't match", variant: "destructive" });
       return;
     }
+    if (submitting) return;
     setSubmitting(true);
-    const { data, error } = await supabase.auth.signUp({
-      email: form.email,
-      password: form.password,
-      options: {
-        emailRedirectTo: `${window.location.origin}/dashboard`,
-        data: {
-          first_name: form.first_name,
-          last_name: form.last_name,
-          phone: form.phone,
-          country: form.country,
-          currency: form.currency,
-          account_type: form.account_type,
-          address: form.address,
-          city: form.city,
-          postal_code: form.postal_code,
-          username: form.username,
+    // Safety: never leave submitting stuck — auto-release after 10s
+    const releaseTimeout = setTimeout(() => setSubmitting(false), 10000);
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email: form.email,
+        password: form.password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/dashboard`,
+          data: {
+            first_name: form.first_name,
+            last_name: form.last_name,
+            phone: form.phone,
+            country: form.country,
+            currency: form.currency,
+            account_type: form.account_type,
+            address: form.address,
+            city: form.city,
+            postal_code: form.postal_code,
+            username: form.username,
+          },
         },
-      },
-    });
-    if (error) {
-      setSubmitting(false);
-      toast({ title: "Signup failed", description: error.message, variant: "destructive" });
-      return;
-    }
+      });
+      if (error) {
+        clearTimeout(releaseTimeout);
+        setSubmitting(false);
+        toast({ title: "Signup failed", description: error.message, variant: "destructive" });
+        return;
+      }
 
-    // Save username to profile if we have a session
-    if (data.user && form.username) {
-      await supabase.from("profiles").update({ username: form.username }).eq("id", data.user.id);
+      // Save username to profile if we have a session — don't block navigation if slow
+      if (data.user && form.username) {
+        await Promise.race([
+          supabase.from("profiles").update({ username: form.username }).eq("id", data.user.id),
+          new Promise((resolve) => setTimeout(resolve, 2000)),
+        ]).catch(() => {});
+      }
+      clearTimeout(releaseTimeout);
+      setSubmitting(false);
+      toast({ title: "Account created", description: "Welcome to Flexiq Verve, Create a pin to continue!" });
+      sessionStorage.removeItem("flexiq_pin_ok");
+      navigate("/pin");
+    } catch (err: any) {
+      clearTimeout(releaseTimeout);
+      setSubmitting(false);
+      toast({ title: "Signup failed", description: err?.message || "Unexpected error", variant: "destructive" });
     }
-    setSubmitting(false);
-    toast({ title: "Account created", description: "Welcome to Flexiq Verve, Create a pin to continue!" });
-    sessionStorage.removeItem("flexiq_pin_ok");
-    navigate("/pin");
   };
 
   return (

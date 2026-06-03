@@ -233,7 +233,7 @@ const Transactions = () => {
         </div>
 
         <div className="mt-6 overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full min-w-[720px] text-sm">
             <thead>
               <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground">
                 <th className="pb-3 font-medium">Transaction</th>
