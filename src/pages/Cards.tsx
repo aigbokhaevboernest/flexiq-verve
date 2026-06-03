@@ -58,8 +58,8 @@ const Cards = () => {
     const holder = `${(profile as any)?.first_name || ""} ${(profile as any)?.last_name || ""}`.trim().toUpperCase() || "CARDHOLDER";
     const { error } = await supabase.from("cards").insert({
       user_id: user.id,
-      card_number: num, cvv, expires_at: exp,
-      cardholder_name: holder,
+      card_number: num, cvv, expiry: exp,
+      card_holder: holder,
       brand: "Visa",
     });
     if (error) return toast.error("Could not create card", { description: error.message });
