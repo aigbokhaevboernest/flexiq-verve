@@ -12,6 +12,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { CodeGate } from "@/components/CodeGate";
+import { useNavigate } from "react-router-dom";
 
 const LocalTransfer = () => {
   useFrozenGuard();
