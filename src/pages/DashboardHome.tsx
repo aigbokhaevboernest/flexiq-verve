@@ -273,7 +273,7 @@ const DashboardHome = () => {
             </p>
             <div className="mt-3 flex justify-between text-xs opacity-90">
               <span>{card?.cardholder_name || "—"}</span>
-              <span>{card?.expires_at || "—"}</span>
+              <span>{card?.expiry || "—"}</span>
             </div>
           </div>
           {(isFrozen || card?.frozen) && (
