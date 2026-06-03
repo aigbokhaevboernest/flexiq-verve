@@ -44,8 +44,14 @@ const ReceiveMoney = () => {
     );
   }
 
-  const wallet = settings.wallet_address || "—";
-  const cryptoName = settings.wallet_crypto || "BTC";
+  const walletMap: Record<string, string> = {
+  BTC: settings.btc_wallet_address || "—",
+  ETH: settings.eth_wallet_address || "—",
+  USDT: settings.usdt_wallet_address || "—",
+};
+
+const wallet = walletMap[crypto] || "—";
+const cryptoName = crypto;
 
   const copy = () => { navigator.clipboard.writeText(wallet); toast({ title: "Wallet address copied" }); };
 
