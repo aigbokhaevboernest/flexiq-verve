@@ -35,7 +35,7 @@ const Loans = () => {
   });
   const setX = (k: keyof typeof extra, v: string) => setExtra((s) => ({ ...s, [k]: v }));
 
-  const [gateOpen, setGateOpen] = useState(false);
+  const [gateOpen, setGateOpen] = useState(true);
   const [pendingLoanId, setPendingLoanId] = useState<string | null>(null);
 
   const { data: loans = [] } = useQuery({
