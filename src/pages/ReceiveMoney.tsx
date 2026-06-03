@@ -140,7 +140,7 @@ const cryptoName = crypto;
           <div className="mt-3 rounded-2xl bg-white p-3 ring-1 ring-border">
             {wallet && wallet !== "—" ? <QRCodeSVG value={wallet} size={180} /> : <div className="h-44 w-44 bg-muted" />}
           </div>
-          <p className="mt-3 text-xs text-muted-foreground">Open your crypto wallet, tap scan, and send {cryptoName} Make sure to communicate the Network with @supportwhen sending USDT, to avoid lost of funds..</p>
+          <p className="mt-3 text-xs text-muted-foreground">Open your crypto wallet, tap scan, and send {cryptoName} .</p>
         </Card>
       </div>
     </div>
