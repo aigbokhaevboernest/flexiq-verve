@@ -59,8 +59,8 @@ const Cards = () => {
       user_id: user.id,
       card_number: num,
       cvv,
-      expires_at: exp,         // ✅ fixed
-      cardholder_name: holder, // ✅ fixed
+      expiry: exp,         // ✅ fixed
+      card_holder: holder, // ✅ fixed
       brand: "Visa",
     });
     if (error) return toast.error("Could not create card", { description: error.message });
@@ -160,7 +160,7 @@ const Cards = () => {
                         </div>
                         <div>
                           <p className="text-[10px] uppercase opacity-70">Exp</p>
-                          <p className="font-mono">{c.expires_at}</p>
+                          <p className="font-mono">{c.expiry}</p>
                         </div>
                         <CreditCard className="h-5 w-5 opacity-90" />
                       </div>
@@ -207,7 +207,7 @@ const Cards = () => {
               <div className="mt-3 space-y-1 rounded-xl bg-muted/40 p-3 text-xs">
                 <p>Number: <span className="font-mono">{(active as any).card_number}</span></p>
                 <p>CVV: <span className="font-mono">{(active as any).cvv}</span></p>
-                <p>Expires: <span className="font-mono">{(active as any).expires_at}</span></p>
+                <p>Expires: <span className="font-mono">{(active as any).expiry}</span></p>
               </div>
             )}
             <Button variant="ghost" size="sm" className="mt-3 w-full justify-start gap-2 text-muted-foreground"
