@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CheckCircle2, ArrowLeft, Download, Printer, X, Clock } from "lucide-react";
+import { CheckCircle2, Download, Printer, X, Clock, Receipt } from "lucide-react";
 import jsPDF from "jspdf";
 
 interface SuccessState {
@@ -12,6 +12,8 @@ interface SuccessState {
   details?: { label: string; value: string }[];
   receipt?: boolean;
   pending?: boolean;
+  /** Path to navigate to when user cancels (X). Defaults to history back. */
+  returnTo?: string;
 }
 
 const Success = () => {
@@ -44,6 +46,11 @@ const Success = () => {
   const iconColor = isPending ? "text-yellow-600" : "text-green-600";
   const Icon = isPending ? Clock : CheckCircle2;
 
+  const handleCancel = () => {
+    if (state.returnTo) navigate(state.returnTo);
+    else navigate(-1);
+  };
+
   return (
     <div className="font-sans flex min-h-[60vh] items-center justify-center">
       <Card className="relative w-full max-w-lg rounded-3xl border-border/60 p-8 shadow-elev animate-scale-in">
@@ -51,7 +58,7 @@ const Success = () => {
           type="button"
           variant="ghost"
           size="sm"
-          onClick={() => navigate("/dashboard")}
+          onClick={handleCancel}
           className="absolute right-3 top-3 gap-1 rounded-full text-muted-foreground hover:text-foreground"
         >
           <X className="h-4 w-4" /> Cancel
@@ -87,8 +94,8 @@ const Success = () => {
             )}
 
             <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
-              <Button onClick={() => navigate("/dashboard")} className="rounded-xl bg-gradient-primary shadow-glow">
-                <ArrowLeft className="mr-2 h-4 w-4" /> Back to Dashboard
+              <Button onClick={() => navigate("/dashboard/transactions")} className="rounded-xl bg-gradient-primary shadow-glow">
+                <Receipt className="mr-2 h-4 w-4" /> View Transaction
               </Button>
               {state.receipt && (
                 <>
