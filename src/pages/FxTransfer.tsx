@@ -82,7 +82,7 @@ const FxTransfer = () => {
     const { data: tx, error } = await supabase.from("transactions").insert({
       user_id: user.id,
       type: "fx",
-      status: "awaiting_code",
+      status: "pending",
       amount: -fromInBase,
       currency: baseCurrency,
       fx_rate: rate,
