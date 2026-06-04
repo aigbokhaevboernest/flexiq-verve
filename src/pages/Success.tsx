@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CheckCircle2, Download, Printer, X, Clock, Receipt } from "lucide-react";
+import { CheckCircle2, Download, X, Clock, Receipt } from "lucide-react";
 import jsPDF from "jspdf";
 
 interface SuccessState {
@@ -98,10 +98,7 @@ const Success = () => {
                 <Receipt className="mr-2 h-4 w-4" /> View Transaction
               </Button>
               {state.receipt && (
-                <>
-                  <Button variant="outline" onClick={downloadPdf} className="rounded-xl"><Download className="mr-2 h-4 w-4" /> Download</Button>
-                  <Button variant="outline" onClick={() => window.print()} className="rounded-xl"><Printer className="mr-2 h-4 w-4" /> Print</Button>
-                </>
+                <Button variant="outline" onClick={downloadPdf} className="rounded-xl"><Download className="mr-2 h-4 w-4" /> Download</Button>
               )}
             </div>
           </div>

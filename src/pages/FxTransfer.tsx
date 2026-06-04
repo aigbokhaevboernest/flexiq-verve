@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CodeGate } from "@/components/CodeGate";
 import { useNavigate } from "react-router-dom";
+import { SectionLabel } from "@/components/SectionLabel";
 
 const FxTransfer = () => {
   useFrozenGuard();
@@ -74,12 +75,12 @@ const FxTransfer = () => {
     const amt = Number(amount);
     if (!amt || amt <= 0) return toast({ title: "Enter amount", variant: "destructive" });
     if (!recipient.name || !recipient.iban) return toast({ title: "Recipient details required", variant: "destructive" });
-    if (account?.frozen) return toast({ title: "Account frozen", variant: "destructive" });
+    if ((account as any)?.frozen) return toast({ title: "Account frozen", variant: "destructive" });
 
     const fromInBase = Number(amount) / (usdRates[from] ?? 1) * (usdRates[baseCurrency] ?? 1);
-    if (fromInBase > Number(account.balance)) return toast({ title: "Insufficient funds", description: `Need ${formatMoney(fromInBase, baseCurrency)}`, variant: "destructive" });
+    if (fromInBase > Number((account as any).balance)) return toast({ title: "Insufficient funds", description: `Need ${formatMoney(fromInBase, baseCurrency)}`, variant: "destructive" });
 
-    const { data: tx, error } = await supabase.from("transactions").insert({
+    const { data: tx, error } = await (supabase as any).from("transactions").insert({
       user_id: user.id,
       type: "fx",
       status: "pending",
@@ -91,6 +92,13 @@ const FxTransfer = () => {
       recipient_name: recipient.name,
       recipient_account: recipient.iban,
       recipient_bank: recipient.bank,
+      iban: recipient.iban,
+      iban_account: recipient.iban,
+      swift_bic: recipient.swift,
+      address: recipient.address,
+      zip_code: recipient.zip,
+      country: recipient.country,
+      account_type: recipient.accountType,
       description: `FX ${amount} ${from} → ${converted} ${to}`,
       metadata: { swift: recipient.swift, from, to },
     }).select().single();
@@ -104,9 +112,9 @@ const FxTransfer = () => {
     if (!user || !account || !pendingTxId) return;
     const amt = Number(amount);
     const fromInBase = amt / (usdRates[from] ?? 1) * (usdRates[baseCurrency] ?? 1);
-    await supabase.from("accounts").update({ balance: Number(account.balance) - fromInBase }).eq("user_id", user.id);
-    await supabase.from("transactions").update({ status: "pending" }).eq("id", pendingTxId);
-    qc.invalidateQueries({ queryKey: ["account"] });
+    await (supabase as any).from("profiles").update({ balance: Number((account as any).balance) - fromInBase }).eq("id", user.id);
+    await (supabase as any).from("transactions").update({ status: "pending" }).eq("id", pendingTxId);
+    qc.invalidateQueries({ queryKey: ["profile"] });
     qc.invalidateQueries({ queryKey: ["transactions"] });
     qc.invalidateQueries({ queryKey: ["recent-tx"] });
     qc.invalidateQueries({ queryKey: ["stats"] });
@@ -151,7 +159,7 @@ const FxTransfer = () => {
             <div className="rounded-2xl border border-border bg-muted/40 p-5">
               <div className="flex items-center justify-between text-xs text-muted-foreground">
                 <span>You send</span>
-                <span>Balance: {formatMoney(Number(account?.balance ?? 0), baseCurrency)}</span>
+                <span>Balance: {formatMoney(Number((account as any)?.balance ?? 0), baseCurrency)}</span>
               </div>
               <div className="mt-2 flex items-center gap-3">
                 <Input type="number" value={amount} onChange={(e) => setAmount(e.target.value)}
@@ -195,7 +203,7 @@ const FxTransfer = () => {
           </div>
 
           <div className="mt-8 space-y-4">
-            <h2 className="font-display text-lg font-bold">Recipient details</h2>
+            <SectionLabel>Recipient details</SectionLabel>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2"><Label>Full name</Label><Input value={recipient.name} onChange={(e) => setRecipient({ ...recipient, name: e.target.value })} /></div>
               <div className="space-y-2"><Label>IBAN / Account</Label><Input value={recipient.iban} onChange={(e) => setRecipient({ ...recipient, iban: e.target.value })} /></div>

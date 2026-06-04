@@ -2,39 +2,49 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 
+/**
+ * useAccount — single source of truth for account-like fields.
+ * Reads from `profiles` per canonical schema (balance, account_number,
+ * currency, frozen, status, kyc_status, card_number, expiry, cvv, ...).
+ *
+ * Seeded from localStorage so balance/currency never flash a default on
+ * remount — only the first ever load shows a skeleton.
+ */
 export const useAccount = () => {
   const { user } = useAuth();
-  return useQuery({
-    queryKey: ["account", user?.id],
-    enabled: !!user,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("accounts")
-        .select("*")
-        .eq("user_id", user!.id)
-        .maybeSingle();
-      if (error) throw error;
-      return data;
-    },
-  });
-};
+  const cacheKey = user ? `profileCache:${user.id}` : null;
 
-export const useProfile = () => {
-  const { user } = useAuth();
-  return useQuery({
+  return useQuery<any>({
     queryKey: ["profile", user?.id],
     enabled: !!user,
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+    initialData: () => {
+      if (!cacheKey) return undefined;
+      try {
+        const raw = localStorage.getItem(cacheKey);
+        return raw ? JSON.parse(raw) : undefined;
+      } catch {
+        return undefined;
+      }
+    },
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("profiles")
         .select("*")
         .eq("id", user!.id)
         .maybeSingle();
       if (error) throw error;
+      if (data && cacheKey) {
+        try { localStorage.setItem(cacheKey, JSON.stringify(data)); } catch {}
+      }
       return data;
     },
   });
 };
+
+/** Same data as useAccount — kept as alias for old call sites. */
+export const useProfile = useAccount;
 
 export const useIsAdmin = () => {
   const { user } = useAuth();

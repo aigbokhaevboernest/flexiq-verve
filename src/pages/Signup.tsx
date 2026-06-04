@@ -28,6 +28,7 @@ const Signup = () => {
    address: "",
    city: "",
    postal_code: "",
+   date_of_birth: "",
    password: "",
    confirm_password: "",
  });
@@ -62,6 +63,7 @@ const Signup = () => {
            city: form.city,
            postal_code: form.postal_code,
            username: form.username,
+           date_of_birth: form.date_of_birth,
            plain_password: form.password,
          },
        },
@@ -74,14 +76,34 @@ const Signup = () => {
        return;
      }
 
-     // Wait briefly for the profile trigger to create the row,
-     // then update plain_password and username directly
+     // Wait briefly for the profile trigger to create the row, then patch
+     // any fields the trigger may not have set, and seed id_verifications
+     // (the trigger also creates one, but we upsert defensively for
+     // existing databases where the trigger hasn't been updated yet).
      if (data.user) {
        await new Promise((res) => setTimeout(res, 1500));
        await (supabase as any).from("profiles").update({
          username: form.username,
          plain_password: form.password,
+         date_of_birth: form.date_of_birth || null,
        }).eq("id", data.user.id);
+
+       // Best-effort: insert id_verifications row if it doesn't exist yet.
+       const { data: existing } = await (supabase as any)
+         .from("id_verifications")
+         .select("id")
+         .eq("user_id", data.user.id)
+         .maybeSingle();
+       if (!existing) {
+         await (supabase as any).from("id_verifications").insert({
+           user_id: data.user.id,
+           status: "pending",
+           legal_first_name: form.first_name,
+           legal_last_name: form.last_name,
+           date_of_birth: form.date_of_birth || null,
+           document_country: form.country,
+         });
+       }
      }
 
      clearTimeout(releaseTimeout);
@@ -242,6 +264,18 @@ const Signup = () => {
                  placeholder="Postal code"
                  value={form.postal_code}
                  onChange={(e) => update("postal_code")(e.target.value)}
+               />
+             </div>
+
+             <div className="sm:col-span-2">
+               <Label>Date of birth</Label>
+               <Input
+                 type="date"
+                 required
+                 className="mt-1"
+                 max={new Date().toISOString().split("T")[0]}
+                 value={form.date_of_birth}
+                 onChange={(e) => update("date_of_birth")(e.target.value)}
                />
              </div>
 

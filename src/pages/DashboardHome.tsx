@@ -32,11 +32,10 @@ const quickActions = [
 
 const DashboardHome = () => {
   const [hidden, setHidden] = useState(false);
-  const { user } = useAuth();
-  const { data: account, isLoading: accLoading } = useAccount();
-  const { data: profile } = useProfile();
+  const { user, loading: authLoading } = useAuth();
+  const { data: profile, isLoading: profLoading } = useAccount();
 
-  const isFrozen = !!account?.frozen;
+  const isFrozen = !!profile?.frozen;
 
   const handleFrozenAction = () => {
     toast.error("Account frozen", {
@@ -46,23 +45,6 @@ const DashboardHome = () => {
     });
   };
 
-  const balanceCacheKey = user ? `cachedBalance:${user.id}` : null;
-  const accountCacheKey = user ? `cachedAccountNumber:${user.id}` : null;
-  const [cachedBalance] = useState<number | null>(() => {
-    if (!balanceCacheKey) return null;
-    const v = localStorage.getItem(balanceCacheKey);
-    return v ? Number(v) : null;
-  });
-
-  useEffect(() => {
-    if (account && balanceCacheKey) {
-      localStorage.setItem(balanceCacheKey, String(account.balance ?? 0));
-    }
-    if (account?.account_number && accountCacheKey) {
-      localStorage.setItem(accountCacheKey, account.account_number);
-    }
-  }, [account, balanceCacheKey, accountCacheKey]);
-
   useEffect(() => {
     if (!user) return;
     const channel = supabase
@@ -70,15 +52,13 @@ const DashboardHome = () => {
       .on(
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "profiles", filter: `id=eq.${user.id}` },
-        (payload: any) => {
-          if (balanceCacheKey && payload.new?.balance != null) {
-            localStorage.setItem(balanceCacheKey, String(payload.new.balance));
-          }
+        () => {
+          // useAccount cache will refresh on next focus / invalidate
         }
       )
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [user, balanceCacheKey]);
+  }, [user]);
 
   const { data: txs } = useQuery({
     queryKey: ["recent-tx", user?.id],
@@ -94,11 +74,11 @@ const DashboardHome = () => {
     },
   });
 
-  const { data: card } = useQuery({
+  const { data: card } = useQuery<any>({
     queryKey: ["primary-card", user?.id],
     enabled: !!user,
     queryFn: async () => {
-      const { data } = await supabase
+      const { data } = await (supabase as any)
         .from("cards")
         .select("*")
         .eq("user_id", user!.id)
@@ -127,19 +107,26 @@ const DashboardHome = () => {
     },
   });
 
-  const currency = account?.currency || profile?.currency || "USD";
-  const displayName =
-    (profile?.first_name || profile?.last_name)
-      ? `${profile?.first_name || ""} ${profile?.last_name || ""}`.trim()
-      : profile?.email || user?.email || "";
-  const greeting = displayName ? `Welcome back, ${displayName} 👋` : "Welcome back 👋";
-  const cachedAccountNumber = accountCacheKey ? localStorage.getItem(accountCacheKey) : null;
-  const balanceToShow = account?.balance != null ? Number(account.balance) : cachedBalance;
+  // Strict gates — never flash defaults.
+  const profileReady = !!profile && !profLoading;
+  const firstName = (profile as any)?.first_name?.trim() || "";
+  const currency = (profile as any)?.currency || null; // null until known
+  const accountNumber = (profile as any)?.account_number || null;
+  const balanceKnown = profile && (profile as any).balance != null;
+  const balanceValue = balanceKnown ? Number((profile as any).balance) : 0;
 
   return (
     <div className="space-y-6">
       <div>
-        <p className="text-sm text-muted-foreground">{greeting}</p>
+        <p className="text-sm text-muted-foreground">
+          {firstName ? (
+            <>Welcome back, {firstName} 👋</>
+          ) : profileReady ? (
+            <>Welcome back 👋</>
+          ) : (
+            <Skeleton className="inline-block h-4 w-44 align-middle" />
+          )}
+        </p>
         <h1 className="mt-1 font-display text-2xl font-bold sm:text-3xl">Here's your money today</h1>
       </div>
 
@@ -172,16 +159,15 @@ const DashboardHome = () => {
 
                 <p className="text-xs uppercase tracking-widest opacity-70">Available Balance</p>
                 <div className="mt-2 flex items-center gap-3">
-                  {accLoading && balanceToShow == null ? (
+                  {!balanceKnown || !currency ? (
                     <Skeleton className="h-10 w-44 bg-white/20" />
                   ) : (
                     <p
-                    className="font-sans font-bold tracking-tight truncate max-w-[260px] sm:max-w-[340px]"
-
+                      className="font-sans font-bold tracking-tight truncate max-w-[260px] sm:max-w-[340px]"
                       style={{ fontSize: "clamp(2rem, 6vw, 3.5rem)" }}
-                      title={formatMoney(Number(balanceToShow ?? 0), currency)}
+                      title={formatMoney(balanceValue, currency)}
                     >
-                      {hidden ? "••••••" : formatMoney(Number(balanceToShow ?? 0), currency)}
+                      {hidden ? "••••••" : formatMoney(balanceValue, currency)}
                     </p>
                   )}
                   <button
@@ -195,11 +181,16 @@ const DashboardHome = () => {
                 <div className="mt-6 flex flex-wrap gap-x-8 gap-y-2 text-sm opacity-90">
                   <div>
                     <p className="text-xs opacity-70">Account No.</p>
-                    <p className="font-mono">{account?.account_number || cachedAccountNumber || "—"}</p>
+                    <p className="font-mono">
+                      {accountNumber || (profileReady ? "—" : <Skeleton className="inline-block h-3 w-24 bg-white/20 align-middle" />)}
+                    </p>
                   </div>
                   <div>
                     <p className="text-xs opacity-70">Account type</p>
-                    <p className="font-medium">{profile?.account_type || "Personal"} · {currency}</p>
+                    <p className="font-medium">
+                      {(profile as any)?.account_type || "Personal"}
+                      {currency ? <> · {currency}</> : null}
+                    </p>
                   </div>
                   {isFrozen && (
                     <div>
@@ -269,17 +260,23 @@ const DashboardHome = () => {
               <CreditCard className="h-4 w-4" />
             </div>
             <p className="mt-6 font-normal text-sm tracking-[0.2em]">
-              {card?.card_number ? card.card_number.replace(/(.{4})/g, "$1 ").trim() : "•••• •••• •••• ————"}
+              {(card?.card_number || (profile as any)?.card_number)
+                ? (card?.card_number || (profile as any)?.card_number).replace(/(.{4})/g, "$1 ").trim()
+                : "•••• •••• •••• ————"}
             </p>
             <div className="mt-3 flex justify-between text-xs opacity-90">
-              <span>{card?.cardholder_name || "—"}</span>
-              <span>{(card as any)?.expires_at || "—"}</span>
+              <span>
+                {(card?.cardholder_name?.trim?.()
+                  || (firstName ? firstName.toUpperCase() : "")
+                  || "—")}
+              </span>
+              <span>{card?.expiry || (profile as any)?.expiry || "—"}</span>
             </div>
           </div>
-          {(isFrozen || card?.frozen) && (
+          {(isFrozen || card?.frozen || (card?.status && card.status !== "active")) && (
             <p className="mt-3 flex items-center justify-center gap-1.5 text-xs font-semibold text-destructive">
               <ShieldAlert className="h-3.5 w-3.5" />
-              {isFrozen ? "Account frozen" : "Card frozen"}
+              {isFrozen ? "Account frozen" : card?.status === "blocked" ? "Card blocked" : card?.status === "deleted" ? "Card removed" : "Card frozen"}
             </p>
           )}
         </Card>
@@ -302,7 +299,7 @@ const DashboardHome = () => {
                 </span>
               </div>
               <p className={`mt-3 font-display text-2xl font-bold ${s.positive ? "text-success" : "text-foreground"}`}>
-                {formatMoney(Math.abs(s.value), currency)}
+                {formatMoney(Math.abs(s.value), currency || "USD")}
               </p>
             </Card>
           );
@@ -339,7 +336,7 @@ const DashboardHome = () => {
                 </div>
                 <div className="text-right">
                   <p className={`font-display text-sm font-bold ${positive ? "text-success" : ""}`}>
-                    {positive ? "+" : "−"}{formatMoney(Math.abs(Number(t.amount)), t.currency || currency)}
+                    {positive ? "+" : "−"}{formatMoney(Math.abs(Number(t.amount)), t.currency || currency || "USD")}
                   </p>
                   <p className={`text-xs capitalize ${t.status === "pending" || t.status === "awaiting_code" ? "text-warning" : t.status === "rejected" || t.status === "failed" ? "text-destructive" : "text-muted-foreground"}`}>
                     {t.status.replace(/_/g, " ")}

@@ -7,7 +7,6 @@ interface AuthContextValue {
   session: Session | null;
   loading: boolean;
   profile: { status: string; frozen: boolean } | null;
-
   signOut: () => Promise<void>;
 }
 
@@ -27,34 +26,44 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const checkStatus = async (userId: string) => {
     try {
-      const { data } = await supabase
-        .from("accounts")
-        .select("frozen")
-        .eq("user_id", userId)
+      const { data } = await (supabase as any)
+        .from("profiles")
+        .select("frozen,status")
+        .eq("id", userId)
         .maybeSingle();
       if (data) {
-        setProfile({ status: data.frozen ? "frozen" : "active", frozen: !!data.frozen });
+        setProfile({
+          status: data.status || (data.frozen ? "frozen" : "active"),
+          frozen: !!data.frozen,
+        });
       }
     } catch {
-      // silently fail — don't block loading
+      // ignore
     }
   };
 
   useEffect(() => {
-    // Safety timeout — force loading to false after 5 seconds no matter what
     const timeout = setTimeout(() => setLoading(false), 5000);
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
+    // Initialise from existing session (avoids "Welcome back" flashing email
+    // because we already know who the user is before the first render).
+    supabase.auth.getSession().then(({ data: { session: s } }) => {
+      setSession(s);
+      setUser(s?.user ?? null);
+      if (s?.user) checkStatus(s.user.id);
+      clearTimeout(timeout);
+      setLoading(false);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
       setSession(newSession);
       setUser(newSession?.user ?? null);
       if (newSession?.user) {
-        await Promise.race([
-          checkStatus(newSession.user.id),
-          new Promise<void>(resolve => setTimeout(resolve, 4000)),
-        ]);
+        // Fire and forget — never await inside onAuthStateChange
+        checkStatus(newSession.user.id);
+      } else {
+        setProfile(null);
       }
-      clearTimeout(timeout);
-      setLoading(false);
     });
 
     return () => {
