@@ -283,7 +283,7 @@ const SendMoney = () => {
         open={codeGateOpen}
         onOpenChange={setCodeGateOpen}
         title="Authorize Digital Payment"
-        onVerified={onVerified}
+        onVerified={() => { onVerified(); }}
       />
     </div>
   );

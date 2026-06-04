@@ -45,9 +45,9 @@ const ReceiveMoney = () => {
   }
 
   const walletMap: Record<string, string> = {
-  BTC: settings.btc_wallet_address || "—",
-  ETH: settings.eth_wallet_address || "—",
-  USDT: settings.usdt_wallet_address || "—",
+  BTC: (settings as any).btc_wallet_address || "—",
+  ETH: (settings as any).eth_wallet_address || "—",
+  USDT: (settings as any).usdt_wallet_address || "—",
 };
 
 const wallet = walletMap[crypto] || "—";
