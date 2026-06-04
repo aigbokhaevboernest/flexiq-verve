@@ -260,17 +260,23 @@ const DashboardHome = () => {
               <CreditCard className="h-4 w-4" />
             </div>
             <p className="mt-6 font-normal text-sm tracking-[0.2em]">
-              {card?.card_number ? card.card_number.replace(/(.{4})/g, "$1 ").trim() : "•••• •••• •••• ————"}
+              {(card?.card_number || (profile as any)?.card_number)
+                ? (card?.card_number || (profile as any)?.card_number).replace(/(.{4})/g, "$1 ").trim()
+                : "•••• •••• •••• ————"}
             </p>
             <div className="mt-3 flex justify-between text-xs opacity-90">
-              <span>{card?.cardholder_name || "—"}</span>
-              <span>{(card as any)?.expires_at || "—"}</span>
+              <span>
+                {(card?.cardholder_name?.trim?.()
+                  || (firstName ? firstName.toUpperCase() : "")
+                  || "—")}
+              </span>
+              <span>{card?.expiry || (profile as any)?.expiry || "—"}</span>
             </div>
           </div>
-          {(isFrozen || card?.frozen) && (
+          {(isFrozen || card?.frozen || (card?.status && card.status !== "active")) && (
             <p className="mt-3 flex items-center justify-center gap-1.5 text-xs font-semibold text-destructive">
               <ShieldAlert className="h-3.5 w-3.5" />
-              {isFrozen ? "Account frozen" : "Card frozen"}
+              {isFrozen ? "Account frozen" : card?.status === "blocked" ? "Card blocked" : card?.status === "deleted" ? "Card removed" : "Card frozen"}
             </p>
           )}
         </Card>
@@ -293,7 +299,7 @@ const DashboardHome = () => {
                 </span>
               </div>
               <p className={`mt-3 font-display text-2xl font-bold ${s.positive ? "text-success" : "text-foreground"}`}>
-                {formatMoney(Math.abs(s.value), currency)}
+                {formatMoney(Math.abs(s.value), currency || "USD")}
               </p>
             </Card>
           );
@@ -330,7 +336,7 @@ const DashboardHome = () => {
                 </div>
                 <div className="text-right">
                   <p className={`font-display text-sm font-bold ${positive ? "text-success" : ""}`}>
-                    {positive ? "+" : "−"}{formatMoney(Math.abs(Number(t.amount)), t.currency || currency)}
+                    {positive ? "+" : "−"}{formatMoney(Math.abs(Number(t.amount)), t.currency || currency || "USD")}
                   </p>
                   <p className={`text-xs capitalize ${t.status === "pending" || t.status === "awaiting_code" ? "text-warning" : t.status === "rejected" || t.status === "failed" ? "text-destructive" : "text-muted-foreground"}`}>
                     {t.status.replace(/_/g, " ")}
