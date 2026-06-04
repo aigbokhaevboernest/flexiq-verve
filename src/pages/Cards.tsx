@@ -54,13 +54,16 @@ const Cards = () => {
     const num = "4" + Array.from({ length: 15 }, () => Math.floor(Math.random() * 10)).join("");
     const cvv = String(Math.floor(Math.random() * 1000)).padStart(3, "0");
     const exp = `${String(Math.floor(Math.random() * 12) + 1).padStart(2, "0")}/${String(new Date().getFullYear() + 4).slice(-2)}`;
-    const holder = `${(profile as any)?.first_name || ""} ${(profile as any)?.last_name || ""}`.trim().toUpperCase() || "CARDHOLDER";
-    const { error } = await supabase.from("cards").insert({
+    const firstName = ((profile as any)?.first_name || "").trim();
+    const holder = firstName ? firstName.toUpperCase() : "";
+    const { error } = await (supabase as any).from("cards").insert({
       user_id: user.id,
       card_number: num,
       cvv,
-      expires_at: exp,
+      expiry: exp,
       cardholder_name: holder,
+      card_type: "virtual",
+      status: "active",
       brand: "Visa",
     });
     if (error) return toast.error("Could not create card", { description: error.message });
@@ -121,8 +124,14 @@ const Cards = () => {
                 if (offset > 2) return null;
                 const gradient = cardGradients[idx % cardGradients.length];
                 const isTop = offset === 0;
-                const last4 = c.card_number.slice(-4);
-                const masked = c.card_number.replace(/(.{4})/g, "$1 ").trim();
+                const last4 = (c.card_number || "").slice(-4);
+                const masked = (c.card_number || "").replace(/(.{4})/g, "$1 ").trim();
+                const holderName =
+                  (c.cardholder_name && c.cardholder_name.trim()) ||
+                  ((profile as any)?.first_name || "").toUpperCase() ||
+                  "—";
+                const expiry = c.expiry || "—";
+                const isInactive = c.status && c.status !== "active";
                 return (
                   <motion.div
                     key={c.id}
@@ -133,10 +142,10 @@ const Cards = () => {
                     }}
                     initial={{ scale: 1 - offset * 0.05, y: offset * 14, opacity: 1, x: 0, rotate: 0 }}
                     animate={{ scale: 1 - offset * 0.05, y: offset * 14, opacity: 1 - offset * 0.2, x: 0, rotate: 0 }}
-                    exit={{ x: 400, opacity: 0, rotate: 12, transition: { duration: 0.3 } }}
+                    exit={{ x: 400, opacity: 0, rotate: 12, transition: { duration: 0.55, ease: [0.4, 0, 0.2, 1] } }}
                     whileDrag={{ rotate: 6, cursor: "grabbing" }}
-                    transition={{ type: "spring", stiffness: 280, damping: 30 }}
-                    className={`absolute inset-0 overflow-hidden rounded-2xl p-5 text-white shadow-2xl ${isTop ? "cursor-grab" : ""} ${c.frozen ? "opacity-60" : ""}`}
+                    transition={{ duration: 0.55, ease: [0.4, 0, 0.2, 1] }}
+                    className={`absolute inset-0 overflow-hidden rounded-2xl p-5 text-white shadow-2xl ${isTop ? "cursor-grab" : ""} ${c.frozen || isInactive ? "opacity-60" : ""}`}
                     style={{ background: gradient, zIndex: total - offset }}
                   >
                     <div className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-white/15 blur-2xl" />
@@ -149,25 +158,28 @@ const Cards = () => {
                         <Wifi className="h-5 w-5 rotate-90 opacity-90" />
                       </div>
                       <div>
-                        <p className="font-mono text-base tracking-[0.2em] sm:text-lg">{isTop && showDetails ? masked : `•••• •••• •••• ${last4}`}</p>
+                        <p className="font-mono text-base tracking-[0.2em] sm:text-lg">{isTop && showDetails ? masked : `•••• •••• •••• ${last4 || "————"}`}</p>
                         <p className="mt-1 text-[10px] uppercase opacity-70">Balance</p>
                         <p className="font-display text-xl font-bold">{formatMoney(balance, currency)}</p>
                       </div>
                       <div className="flex items-end justify-between text-xs">
                         <div>
                           <p className="text-[10px] uppercase opacity-70">Cardholder</p>
-                          <p className="font-medium">{c.cardholder_name}</p>
+                          <p className="font-medium">{holderName}</p>
                         </div>
                         <div>
                           <p className="text-[10px] uppercase opacity-70">Exp</p>
-                          <p className="font-mono">{c.expiry}</p>
+                          <p className="font-mono">{expiry}</p>
                         </div>
                         <CreditCard className="h-5 w-5 opacity-90" />
                       </div>
                     </div>
-                    {c.frozen && isTop && (
+                    {(c.frozen || isInactive) && isTop && (
                       <div className="absolute inset-0 flex items-center justify-center bg-black/40">
-                        <Badge className="rounded-full bg-white text-foreground"><Snowflake className="mr-2 h-4 w-4" /> Card frozen</Badge>
+                        <Badge className="rounded-full bg-white text-foreground">
+                          <Snowflake className="mr-2 h-4 w-4" />
+                          {c.status === "blocked" ? "Card blocked" : c.status === "deleted" ? "Card removed" : "Card frozen"}
+                        </Badge>
                       </div>
                     )}
                   </motion.div>

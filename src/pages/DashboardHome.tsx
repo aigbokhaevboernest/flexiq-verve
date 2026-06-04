@@ -32,11 +32,10 @@ const quickActions = [
 
 const DashboardHome = () => {
   const [hidden, setHidden] = useState(false);
-  const { user } = useAuth();
-  const { data: account, isLoading: accLoading } = useAccount();
-  const { data: profile } = useProfile();
+  const { user, loading: authLoading } = useAuth();
+  const { data: profile, isLoading: profLoading } = useAccount();
 
-  const isFrozen = !!account?.frozen;
+  const isFrozen = !!profile?.frozen;
 
   const handleFrozenAction = () => {
     toast.error("Account frozen", {
@@ -46,23 +45,6 @@ const DashboardHome = () => {
     });
   };
 
-  const balanceCacheKey = user ? `cachedBalance:${user.id}` : null;
-  const accountCacheKey = user ? `cachedAccountNumber:${user.id}` : null;
-  const [cachedBalance] = useState<number | null>(() => {
-    if (!balanceCacheKey) return null;
-    const v = localStorage.getItem(balanceCacheKey);
-    return v ? Number(v) : null;
-  });
-
-  useEffect(() => {
-    if (account && balanceCacheKey) {
-      localStorage.setItem(balanceCacheKey, String(account.balance ?? 0));
-    }
-    if (account?.account_number && accountCacheKey) {
-      localStorage.setItem(accountCacheKey, account.account_number);
-    }
-  }, [account, balanceCacheKey, accountCacheKey]);
-
   useEffect(() => {
     if (!user) return;
     const channel = supabase
@@ -70,15 +52,13 @@ const DashboardHome = () => {
       .on(
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "profiles", filter: `id=eq.${user.id}` },
-        (payload: any) => {
-          if (balanceCacheKey && payload.new?.balance != null) {
-            localStorage.setItem(balanceCacheKey, String(payload.new.balance));
-          }
+        () => {
+          // useAccount cache will refresh on next focus / invalidate
         }
       )
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [user, balanceCacheKey]);
+  }, [user]);
 
   const { data: txs } = useQuery({
     queryKey: ["recent-tx", user?.id],
@@ -127,14 +107,13 @@ const DashboardHome = () => {
     },
   });
 
-  const currency = account?.currency || profile?.currency || "USD";
-  const displayName =
-    (profile?.first_name || profile?.last_name)
-      ? `${profile?.first_name || ""} ${profile?.last_name || ""}`.trim()
-      : profile?.email || user?.email || "";
-  const greeting = displayName ? `Welcome back, ${displayName} 👋` : "Welcome back 👋";
-  const cachedAccountNumber = accountCacheKey ? localStorage.getItem(accountCacheKey) : null;
-  const balanceToShow = account?.balance != null ? Number(account.balance) : cachedBalance;
+  // Strict gates — never flash defaults.
+  const profileReady = !!profile && !profLoading;
+  const firstName = (profile as any)?.first_name?.trim() || "";
+  const currency = (profile as any)?.currency || null; // null until known
+  const accountNumber = (profile as any)?.account_number || null;
+  const balanceKnown = profile && (profile as any).balance != null;
+  const balanceValue = balanceKnown ? Number((profile as any).balance) : 0;
 
   return (
     <div className="space-y-6">

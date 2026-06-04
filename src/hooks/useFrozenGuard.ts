@@ -1,25 +1,28 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAccount, useProfile } from "@/hooks/useAccount";
+import { useAccount } from "@/hooks/useAccount";
 import { toast } from "sonner";
 
 export const useFrozenGuard = () => {
-  const { data: account } = useAccount();
-  const { data: profile } = useProfile();
+  const { data: profile } = useAccount();
   const navigate = useNavigate();
 
-  const isFrozen = !!account?.frozen;
+  const isFrozen = !!profile?.frozen;
+  const status = (profile?.status as string) || "active";
+  const isBlocked = status === "blocked" || status === "deleted" || status === "frozen";
 
   useEffect(() => {
-    if (isFrozen) {
-      toast.error("Account frozen", {
-        description:
-          "Your account has been frozen. Please contact support.",
-        duration: 5000,
-      });
+    if (isFrozen || isBlocked) {
+      const msg =
+        status === "deleted"
+          ? "Your account has been removed. Please contact support."
+          : status === "blocked"
+          ? "Your account has been blocked. Please contact support."
+          : "Your account has been frozen. Please contact support.";
+      toast.error("Account unavailable", { description: msg, duration: 5000 });
       navigate("/dashboard", { replace: true });
     }
-  }, [isFrozen]);
+  }, [isFrozen, isBlocked, status]);
 
-  return isFrozen;
+  return isFrozen || isBlocked;
 };
