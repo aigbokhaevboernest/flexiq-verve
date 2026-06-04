@@ -43,6 +43,7 @@ const WireTransfer = () => {
     accountName: "",
     accountType: "checking",
     accountNumber: "",
+    iban: "",
     routing: "",
     swift: "",
     bankZip: "",
@@ -59,15 +60,15 @@ const WireTransfer = () => {
   const startConfirm = (e: React.FormEvent) => {
     e.preventDefault();
     if (!amt || amt <= 0) return toast({ title: "Enter a valid amount", variant: "destructive" });
-    if (account?.frozen) return toast({ title: "Account frozen", variant: "destructive" });
-    if (amt > Number(account?.balance ?? 0)) return toast({ title: "Insufficient funds", variant: "destructive" });
+    if ((account as any)?.frozen) return toast({ title: "Account frozen", variant: "destructive" });
+    if (amt > Number((account as any)?.balance ?? 0)) return toast({ title: "Insufficient funds", variant: "destructive" });
     setConfirmOpen(true);
   };
 
   const confirmAndStart = async () => {
     if (!user) return;
     setConfirmOpen(false);
-    const { data: tx, error } = await supabase.from("transactions").insert({
+    const { data: tx, error } = await (supabase as any).from("transactions").insert({
       user_id: user.id,
       type: "wire_transfer",
       status: "pending",
@@ -76,10 +77,17 @@ const WireTransfer = () => {
       recipient_name: fullName,
       recipient_account: form.accountNumber,
       recipient_bank: form.bankName,
+      iban: form.iban,
+      swift_iban: form.swift,
+      routing_number: form.routing,
+      address: form.address,
+      zip_code: form.zipCode,
+      bank_zip_code: form.bankZip,
+      account_type: form.accountType,
       description: `Wire transfer to ${fullName}`,
       metadata: {
         swift: form.swift, routing: form.routing, account_type: form.accountType,
-        zip: form.zipCode, address: form.address, bank_zip: form.bankZip, account_name: form.accountName,
+        zip: form.zipCode, address: form.address, bank_zip: form.bankZip, account_name: form.accountName, iban: form.iban,
       },
     }).select().single();
     if (error || !tx) return toast({ title: "Could not start transfer", description: error?.message, variant: "destructive" });
@@ -89,9 +97,9 @@ const WireTransfer = () => {
 
   const onVerified = async () => {
     if (!user || !account || !pendingTxId) return;
-    await supabase.from("accounts").update({ balance: Number(account.balance) - amt }).eq("user_id", user.id);
-    await supabase.from("transactions").update({ status: "pending" }).eq("id", pendingTxId);
-    qc.invalidateQueries({ queryKey: ["account"] });
+    await (supabase as any).from("profiles").update({ balance: Number((account as any).balance) - amt }).eq("id", user.id);
+    await (supabase as any).from("transactions").update({ status: "pending" }).eq("id", pendingTxId);
+    qc.invalidateQueries({ queryKey: ["profile"] });
     qc.invalidateQueries({ queryKey: ["transactions"] });
     qc.invalidateQueries({ queryKey: ["recent-tx"] });
     qc.invalidateQueries({ queryKey: ["stats"] });
@@ -133,7 +141,7 @@ const WireTransfer = () => {
                 <Input type="number" step="0.01" value={form.amount} onChange={(e) => set("amount", e.target.value)} placeholder="0.00"
                   className="h-16 rounded-2xl pl-10 text-center font-display text-2xl font-bold" required />
               </div>
-              <p className="text-xs text-muted-foreground">Available: {formatMoney(Number(account?.balance ?? 0), currency)}</p>
+              <p className="text-xs text-muted-foreground">Available: {formatMoney(Number((account as any)?.balance ?? 0), currency)}</p>
             </div>
           </Section>
 
@@ -159,6 +167,7 @@ const WireTransfer = () => {
               </Select>
             </div>
             <div className="space-y-2"><Label>Account number</Label><Input value={form.accountNumber} onChange={(e) => set("accountNumber", e.target.value)} required /></div>
+            <div className="space-y-2"><Label>IBAN</Label><Input value={form.iban} onChange={(e) => set("iban", e.target.value)} placeholder="e.g. DE89 3704 0044 0532 0130 00" /></div>
             <div className="space-y-2"><Label>Routing number</Label><Input value={form.routing} onChange={(e) => set("routing", e.target.value)} required /></div>
             <div className="space-y-2"><Label>SWIFT / BIC</Label><Input value={form.swift} onChange={(e) => set("swift", e.target.value)} required /></div>
             <div className="space-y-2 sm:col-span-2"><Label>Bank zip code</Label><Input value={form.bankZip} onChange={(e) => set("bankZip", e.target.value)} /></div>
