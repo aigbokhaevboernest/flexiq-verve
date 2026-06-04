@@ -29,11 +29,11 @@ const Cards = () => {
   const [topIndex, setTopIndex] = useState(0);
   const [showDetails, setShowDetails] = useState(false);
 
-  const { data: cards = [], isLoading } = useQuery({
+  const { data: cards = [], isLoading } = useQuery<any[]>({
     queryKey: ["cards", user?.id],
     enabled: !!user,
     queryFn: async () => {
-      const { data } = await supabase.from("cards").select("*").eq("user_id", user!.id).order("created_at");
+      const { data } = await (supabase as any).from("cards").select("*").eq("user_id", user!.id).order("created_at");
       return data || [];
     },
   });
@@ -45,7 +45,7 @@ const Cards = () => {
 
   const update = async (patch: any) => {
     if (!active) return;
-    await supabase.from("cards").update(patch).eq("id", (active as any).id);
+    await (supabase as any).from("cards").update(patch).eq("id", (active as any).id);
     qc.invalidateQueries({ queryKey: ["cards"] });
   };
 
