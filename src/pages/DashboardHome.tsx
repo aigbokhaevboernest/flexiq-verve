@@ -74,11 +74,11 @@ const DashboardHome = () => {
     },
   });
 
-  const { data: card } = useQuery({
+  const { data: card } = useQuery<any>({
     queryKey: ["primary-card", user?.id],
     enabled: !!user,
     queryFn: async () => {
-      const { data } = await supabase
+      const { data } = await (supabase as any)
         .from("cards")
         .select("*")
         .eq("user_id", user!.id)
