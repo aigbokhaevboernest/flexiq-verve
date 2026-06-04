@@ -104,10 +104,10 @@ const Loans = () => {
     const loan = loans.find((l: any) => l.id === pendingLoanId);
     if (!loan) return;
 
-    await supabase
-      .from("accounts")
-      .update({ balance: Number(account.balance) + Number(loan.amount) })
-      .eq("user_id", user.id);
+    await (supabase as any)
+      .from("profiles")
+      .update({ balance: Number((account as any).balance) + Number(loan.amount) })
+      .eq("id", user.id);
 
     await supabase.from("transactions").insert({
       user_id: user.id,
@@ -123,7 +123,7 @@ const Loans = () => {
       .update({ status: "active", disbursed_at: new Date().toISOString() })
       .eq("id", loan.id);
 
-    qc.invalidateQueries({ queryKey: ["account"] });
+    qc.invalidateQueries({ queryKey: ["profile"] });
     qc.invalidateQueries({ queryKey: ["loans"] });
     qc.invalidateQueries({ queryKey: ["transactions"] });
     qc.invalidateQueries({ queryKey: ["recent-tx"] });

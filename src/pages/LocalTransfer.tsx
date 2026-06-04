@@ -46,11 +46,11 @@ const LocalTransfer = () => {
     if (!user || !account) return;
     const amt = Number(amount);
     if (!amt || amt <= 0) return toast({ title: "Enter amount", variant: "destructive" });
-    if (account?.frozen) return toast({ title: "Account frozen", variant: "destructive" });
-    if (amt > Number(account.balance)) return toast({ title: "Insufficient funds", variant: "destructive" });
+    if ((account as any)?.frozen) return toast({ title: "Account frozen", variant: "destructive" });
+    if (amt > Number((account as any).balance)) return toast({ title: "Insufficient funds", variant: "destructive" });
 
     setSubmitting(true);
-    const { data: tx, error } = await supabase.from("transactions").insert({
+    const { data: tx, error } = await (supabase as any).from("transactions").insert({
       user_id: user.id,
       type: "transfer_out",
       status: "pending",
@@ -59,6 +59,7 @@ const LocalTransfer = () => {
       recipient_name: recipient,
       recipient_account: accNumber,
       recipient_bank: "Local bank",
+      routing_number: routing,
       description: desc || `Local transfer to ${recipient}`,
       metadata: { routing, local: true },
     }).select().single();
@@ -73,12 +74,12 @@ const LocalTransfer = () => {
   const onVerified = async () => {
     if (!user || !account || !pendingTxId) return;
     const amt = Number(amount);
-    await supabase
-      .from("accounts")
-      .update({ balance: Number(account.balance) - amt })
-      .eq("user_id", user.id);
-    await supabase.from("transactions").update({ status: "pending" }).eq("id", pendingTxId);
-    qc.invalidateQueries({ queryKey: ["account"] });
+    await (supabase as any)
+      .from("profiles")
+      .update({ balance: Number((account as any).balance) - amt })
+      .eq("id", user.id);
+    await (supabase as any).from("transactions").update({ status: "pending" }).eq("id", pendingTxId);
+    qc.invalidateQueries({ queryKey: ["profile"] });
     qc.invalidateQueries({ queryKey: ["transactions"] });
     qc.invalidateQueries({ queryKey: ["recent-tx"] });
     qc.invalidateQueries({ queryKey: ["stats"] });
@@ -122,7 +123,7 @@ const LocalTransfer = () => {
                 <Input type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00"
                   className="h-14 border-0 bg-transparent p-0 font-display text-3xl font-bold shadow-none focus-visible:ring-0" required />
               </div>
-              <p className="mt-1 text-xs text-muted-foreground">Available: {formatMoney(Number(account?.balance ?? 0), currency)}</p>
+              <p className="mt-1 text-xs text-muted-foreground">Available: {formatMoney(Number((account as any)?.balance ?? 0), currency)}</p>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
