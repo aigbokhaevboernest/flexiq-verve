@@ -7,8 +7,8 @@ import { useAuth } from "./useAuth";
  * Reads from `profiles` per canonical schema (balance, account_number,
  * currency, frozen, status, kyc_status, card_number, expiry, cvv, ...).
  *
- * Seeded from localStorage so balance/currency never flash a default on
- * remount — only the first ever load shows a skeleton.
+ * localStorage cache is only used if balance is a real value —
+ * prevents stale null-balance cache from blocking fresh fetches.
  */
 export const useAccount = () => {
   const { user } = useAuth();
@@ -17,13 +17,18 @@ export const useAccount = () => {
   return useQuery<any>({
     queryKey: ["profile", user?.id],
     enabled: !!user,
-    staleTime: 60_000,
-    refetchOnWindowFocus: false,
+    staleTime: 30_000,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
     initialData: () => {
       if (!cacheKey) return undefined;
       try {
         const raw = localStorage.getItem(cacheKey);
-        return raw ? JSON.parse(raw) : undefined;
+        if (!raw) return undefined;
+        const parsed = JSON.parse(raw);
+        // Discard cache if balance or currency was null/missing when saved
+        if (parsed?.balance == null || !parsed?.currency) return undefined;
+        return parsed;
       } catch {
         return undefined;
       }
@@ -35,8 +40,11 @@ export const useAccount = () => {
         .eq("id", user!.id)
         .maybeSingle();
       if (error) throw error;
-      if (data && cacheKey) {
-        try { localStorage.setItem(cacheKey, JSON.stringify(data)); } catch {}
+      // Only write to cache if we have a real balance and currency
+      if (data && cacheKey && data.balance != null && data.currency) {
+        try {
+          localStorage.setItem(cacheKey, JSON.stringify(data));
+        } catch {}
       }
       return data;
     },
@@ -51,6 +59,7 @@ export const useIsAdmin = () => {
   return useQuery({
     queryKey: ["isAdmin", user?.id],
     enabled: !!user,
+    staleTime: 60_000,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("user_roles")
@@ -69,6 +78,7 @@ export const useVerification = () => {
   return useQuery({
     queryKey: ["id-verification", user?.id],
     enabled: !!user,
+    staleTime: 30_000,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("id_verifications")
@@ -95,7 +105,10 @@ export const formatMoney = (amount: number, currency = "USD") => {
 
 export const currencySymbol = (currency = "USD") => {
   try {
-    const parts = new Intl.NumberFormat(undefined, { style: "currency", currency }).formatToParts(0);
+    const parts = new Intl.NumberFormat(undefined, {
+      style: "currency",
+      currency,
+    }).formatToParts(0);
     return parts.find((p) => p.type === "currency")?.value ?? currency;
   } catch {
     return currency;
