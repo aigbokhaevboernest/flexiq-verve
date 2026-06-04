@@ -268,6 +268,18 @@ const Signup = () => {
              </div>
 
              <div className="sm:col-span-2">
+               <Label>Date of birth</Label>
+               <Input
+                 type="date"
+                 required
+                 className="mt-1"
+                 max={new Date().toISOString().split("T")[0]}
+                 value={form.date_of_birth}
+                 onChange={(e) => update("date_of_birth")(e.target.value)}
+               />
+             </div>
+
+             <div className="sm:col-span-2">
                <Label>Address</Label>
                <Input
                  required
