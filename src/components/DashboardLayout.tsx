@@ -81,7 +81,7 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
             <ChevronDown className={`ml-auto h-4 w-4 transition-transform duration-300 ${sendOpen ? "rotate-180" : ""}`} />
           </CollapsibleTrigger>
           <CollapsibleContent
-            className="overflow-hidden data-[state=open]:animate-[accordion-down_400ms_cubic-bezier(0.4,0,0.2,1)] data-[state=closed]:animate-[accordion-up_350ms_cubic-bezier(0.4,0,0.2,1)]"
+            className="overflow-hidden data-[state=open]:animate-[accordion-down_550ms_cubic-bezier(0.22,1,0.36,1)] data-[state=closed]:animate-[accordion-up_500ms_cubic-bezier(0.22,1,0.36,1)]"
           >
             <div className="ml-3 mt-1 space-y-1 rounded-xl border-l-2 border-primary/60 bg-sidebar-accent/40 py-2 pl-2 pr-1">
               {sendItems.map((s) => (
