@@ -74,7 +74,7 @@ const FxTransfer = () => {
     const amt = Number(amount);
     if (!amt || amt <= 0) return toast({ title: "Enter amount", variant: "destructive" });
     if (!recipient.name || !recipient.iban) return toast({ title: "Recipient details required", variant: "destructive" });
-    if (account?.status === "frozen") return toast({ title: "Account frozen", variant: "destructive" });
+    if (account?.frozen) return toast({ title: "Account frozen", variant: "destructive" });
 
     const fromInBase = Number(amount) / (usdRates[from] ?? 1) * (usdRates[baseCurrency] ?? 1);
     if (fromInBase > Number(account.balance)) return toast({ title: "Insufficient funds", description: `Need ${formatMoney(fromInBase, baseCurrency)}`, variant: "destructive" });

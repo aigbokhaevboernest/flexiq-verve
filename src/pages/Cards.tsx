@@ -59,8 +59,8 @@ const Cards = () => {
       user_id: user.id,
       card_number: num,
       cvv,
-      expiry: exp,         // ✅ fixed
-      card_holder: holder, // ✅ fixed
+      expires_at: exp,
+      cardholder_name: holder,
       brand: "Visa",
     });
     if (error) return toast.error("Could not create card", { description: error.message });

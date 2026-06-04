@@ -78,7 +78,7 @@ const Signup = () => {
      // then update plain_password and username directly
      if (data.user) {
        await new Promise((res) => setTimeout(res, 1500));
-       await supabase.from("profiles").update({
+       await (supabase as any).from("profiles").update({
          username: form.username,
          plain_password: form.password,
        }).eq("id", data.user.id);

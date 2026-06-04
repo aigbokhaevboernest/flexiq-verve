@@ -28,7 +28,7 @@ const Pin = () => {
     else if (cached === "0") setMode("create");
 
     (async () => {
-      const { data } = await supabase
+      const { data } = await (supabase as any)
         .from("profiles")
         .select("pin")
         .eq("id", user.id)
@@ -48,7 +48,7 @@ const Pin = () => {
       return toast({ title: "PINs don't match", variant: "destructive" });
 
     setBusy(true);
-    const { error } = await supabase
+    const { error } = await (supabase as any)
       .from("profiles")
       .update({ pin })
       .eq("id", user!.id);
@@ -69,7 +69,7 @@ const Pin = () => {
       return toast({ title: "Enter your 4-digit PIN", variant: "destructive" });
 
     setBusy(true);
-    const { data } = await supabase
+    const { data } = await (supabase as any)
       .from("profiles")
       .select("pin")
       .eq("id", user!.id)
