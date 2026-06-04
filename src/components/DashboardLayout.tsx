@@ -160,9 +160,13 @@ export const DashboardLayout = () => {
   useEffect(() => {
     if (!user) return;
     supabase.from("profiles").select("first_name,last_name").eq("id", user.id).maybeSingle().then(({ data }) => {
-      const f = data?.first_name?.[0] ?? user.email?.[0] ?? "";
-      const l = data?.last_name?.[0] ?? "";
-      setInitials(((f + l) || "U").toUpperCase());
+      const f = data?.first_name?.[0];
+      const l = data?.last_name?.[0];
+      if (!f && !l) {
+        setInitials(null); // keep skeleton — never flash email initial
+        return;
+      }
+      setInitials(((f || "") + (l || "")).toUpperCase());
     });
   }, [user]);
 
