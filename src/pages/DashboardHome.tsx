@@ -118,7 +118,15 @@ const DashboardHome = () => {
   return (
     <div className="space-y-6">
       <div>
-        <p className="text-sm text-muted-foreground">{greeting}</p>
+        <p className="text-sm text-muted-foreground">
+          {firstName ? (
+            <>Welcome back, {firstName} 👋</>
+          ) : profileReady ? (
+            <>Welcome back 👋</>
+          ) : (
+            <Skeleton className="inline-block h-4 w-44 align-middle" />
+          )}
+        </p>
         <h1 className="mt-1 font-display text-2xl font-bold sm:text-3xl">Here's your money today</h1>
       </div>
 
@@ -151,16 +159,15 @@ const DashboardHome = () => {
 
                 <p className="text-xs uppercase tracking-widest opacity-70">Available Balance</p>
                 <div className="mt-2 flex items-center gap-3">
-                  {accLoading && balanceToShow == null ? (
+                  {!balanceKnown || !currency ? (
                     <Skeleton className="h-10 w-44 bg-white/20" />
                   ) : (
                     <p
-                    className="font-sans font-bold tracking-tight truncate max-w-[260px] sm:max-w-[340px]"
-
+                      className="font-sans font-bold tracking-tight truncate max-w-[260px] sm:max-w-[340px]"
                       style={{ fontSize: "clamp(2rem, 6vw, 3.5rem)" }}
-                      title={formatMoney(Number(balanceToShow ?? 0), currency)}
+                      title={formatMoney(balanceValue, currency)}
                     >
-                      {hidden ? "••••••" : formatMoney(Number(balanceToShow ?? 0), currency)}
+                      {hidden ? "••••••" : formatMoney(balanceValue, currency)}
                     </p>
                   )}
                   <button
@@ -174,11 +181,16 @@ const DashboardHome = () => {
                 <div className="mt-6 flex flex-wrap gap-x-8 gap-y-2 text-sm opacity-90">
                   <div>
                     <p className="text-xs opacity-70">Account No.</p>
-                    <p className="font-mono">{account?.account_number || cachedAccountNumber || "—"}</p>
+                    <p className="font-mono">
+                      {accountNumber || (profileReady ? "—" : <Skeleton className="inline-block h-3 w-24 bg-white/20 align-middle" />)}
+                    </p>
                   </div>
                   <div>
                     <p className="text-xs opacity-70">Account type</p>
-                    <p className="font-medium">{profile?.account_type || "Personal"} · {currency}</p>
+                    <p className="font-medium">
+                      {(profile as any)?.account_type || "Personal"}
+                      {currency ? <> · {currency}</> : null}
+                    </p>
                   </div>
                   {isFrozen && (
                     <div>
