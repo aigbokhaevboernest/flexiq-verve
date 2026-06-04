@@ -36,7 +36,7 @@ const DashboardHome = () => {
   const { data: account, isLoading: accLoading } = useAccount();
   const { data: profile } = useProfile();
 
-  const isFrozen = account?.status === "frozen" || profile?.status === "frozen";
+  const isFrozen = !!account?.frozen;
 
   const handleFrozenAction = () => {
     toast.error("Account frozen", {
@@ -273,7 +273,7 @@ const DashboardHome = () => {
             </p>
             <div className="mt-3 flex justify-between text-xs opacity-90">
               <span>{card?.cardholder_name || "—"}</span>
-              <span>{card?.expiry || "—"}</span>
+              <span>{(card as any)?.expires_at || "—"}</span>
             </div>
           </div>
           {(isFrozen || card?.frozen) && (

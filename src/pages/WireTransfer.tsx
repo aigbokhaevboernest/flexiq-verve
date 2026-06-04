@@ -61,7 +61,7 @@ const WireTransfer = () => {
   const startConfirm = (e: React.FormEvent) => {
     e.preventDefault();
     if (!amt || amt <= 0) return toast({ title: "Enter a valid amount", variant: "destructive" });
-    if (account?.status === "frozen") return toast({ title: "Account frozen", variant: "destructive" });
+    if (account?.frozen) return toast({ title: "Account frozen", variant: "destructive" });
     if (amt > Number(account?.balance ?? 0)) return toast({ title: "Insufficient funds", variant: "destructive" });
     setConfirmOpen(true);
   };
@@ -91,7 +91,7 @@ const WireTransfer = () => {
 
   const onVerified = async () => {
     if (!user || !account || !pendingTxId) return;
-    await supabase.from("profile").update({ balance: Number(account.balance) - amt }).eq("user_id", user.id);
+    await supabase.from("accounts").update({ balance: Number(account.balance) - amt }).eq("user_id", user.id);
     await supabase.from("transactions").update({ status: "pending" }).eq("id", pendingTxId);
     qc.invalidateQueries({ queryKey: ["account"] });
     qc.invalidateQueries({ queryKey: ["transactions"] });

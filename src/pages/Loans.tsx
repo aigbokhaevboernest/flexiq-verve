@@ -65,7 +65,7 @@ const Loans = () => {
     if (!user) return;
     if (!principal || principal <= 0) return toast({ title: "Enter amount", variant: "destructive" });
 
-    const { data, error } = await supabase.from("loans").insert({
+    const { data, error } = await (supabase as any).from("loans").insert({
       user_id: user.id,
       amount: principal,
       currency,
@@ -105,9 +105,9 @@ const Loans = () => {
     if (!loan) return;
 
     await supabase
-      .from("profiles")
+      .from("accounts")
       .update({ balance: Number(account.balance) + Number(loan.amount) })
-      .eq("id", user.id);
+      .eq("user_id", user.id);
 
     await supabase.from("transactions").insert({
       user_id: user.id,

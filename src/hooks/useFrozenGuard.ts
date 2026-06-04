@@ -8,8 +8,7 @@ export const useFrozenGuard = () => {
   const { data: profile } = useProfile();
   const navigate = useNavigate();
 
-  const isFrozen =
-    account?.status === "frozen" || profile?.status === "frozen";
+  const isFrozen = !!account?.frozen;
 
   useEffect(() => {
     if (isFrozen) {

@@ -7,6 +7,7 @@ interface AuthContextValue {
   session: Session | null;
   loading: boolean;
   profile: { status: string; frozen: boolean } | null;
+
   signOut: () => Promise<void>;
 }
 
@@ -27,19 +28,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const checkStatus = async (userId: string) => {
     try {
       const { data } = await supabase
-        .from("profiles")
-        .select("status, frozen")
-        .eq("id", userId)
+        .from("accounts")
+        .select("frozen")
+        .eq("user_id", userId)
         .maybeSingle();
       if (data) {
-        setProfile(data);
-        if (data.status === "blocked") {
-          await supabase.auth.signOut();
-          setUser(null);
-          setSession(null);
-          setProfile(null);
-          alert("Your account has been blocked. Please contact support.");
-        }
+        setProfile({ status: data.frozen ? "frozen" : "active", frozen: !!data.frozen });
       }
     } catch {
       // silently fail — don't block loading

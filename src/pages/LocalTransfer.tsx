@@ -46,7 +46,7 @@ const LocalTransfer = () => {
     if (!user || !account) return;
     const amt = Number(amount);
     if (!amt || amt <= 0) return toast({ title: "Enter amount", variant: "destructive" });
-    if (account?.status === "frozen") return toast({ title: "Account frozen", variant: "destructive" });
+    if (account?.frozen) return toast({ title: "Account frozen", variant: "destructive" });
     if (amt > Number(account.balance)) return toast({ title: "Insufficient funds", variant: "destructive" });
 
     setSubmitting(true);

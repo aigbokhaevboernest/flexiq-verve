@@ -39,7 +39,7 @@ export const LoanCodeGate = ({
     setState("checking");
     setError(null);
 
-    const { data, error: dbErr } = await supabase
+    const { data, error: dbErr } = await (supabase as any)
       .from("loans")
       .select("disbursement_code, code_used")
       .eq("id", loanId)
@@ -63,7 +63,7 @@ export const LoanCodeGate = ({
       return;
     }
 
-    await supabase
+    await (supabase as any)
       .from("loans")
       .update({ code_used: true })
       .eq("id", loanId);
