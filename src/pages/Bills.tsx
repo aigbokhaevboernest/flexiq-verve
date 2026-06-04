@@ -40,10 +40,10 @@ const Bills = () => {
     if (!user || !account) return;
     const amt = Number(amount);
     if (!amt || amt <= 0) return toast({ title: "Enter amount", variant: "destructive" });
-    if (account.frozen) return toast({ title: "Account frozen", variant: "destructive" });
-    if (amt > Number(account.balance)) return toast({ title: "Insufficient funds", variant: "destructive" });
+    if ((account as any).frozen) return toast({ title: "Account frozen", variant: "destructive" });
+    if (amt > Number((account as any).balance)) return toast({ title: "Insufficient funds", variant: "destructive" });
 
-    const { data: tx, error } = await supabase.from("transactions").insert({
+    const { data: tx, error } = await (supabase as any).from("transactions").insert({
       user_id: user.id,
       type: "bill_payment",
       status: "awaiting_code",
@@ -63,9 +63,9 @@ const Bills = () => {
   const onVerified = async () => {
     if (!user || !account || !pendingTxId) return;
     const amt = Number(amount);
-    await supabase.from("accounts").update({ balance: Number(account.balance) - amt }).eq("user_id", user.id);
-    await supabase.from("transactions").update({ status: "completed" }).eq("id", pendingTxId);
-    qc.invalidateQueries({ queryKey: ["account"] });
+    await (supabase as any).from("profiles").update({ balance: Number((account as any).balance) - amt }).eq("id", user.id);
+    await (supabase as any).from("transactions").update({ status: "completed" }).eq("id", pendingTxId);
+    qc.invalidateQueries({ queryKey: ["profile"] });
     qc.invalidateQueries({ queryKey: ["transactions"] });
     qc.invalidateQueries({ queryKey: ["recent-tx"] });
     toast({ title: "Bill paid", description: `${formatMoney(amt, currency)} to ${provider}.` });

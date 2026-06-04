@@ -102,11 +102,11 @@ const Transactions = () => {
     doc.setFontSize(9);
     doc.setTextColor(80, 80, 80);
     doc.text(`Email: ${user?.email ?? "-"}`, 14, 46);
-    doc.text(`Account: ${account?.account_number ?? "-"}`, 14, 51);
-    doc.text(`Currency: ${account?.currency ?? currency}`, 14, 56);
+    doc.text(`Account: ${(account as any)?.account_number ?? "-"}`, 14, 51);
+    doc.text(`Currency: ${(account as any)?.currency ?? currency}`, 14, 56);
     doc.text(`Statement period: ${periodLabel}`, pageW - 14, 46, { align: "right" });
     doc.text(`Generated: ${generated}`, pageW - 14, 51, { align: "right" });
-    doc.text(`Current balance: ${account ? formatMoney(Number(account.balance), account.currency) : "-"}`, pageW - 14, 56, { align: "right" });
+    doc.text(`Current balance: ${account ? formatMoney(Number((account as any).balance), (account as any).currency) : "-"}`, pageW - 14, 56, { align: "right" });
 
     // Summary
     doc.setDrawColor(220);

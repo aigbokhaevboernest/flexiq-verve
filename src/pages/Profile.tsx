@@ -93,10 +93,10 @@ const Profile = () => {
           <Card className="rounded-3xl border-border/60 p-6 shadow-card">
             <h3 className="font-display text-lg font-bold">Account</h3>
             <div className="mt-4">
-              <Row label="Account number" value={account?.account_number} icon={CreditCard} />
-              <Row label="Currency" value={account?.currency} />
-              <Row label="Balance" value={account ? formatMoney(Number(account.balance), account.currency) : undefined} />
-              <Row label="Status" value={account?.frozen ? "Frozen" : "Active"} />
+              <Row label="Account number" value={(account as any)?.account_number} icon={CreditCard} />
+              <Row label="Currency" value={(account as any)?.currency} />
+              <Row label="Balance" value={account ? formatMoney(Number((account as any).balance), (account as any).currency) : undefined} />
+              <Row label="Status" value={(account as any)?.frozen ? "Frozen" : ((account as any)?.status || "Active")} />
               <Row label="Member since" value={profile?.created_at ? new Date(profile.created_at).toLocaleDateString() : undefined} icon={CalendarClock} />
               
             </div>
