@@ -338,8 +338,8 @@ const DashboardHome = () => {
                   <p className={`font-display text-sm font-bold ${positive ? "text-success" : ""}`}>
                     {positive ? "+" : "−"}{formatMoney(Math.abs(Number(t.amount)), t.currency || currency || "USD")}
                   </p>
-                  <p className={`text-xs capitalize ${t.status === "pending" || t.status === "awaiting_code" ? "text-warning" : t.status === "rejected" || t.status === "failed" ? "text-destructive" : "text-muted-foreground"}`}>
-                    {t.status.replace(/_/g, " ")}
+                  <p className={`text-xs capitalize ${t.status === "pending" ? "text-warning" : t.status === "processing" || t.status === "awaiting_code" ? "text-blue-600" : t.status === "failed" || t.status === "rejected" ? "text-destructive" : "text-muted-foreground"}`}>
+                    {(t.status === "awaiting_code" ? "processing" : t.status === "rejected" ? "failed" : t.status).replace(/_/g, " ")}
                   </p>
                 </div>
               </div>

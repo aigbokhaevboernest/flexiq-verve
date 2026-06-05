@@ -15,10 +15,18 @@ const Login = () => {
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [blockedMsg, setBlockedMsg] = useState<string | null>(() => {
+    if (typeof window !== "undefined" && sessionStorage.getItem("flexiq_blocked") === "1") {
+      sessionStorage.removeItem("flexiq_blocked");
+      return "Your account has been blocked. Please contact support.";
+    }
+    return null;
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
+    setBlockedMsg(null);
 
     let email = identifier.trim();
     if (!email.includes("@")) {
@@ -32,12 +40,31 @@ const Login = () => {
       email = data as string;
     }
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setSubmitting(false);
+    const { data: signIn, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
+      setSubmitting(false);
       toast({ title: "Sign in failed", description: error.message, variant: "destructive" });
       return;
     }
+
+    // Hard block check before letting the user past the login screen
+    const userId = signIn.user?.id;
+    if (userId) {
+      const { data: prof } = await (supabase as any)
+        .from("profiles")
+        .select("status")
+        .eq("id", userId)
+        .maybeSingle();
+      if (prof?.status === "blocked") {
+        await supabase.auth.signOut();
+        sessionStorage.removeItem("flexiq_pin_ok");
+        setSubmitting(false);
+        setBlockedMsg("Your account has been blocked. Please contact support.");
+        return;
+      }
+    }
+
+    setSubmitting(false);
     sessionStorage.removeItem("flexiq_pin_ok");
     toast({ title: "Welcome back" });
     navigate("/pin");
@@ -62,6 +89,11 @@ const Login = () => {
         <div className="p-8 sm:p-10">
 
         <form className="mt-8 space-y-5" onSubmit={handleSubmit}>
+          {blockedMsg && (
+            <div className="rounded-2xl border border-destructive/30 bg-destructive/10 p-4 text-center">
+              <p className="text-sm font-semibold text-destructive">{blockedMsg}</p>
+            </div>
+          )}
           <div className="space-y-2">
             <Label htmlFor="id">Email or username</Label>
             <Input
