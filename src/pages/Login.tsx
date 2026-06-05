@@ -15,18 +15,16 @@ const Login = () => {
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [blockedMsg, setBlockedMsg] = useState<string | null>(() => {
-    if (typeof window !== "undefined" && sessionStorage.getItem("flexiq_blocked") === "1") {
-      sessionStorage.removeItem("flexiq_blocked");
-      return "Your account has been blocked. Please contact support.";
-    }
-    return null;
-  });
+
+  // If a previous session was force-signed-out due to a block, just clear the flag.
+  if (typeof window !== "undefined" && sessionStorage.getItem("flexiq_blocked") === "1") {
+    sessionStorage.removeItem("flexiq_blocked");
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
-    setBlockedMsg(null);
+    
 
     let email = identifier.trim();
     if (!email.includes("@")) {
@@ -59,7 +57,7 @@ const Login = () => {
         await supabase.auth.signOut();
         sessionStorage.removeItem("flexiq_pin_ok");
         setSubmitting(false);
-        setBlockedMsg("Your account has been blocked. Please contact support.");
+        toast({ title: "Your account has been blocked. Please contact support.", variant: "destructive" });
         return;
       }
     }
@@ -89,11 +87,6 @@ const Login = () => {
         <div className="p-8 sm:p-10">
 
         <form className="mt-8 space-y-5" onSubmit={handleSubmit}>
-          {blockedMsg && (
-            <div className="rounded-2xl border border-destructive/30 bg-destructive/10 p-4 text-center">
-              <p className="text-sm font-semibold text-destructive">{blockedMsg}</p>
-            </div>
-          )}
           <div className="space-y-2">
             <Label htmlFor="id">Email or username</Label>
             <Input
