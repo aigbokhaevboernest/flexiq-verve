@@ -49,7 +49,6 @@ const DashboardHome = () => {
  };
 
  // Only force logout when profile is fully loaded AND status is explicitly blocked
- // Never fires on undefined, null, or loading state
  useEffect(() => {
    if (!profLoading && profile && (profile as any)?.status === "blocked") {
      supabase.auth.signOut().then(() => {
@@ -58,8 +57,9 @@ const DashboardHome = () => {
    }
  }, [profile, profLoading]);
 
- // Realtime subscription — immediately updates React Query cache
- // Clears localStorage first so stale cache never overwrites live data
+ // Realtime subscription — invalidates React Query cache on any profile update
+ // Uses invalidateQueries instead of setQueryData to force a fresh fetch
+ // This avoids stale payload values (e.g. frozen showing false when it's true)
  useEffect(() => {
    if (!user) return;
    const cacheKey = `profileCache:${user.id}`;
@@ -74,15 +74,13 @@ const DashboardHome = () => {
          filter: `id=eq.${user.id}`,
        },
        (payload) => {
-         // Clear stale localStorage cache before applying live update
+         console.log("REALTIME FIRED:", payload.new);
+         // Clear stale localStorage cache
          try {
            localStorage.removeItem(cacheKey);
          } catch {}
-         // Immediately push new profile data into React Query cache
-         queryClient.setQueryData(["profile", user.id], (old: any) => ({
-           ...old,
-           ...payload.new,
-         }));
+         // Force a fresh fetch from Supabase instead of trusting payload values
+         queryClient.invalidateQueries({ queryKey: ["profile", user.id] });
        }
      )
      .subscribe();
@@ -167,7 +165,7 @@ const DashboardHome = () => {
        </h1>
      </div>
 
-     {/* Frozen banner — blue, only shows when frozen = true */}
+     {/* Frozen banner — only shows when frozen === true */}
      {isFrozen && (
        <div className="flex items-center gap-3 rounded-2xl border border-blue-400/40 bg-blue-500/10 px-5 py-4">
          <ShieldAlert className="h-5 w-5 shrink-0 text-blue-500" />
@@ -189,7 +187,7 @@ const DashboardHome = () => {
 
            <div className="relative flex items-start justify-between">
              <div className="flex-1">
-               {/* Frozen badge on card */}
+               {/* Frozen badge on balance card */}
                {isFrozen && (
                  <span className="mb-3 inline-flex items-center gap-1.5 rounded-full bg-blue-500/80 px-3 py-1 text-xs font-semibold text-white backdrop-blur-sm">
                    <ShieldAlert className="h-3 w-3" />
