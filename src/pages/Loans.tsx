@@ -104,6 +104,8 @@ const Loans = () => {
     const loan = loans.find((l: any) => l.id === pendingLoanId);
     if (!loan) return;
 
+    // Code already verified inside LoanCodeGate (sets code_used = true).
+    // Now: mark the loan as completed, add to balance, record the transaction.
     await (supabase as any)
       .from("profiles")
       .update({ balance: Number((account as any).balance) + Number(loan.amount) })
@@ -118,9 +120,9 @@ const Loans = () => {
       description: `Loan disbursement (${loan.term_months} months @ ${loan.interest_rate}%)`,
     });
 
-    await supabase
+    await (supabase as any)
       .from("loans")
-      .update({ status: "active", disbursed_at: new Date().toISOString() })
+      .update({ status: "completed", disbursed_at: new Date().toISOString() })
       .eq("id", loan.id);
 
     qc.invalidateQueries({ queryKey: ["profile"] });
@@ -137,17 +139,16 @@ const Loans = () => {
     setAmount("5000");
     setPurpose("");
 
-    // ✅ navigate to success after codes verified
     navigate("/dashboard/success", {
       state: {
         pending: false,
-        title: "Loan submitted",
-        message: "Your loan application has been received and is pending review.",
+        title: "Loan disbursed",
+        message: "Your loan has been released to your balance.",
         receipt: false,
         details: [
-          { label: "Amount", value: formatMoney(principal, currency) },
-          { label: "Term", value: `${months} months` },
-          { label: "Status", value: "Pending review" },
+          { label: "Amount", value: formatMoney(Number(loan.amount), loan.currency) },
+          { label: "Term", value: `${loan.term_months} months` },
+          { label: "Status", value: "Completed" },
         ],
       },
     });
@@ -275,16 +276,16 @@ const Loans = () => {
               </div>
               <Badge
                 className={
-                  l.status === "active" || l.status === "approved" ? "bg-success/15 text-success border-success/30" :
-                  l.status === "rejected" ? "bg-destructive/15 text-destructive border-destructive/30" :
+                  l.status === "completed" ? "bg-success/15 text-success border-success/30" :
+                  l.status === "failed" || l.status === "rejected" ? "bg-destructive/15 text-destructive border-destructive/30" :
                   l.status === "paid" ? "bg-primary/15 text-primary border-primary/30" :
                   "bg-warning/15 text-warning border-warning/30"
                 }
                 variant="outline"
               >
-                {l.status === "approved" ? "Awaiting code" : l.status}
+                {l.status === "failed" ? "rejected" : l.status}
               </Badge>
-              {l.status === "approved" && (
+              {l.status === "pending" && (
                 <Button onClick={() => releaseFunds(l.id)} size="sm" className="gap-2 bg-gradient-primary">
                   <Lock className="h-3.5 w-3.5" /> Release funds
                 </Button>
