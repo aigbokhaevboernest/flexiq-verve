@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 
@@ -7,8 +7,8 @@ import { useAuth } from "./useAuth";
  * Reads from `profiles` per canonical schema (balance, account_number,
  * currency, frozen, status, kyc_status, card_number, expiry, cvv, ...).
  *
- * localStorage cache is only used if balance is a real value —
- * prevents stale null-balance cache from blocking fresh fetches.
+ * localStorage cache is cleared on any realtime update to prevent
+ * stale data from overwriting live freeze/block changes.
  */
 export const useAccount = () => {
   const { user } = useAuth();
@@ -17,7 +17,7 @@ export const useAccount = () => {
   return useQuery<any>({
     queryKey: ["profile", user?.id],
     enabled: !!user,
-    staleTime: 30_000,
+    staleTime: 0,
     refetchOnWindowFocus: true,
     refetchOnMount: true,
     initialData: () => {
