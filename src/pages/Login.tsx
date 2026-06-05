@@ -57,7 +57,7 @@ const Login = () => {
         await supabase.auth.signOut();
         sessionStorage.removeItem("flexiq_pin_ok");
         setSubmitting(false);
-        setBlockedMsg("Your account has been blocked. Please contact support.");
+        toast({ title: "Your account has been blocked. Please contact support.", variant: "destructive" });
         return;
       }
     }
