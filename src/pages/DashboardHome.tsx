@@ -248,4 +248,222 @@ const DashboardHome = () => {
                         (profileReady ? (
                           "—"
                         ) : (
-                          <Skeleton className="inline-block h-3 w-24 bg-white/20 align
+                          <Skeleton className="inline-block h-3 w-24 bg-white/20 align-middle" />
+                        ))}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs opacity-70">Account type</p>
+                    <p className="font-medium">
+                      {(profile as any)?.account_type || "Personal"}
+                      {currency ? <> · {currency}</> : null}
+                    </p>
+                  </div>
+                  {isFrozen && (
+                    <div>
+                      <p className="text-xs opacity-70">Status</p>
+                      <p className="font-semibold" style={{ color: "#ff8503" }}>
+                        ● Frozen
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="hidden text-right sm:block">
+                <Wifi className="ml-auto h-5 w-5 rotate-90 opacity-90" />
+                <p className="mt-12 font-display text-sm font-semibold opacity-90">
+                  PLATINUM
+                </p>
+              </div>
+            </div>
+
+            <div className="relative mt-8 grid grid-cols-4 gap-3">
+              {quickActions.map((a) => {
+                const Icon = a.icon;
+                const cls =
+                  "group flex flex-col items-center gap-2 rounded-2xl bg-white/10 p-3 text-center backdrop-blur transition-smooth hover:bg-white/20";
+                const inner = (
+                  <>
+                    <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20 text-primary-foreground">
+                      <Icon className="h-4 w-4" />
+                    </span>
+                    <span className="text-xs font-medium">{a.label}</span>
+                  </>
+                );
+
+                if (isFrozen || a.disabled) {
+                  return (
+                    <button
+                      key={a.label}
+                      type="button"
+                      onClick={
+                        isFrozen
+                          ? handleFrozenAction
+                          : () => {
+                              toast("Feature not available", {
+                                description: "Please contact support for assistance.",
+                                style: {
+                                  background: "#ff8503",
+                                  color: "#ffffff",
+                                  border: "none",
+                                },
+                                classNames: {
+                                  title: "text-white font-semibold",
+                                  description: "text-white/90",
+                                },
+                              });
+                            }
+                      }
+                      className={cls + " cursor-not-allowed opacity-50"}
+                    >
+                      {inner}
+                    </button>
+                  );
+                }
+
+                return (
+                  <Link key={a.label} to={a.to} className={cls}>
+                    {inner}
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        <Card className="rounded-3xl border-border/60 p-6 shadow-card">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-semibold">Your card</p>
+            <Button variant="ghost" size="sm" className="h-8 text-xs" asChild>
+              <Link to="/dashboard/cards">Manage</Link>
+            </Button>
+          </div>
+          <div className="mt-4 rounded-2xl bg-gradient-coral p-5 text-white">
+            <div className="flex items-center justify-between text-xs opacity-90">
+              <span>
+                {card?.card_type === "physical" ? "Physical" : "Virtual"} debit
+              </span>
+              <CreditCard className="h-4 w-4" />
+            </div>
+            <p className="mt-6 font-normal text-sm tracking-[0.2em]">
+              {card?.card_number || (profile as any)?.card_number
+                ? (card?.card_number || (profile as any)?.card_number)
+                    .replace(/(.{4})/g, "$1 ")
+                    .trim()
+                : "•••• •••• •••• ————"}
+            </p>
+            <div className="mt-3 flex justify-between text-xs opacity-90">
+              <span>
+                {card?.cardholder_name?.trim() ||
+                  (firstName ? firstName.toUpperCase() : "—")}
+              </span>
+              <span>{card?.expiry || (profile as any)?.expiry || "—"}</span>
+            </div>
+          </div>
+          {(isFrozen ||
+            card?.frozen ||
+            (card?.status && card.status !== "active")) && (
+            <p
+              className="mt-3 flex items-center justify-center gap-1.5 text-xs font-semibold"
+              style={{ color: "#ff8503" }}
+            >
+              <ShieldAlert className="h-3.5 w-3.5" />
+              {isFrozen
+                ? "Account frozen"
+                : card?.status === "blocked"
+                ? "Card blocked"
+                : card?.status === "deleted"
+                ? "Card removed"
+                : "Card frozen"}
+            </p>
+          )}
+        </Card>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-3">
+        {[
+          { label: "Credit", value: stats?.inSum ?? 0, icon: ArrowDownLeft, positive: true },
+          { label: "Debit", value: stats?.outSum ?? 0, icon: ArrowUpRight, positive: false },
+          { label: "Net", value: stats?.net ?? 0, icon: TrendingUp, positive: (stats?.net ?? 0) >= 0 },
+        ].map((s) => {
+          const Icon = s.icon;
+          return (
+            <Card key={s.label} className="rounded-3xl border-border/60 p-6 shadow-card">
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-muted-foreground">{s.label}</p>
+                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                  <Icon className="h-4 w-4" />
+                </span>
+              </div>
+              <p className={`mt-3 font-display text-2xl font-bold ${s.positive ? "text-success" : "text-foreground"}`}>
+                {formatMoney(Math.abs(s.value), currency || "USD")}
+              </p>
+            </Card>
+          );
+        })}
+      </div>
+
+      <Card className="rounded-3xl border-border/60 p-6 shadow-card">
+        <div className="flex items-center justify-between">
+          <h2 className="font-display text-lg font-bold">Recent activity</h2>
+          <Button variant="ghost" size="sm" asChild>
+            <Link to="/dashboard/transactions">View all</Link>
+          </Button>
+        </div>
+        <div className="mt-4 divide-y divide-border/60">
+          {(txs || []).length === 0 && (
+            <EmptyState
+              icon={Receipt}
+              title="No transactions yet"
+              description="Your activity will show here as you spend, send, or receive money."
+              ctaLabel="Send Money"
+              ctaTo="/dashboard/send"
+            />
+          )}
+          {(txs || []).map((t: any) => {
+            const positive = Number(t.amount) > 0;
+            const displayStatus =
+              t.status === "awaiting_code"
+                ? "pending"
+                : t.status === "rejected"
+                ? "processing"
+                : t.status;
+            return (
+              <div key={t.id} className="flex items-center gap-4 py-4">
+                <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${positive ? "bg-success/15 text-success" : "bg-muted text-foreground/70"}`}>
+                  {positive ? <ArrowDownLeft className="h-4 w-4" /> : <ArrowUpRight className="h-4 w-4" />}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="break-words text-sm font-medium">
+                    {t.description || t.recipient_name || t.type.replace(/_/g, " ")}
+                  </p>
+                  <p className="text-xs text-muted-foreground capitalize">
+                    {t.type.replace(/_/g, " ")} • {new Date(t.created_at).toLocaleDateString()}
+                  </p>
+                </div>
+                <div className="text-right shrink-0">
+                  <p className={`font-display text-sm font-bold ${positive ? "text-success" : ""}`}>
+                    {positive ? "+" : "−"}
+                    {formatMoney(Math.abs(Number(t.amount)), t.currency || currency || "USD")}
+                  </p>
+                  <p className={`text-xs capitalize ${
+                    displayStatus === "pending" ? "text-warning" :
+                    displayStatus === "processing" ? "text-amber-500" :
+                    displayStatus === "failed" ? "text-destructive" :
+                    displayStatus === "completed" ? "text-success" :
+                    "text-muted-foreground"
+                  }`}>
+                    {displayStatus.replace(/_/g, " ")}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </Card>
+    </div>
+  );
+};
+
+export default DashboardHome;
