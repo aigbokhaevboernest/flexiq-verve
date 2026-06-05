@@ -15,13 +15,11 @@ const Login = () => {
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [blockedMsg, setBlockedMsg] = useState<string | null>(() => {
-    if (typeof window !== "undefined" && sessionStorage.getItem("flexiq_blocked") === "1") {
-      sessionStorage.removeItem("flexiq_blocked");
-      return "Your account has been blocked. Please contact support.";
-    }
-    return null;
-  });
+
+  // If a previous session was force-signed-out due to a block, just clear the flag.
+  if (typeof window !== "undefined" && sessionStorage.getItem("flexiq_blocked") === "1") {
+    sessionStorage.removeItem("flexiq_blocked");
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
