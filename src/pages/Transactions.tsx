@@ -211,7 +211,7 @@ const Transactions = () => {
               <SelectItem value="all">All status</SelectItem>
               <SelectItem value="completed">Completed</SelectItem>
               <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="rejected">Rejected</SelectItem>
+              <SelectItem value="processing">Processing</SelectItem>
               <SelectItem value="failed">Failed</SelectItem>
             </SelectContent>
           </Select>
@@ -230,51 +230,58 @@ const Transactions = () => {
         </div>
 
         <div className="mt-6 overflow-x-auto">
-          <table className="w-full min-w-[720px] text-sm">
+          <table className="w-full min-w-[560px] text-sm table-fixed">
+            <colgroup>
+              <col className="w-[55%]" />
+              <col className="w-[15%]" />
+              <col className="w-[30%]" />
+            </colgroup>
             <thead>
               <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground">
                 <th className="pb-3 font-medium">Transaction</th>
-                <th className="pb-3 font-medium">Type</th>
-                <th className="pb-3 font-medium">Date</th>
-                <th className="pb-3 font-medium">Status</th>
+                <th className="pb-3 font-medium text-right">Type</th>
                 <th className="pb-3 text-right font-medium">Amount</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/60">
               {filtered.map((t: any) => {
                 const positive = Number(t.amount) > 0;
+                const statusKey = t.status === "awaiting_code" ? "processing" : t.status === "rejected" ? "failed" : t.status;
+                const statusClass =
+                  statusKey === "completed" ? "border-success/30 bg-success/10 text-success" :
+                  statusKey === "pending" ? "border-warning/30 bg-warning/10 text-warning" :
+                  statusKey === "processing" ? "border-blue-500/30 bg-blue-500/10 text-blue-600" :
+                  "border-destructive/30 bg-destructive/10 text-destructive";
                 return (
-                  <tr key={t.id}>
-                    <td className="py-4">
-                      <div className="flex items-center gap-3">
-                        <div className={`flex h-9 w-9 items-center justify-center rounded-xl ${positive ? "bg-success/15 text-success" : "bg-muted text-foreground/70"}`}>
+                  <tr key={t.id} className="align-top">
+                    <td className="py-4 pr-3">
+                      <div className="flex items-start gap-3">
+                        <div className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${positive ? "bg-success/15 text-success" : "bg-muted text-foreground/70"}`}>
                           {positive ? <ArrowDownLeft className="h-4 w-4" /> : <ArrowUpRight className="h-4 w-4" />}
                         </div>
-                        <div>
-                          <p className="font-medium">{t.description || t.recipient_name || t.type.replace(/_/g, " ")}</p>
-                          <p className="text-xs text-muted-foreground">{t.reference}</p>
+                        <div className="min-w-0 flex-1">
+                          <p className="font-medium break-words whitespace-normal leading-snug">
+                            {t.description || t.recipient_name || t.type.replace(/_/g, " ")}
+                          </p>
+                          <p className="mt-0.5 text-xs text-muted-foreground break-words">{t.reference}</p>
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            {new Date(t.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
+                          </p>
+                          <Badge variant="outline" className={`mt-2 capitalize ${statusClass}`}>
+                            {statusKey.replace(/_/g, " ")}
+                          </Badge>
                         </div>
                       </div>
                     </td>
-                    <td className="py-4 capitalize text-muted-foreground">{t.type.replace(/_/g, " ")}</td>
-                    <td className="py-4 text-muted-foreground">{new Date(t.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}</td>
-                    <td className="py-4">
-                      <Badge variant="outline" className={
-                        t.status === "completed" ? "border-success/30 bg-success/10 text-success capitalize" :
-                        t.status === "pending" || t.status === "awaiting_code" ? "border-warning/30 bg-warning/10 text-warning capitalize" :
-                        "border-destructive/30 bg-destructive/10 text-destructive capitalize"
-                      }>
-                        {t.status.replace(/_/g, " ")}
-                      </Badge>
-                    </td>
-                    <td className={`py-4 text-right font-display font-bold ${positive ? "text-success" : ""}`}>
+                    <td className="py-4 text-right capitalize text-muted-foreground whitespace-nowrap">{t.type.replace(/_/g, " ")}</td>
+                    <td className={`py-4 text-right font-display font-bold whitespace-nowrap ${positive ? "text-success" : ""}`}>
                       {positive ? "+" : "−"}{formatMoney(Math.abs(Number(t.amount)), t.currency)}
                     </td>
                   </tr>
                 );
               })}
               {filtered.length === 0 && (
-                <tr><td colSpan={5} className="py-10 text-center text-sm text-muted-foreground">No transactions match your filters.</td></tr>
+                <tr><td colSpan={3} className="py-10 text-center text-sm text-muted-foreground">No transactions match your filters.</td></tr>
               )}
             </tbody>
           </table>
