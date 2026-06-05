@@ -40,12 +40,16 @@ const DashboardHome = () => {
 
   const handleFrozenAction = () => {
     toast("Account frozen", {
-      description:
-        "Your account has been frozen by an administrator. All transactions and features are disabled. Please contact support.",
-      duration: 5000,
-      style: { borderLeft: "4px solid #ff8503", color: "#ff8503" },
-    });
-  };
+  description:
+    "Your account has been frozen by an administrator. All transactions and features are disabled. Please contact support.",
+  duration: 5000,
+  style: {
+    background: "#ff8503",
+    color: "#ffffff",
+    border: "none",
+  },
+});
+
 
   // Block check — runs once when loading completes
   useEffect(() => {
@@ -53,10 +57,11 @@ const DashboardHome = () => {
     if (!profile) return;
     if ((profile as any)?.status === "blocked") {
       toast.error("Account blocked", {
-        description:
-          "Your account has been blocked by an administrator. Please contact support.",
-        duration: 3000,
-      });
+  description:
+    "Your account has been blocked by an administrator. Please contact support.",
+  duration: 3000,
+});
+
       setTimeout(() => {
         supabase.auth.signOut().then(() => {
           window.location.href = "/login";
@@ -294,12 +299,14 @@ const DashboardHome = () => {
                           ? handleFrozenAction
                           : () =>
                               toast("Feature not available", {
-                                description: "Please contact support for assistance.",
-                                style: {
-                                  borderLeft: "4px solid #ff8503",
-                                  color: "#ff8503",
-                                },
-                              })
+  description: "Please contact support for assistance.",
+  style: {
+    background: "#ff8503",
+    color: "#ffffff",
+    border: "none",
+  },
+});
+
                       }
                       className={cls + " cursor-not-allowed opacity-50"}
                     >
