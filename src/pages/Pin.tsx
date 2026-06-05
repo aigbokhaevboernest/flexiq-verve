@@ -30,9 +30,17 @@ const Pin = () => {
     (async () => {
       const { data } = await (supabase as any)
         .from("profiles")
-        .select("pin")
+        .select("pin,status")
         .eq("id", user.id)
         .single();
+
+      if (data?.status === "blocked") {
+        sessionStorage.setItem("flexiq_blocked", "1");
+        sessionStorage.removeItem("flexiq_pin_ok");
+        await supabase.auth.signOut();
+        navigate("/login", { replace: true });
+        return;
+      }
 
       const hasPin = !!data?.pin;
       localStorage.setItem(`hasPinSetup:${user.id}`, hasPin ? "1" : "0");
