@@ -89,6 +89,11 @@ const Login = () => {
         <div className="p-8 sm:p-10">
 
         <form className="mt-8 space-y-5" onSubmit={handleSubmit}>
+          {blockedMsg && (
+            <div className="rounded-2xl border border-destructive/30 bg-destructive/10 p-4 text-center">
+              <p className="text-sm font-semibold text-destructive">{blockedMsg}</p>
+            </div>
+          )}
           <div className="space-y-2">
             <Label htmlFor="id">Email or username</Label>
             <Input
