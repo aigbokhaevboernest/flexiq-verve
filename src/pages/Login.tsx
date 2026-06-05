@@ -24,7 +24,7 @@ const Login = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
-    setBlockedMsg(null);
+    
 
     let email = identifier.trim();
     if (!email.includes("@")) {
