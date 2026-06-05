@@ -295,19 +295,21 @@ const DashboardHome = () => {
                       key={a.label}
                       type="button"
                       onClick={
-                        isFrozen
-                          ? handleFrozenAction
-                          : () =>
-                              toast("Feature not available", {
-  description: "Please contact support for assistance.",
-  style: {
-    background: "#ff8503",
-    color: "#ffffff",
-    border: "none",
-  },
-});
+  isFrozen
+    ? handleFrozenAction
+    : () => {
+        toast("Feature not available", {
+          description: "Please contact support for assistance.",
+          style: {
+            background: "#ff8503",
+            color: "#ffffff",
+            border: "none",
+          },
+        });
+      }
+}
 
-                      }
+
                       className={cls + " cursor-not-allowed opacity-50"}
                     >
                       {inner}
