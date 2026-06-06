@@ -8,7 +8,8 @@ import { currencies } from "@/lib/currencies";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import adminLogo from "@/assets/logo.png";
+import { BrandLogo } from "@/components/BrandLogo";
+import { sendEmail } from "@/lib/sendEmail";
 
 const nativeSelectClass =
  "mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring";
@@ -129,14 +130,8 @@ const Signup = () => {
    <div className="page-enter relative min-h-screen bg-navy-blue-mesh px-4 py-10">
      <div className="mx-auto w-full max-w-2xl overflow-hidden rounded-3xl border border-white/10 bg-white shadow-elev animate-fade-in">
        <div className="bg-gradient-to-br from-[#7C3AED] via-[#8B5CF6] to-[#A78BFA] px-8 pb-8 pt-10 text-center sm:px-10">
-         <Link to="/" className="flex flex-col items-center">
-           <img
-             src={adminLogo}
-             alt="Flexiq Verve"
-             style={{ width: 72, height: "auto", display: "block" }}
-             className="drop-shadow-lg"
-           />
-           <span className="mt-3 font-display text-xl font-bold text-white">Flexiq Verve</span>
+         <Link to="/" className="flex flex-col items-center justify-center">
+           <BrandLogo className="h-10 w-auto object-contain drop-shadow-lg sm:h-12" />
          </Link>
          <h1 className="mt-4 font-display text-3xl font-bold tracking-tight text-white">
            Open your account
