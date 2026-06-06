@@ -39,21 +39,21 @@ const DashboardHome = () => {
   const isFrozen = profile?.frozen === true;
 
   const handleFrozenAction = () => {
-    toast("Account frozen", {
-      description:
-        "Your account has been frozen by an administrator. All transactions and features are disabled. Please contact support.",
-      duration: 5000,
-      style: {
-        background: "#ff8503",
-        color: "#ffffff",
-        border: "none",
-      },
-      classNames: {
-        title: "text-white font-semibold",
-        description: "text-white/90",
-      },
-    });
-  };
+  toast("Account frozen", {
+    description:
+      "Your account has been frozen by an administrator. All transactions and features are disabled. Please contact support.",
+    duration: 5000,
+    style: {
+      background: "#ff8503",
+      color: "#ffffff",
+      border: "none",
+    },
+    classNames: {
+      title: "text-white font-semibold",
+      description: "text-white/90",
+    },
+  });
+};
 
   // Block check — runs once when loading completes
   useEffect(() => {
