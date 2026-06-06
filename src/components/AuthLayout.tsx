@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { ReactNode } from "react";
-import adminLogo from "@/assets/logo.png";
+import { BrandLogo } from "@/components/BrandLogo";
 
 export const AuthLayout = ({
   title,
@@ -16,13 +16,8 @@ export const AuthLayout = ({
   <div className="grid min-h-screen lg:grid-cols-2">
     {/* Left: form */}
     <div className="flex flex-col px-6 py-8 sm:px-10">
-      <Link to="/" className="flex items-center gap-2 font-display text-xl font-bold m-0 p-0">
-        <img
-          src={adminLogo}
-          alt="Admin Logo"
-          style={{ width: "40px", height: "auto", display: "block", margin: 0, padding: 0 }}
-        />
-        Flexiq Verve
+      <Link to="/" className="flex items-center">
+        <BrandLogo className="h-9 w-auto object-contain" />
       </Link>
 
       <div className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center py-10">

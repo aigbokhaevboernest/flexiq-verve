@@ -1,5 +1,6 @@
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import adminLogo from "@/assets/logo.png";
+import { BrandLogo } from "@/components/BrandLogo";
+import { useAccount } from "@/hooks/useAccount";
 import {
   Banknote,
   ChevronDown,
@@ -37,6 +38,8 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
   const navigate = useNavigate();
   const { signOut } = useAuth();
   const { pathname } = useLocation();
+  const { data: profile } = useAccount();
+  const frozen = !!(profile as any)?.frozen;
 
   const sendItems = [
     { to: "/dashboard/send", label: "Digital Payments", icon: Smartphone },
@@ -46,12 +49,21 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
   const sendActive = sendItems.some((i) => pathname.startsWith(i.to));
   const [sendOpen, setSendOpen] = useState(sendActive);
 
+  const activeStyle = frozen
+    ? { backgroundColor: "#ff8503", color: "#ffffff" }
+    : undefined;
+
   const linkClass = ({ isActive }: { isActive: boolean }) =>
     `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-smooth ${
       isActive
-        ? "bg-gradient-primary text-primary-foreground shadow-md"
+        ? frozen
+          ? "text-white shadow-md"
+          : "bg-gradient-primary text-primary-foreground shadow-md"
         : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
     }`;
+
+  const linkStyle = ({ isActive }: { isActive: boolean }) =>
+    isActive && frozen ? activeStyle : undefined;
 
   const subLinkClass = ({ isActive }: { isActive: boolean }) =>
     `group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-300 ${
@@ -62,9 +74,8 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
 
   return (
     <div className="flex h-full flex-col font-sans">
-      <div className="flex h-16 items-center gap-2 border-b border-sidebar-border px-5">
-        <img src={adminLogo} alt="Flexiq Verve" className="h-12 w-12 object-contain" />
-        <span className="font-display text-lg font-bold leading-none">Flexiq<br/>Verve</span>
+      <div className="flex h-16 items-center border-b border-sidebar-border px-5">
+        <BrandLogo className="h-9 w-auto object-contain" />
       </div>
       <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
         <NavLink to="/dashboard" end onClick={onNavigate} className={linkClass}>

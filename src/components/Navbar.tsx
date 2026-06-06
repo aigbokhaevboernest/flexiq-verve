@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Menu } from "lucide-react";
 import { useState } from "react";
-import adminLogo from "@/assets/logo.png";
+import { BrandLogo } from "@/components/BrandLogo";
 
 const links: { href: string; label: string }[] = [
   { href: "/#features", label: "Features" },
@@ -24,13 +24,8 @@ export const Navbar = () => {
   return (
     <header className={`sticky top-0 z-50 w-full transition-smooth ${transparent ? "bg-background/70 backdrop-blur-xl" : "bg-background"} border-b border-border/60`}>
       <div className="container flex h-20 items-center justify-between">
-        <Link to="/" className="flex items-center gap-3 font-display text-xl font-bold">
-          <img
-            src={adminLogo}
-            alt="Flexiq Verve"
-            style={{ width: "56px", height: "auto", display: "block" }}
-          />
-          <span>Flexiq Verve</span>
+        <Link to="/" className="flex items-center">
+          <BrandLogo className="h-9 w-auto object-contain sm:h-10" />
         </Link>
 
         <nav className="hidden items-center gap-6 lg:flex">
