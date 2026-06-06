@@ -51,13 +51,11 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
 
 
   const linkClass = ({ isActive }: { isActive: boolean }) =>
-    `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-smooth ${
-      isActive
-        ? frozen
-          ? "bg-[#ff8503] text-white shadow-md"
-          : "bg-gradient-primary text-primary-foreground shadow-md"
-        : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-    }`;
+  `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-smooth ${
+    isActive
+      ? "bg-gradient-primary text-primary-foreground shadow-md"
+      : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+  }`;
 
 
   const subLinkClass = ({ isActive }: { isActive: boolean }) =>
