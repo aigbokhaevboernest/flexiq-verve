@@ -12,6 +12,7 @@ import { Save, Lock } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { currencies } from "@/lib/currencies";
 import { countries } from "@/lib/countries";
+import { sendEmail } from "@/lib/sendEmail";
 
 const Settings = () => {
   const { toast } = useToast();
@@ -47,6 +48,27 @@ const Settings = () => {
     if (error) return toast({ title: "Failed", description: error.message, variant: "destructive" });
     qc.invalidateQueries({ queryKey: ["profile"] });
     toast({ title: "Profile updated" });
+
+    try {
+      const em = (profile as any)?.email || user.email || "";
+      if (em) {
+        await sendEmail({
+          email: em, first_name: form.first_name,
+          subject: "Profile Updated — Flexiq Verve",
+          message:
+`Hello ${form.first_name},
+
+Your Flexiq Verve profile information has been successfully updated.
+
+If you did not perform this action, please contact support immediately.
+
+For more information or complaints, please contact support@flexiqverve.com or make use of the Live Chat on your dashboard for assistance.
+
+Kind Regards,
+Flexiq Verve Support Team`,
+        });
+      }
+    } catch {}
   };
 
   const changePassword = async (e: React.FormEvent) => {
@@ -57,6 +79,28 @@ const Settings = () => {
     if (error) return toast({ title: "Failed", description: error.message, variant: "destructive" });
     toast({ title: "Password changed" });
     setPwd({ next: "", confirm: "" });
+
+    try {
+      const em = (profile as any)?.email || user?.email || "";
+      const fn = (profile as any)?.first_name || "";
+      if (em) {
+        await sendEmail({
+          email: em, first_name: fn,
+          subject: "Password Changed — Flexiq Verve",
+          message:
+`Hello ${fn},
+
+Your Flexiq Verve account password has been successfully changed.
+
+If you did not perform this action, please contact support immediately as your account may be at risk.
+
+For more information or complaints, please contact support@flexiqverve.com or make use of the Live Chat on your dashboard for assistance.
+
+Kind Regards,
+Flexiq Verve Support Team`,
+        });
+      }
+    } catch {}
   };
 
   return (
