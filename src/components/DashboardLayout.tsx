@@ -105,21 +105,31 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
          <CollapsibleContent
            className="overflow-hidden data-[state=open]:animate-[accordion-down_550ms_cubic-bezier(0.22,1,0.36,1)] data-[state=closed]:animate-[accordion-up_500ms_cubic-bezier(0.22,1,0.36,1)]"
          >
-           <div className="ml-3 mt-1 space-y-1 rounded-xl border-l-2 border-primary/60 bg-sidebar-accent/40 py-2 pl-2 pr-1">
-             {sendItems.map((s) => (
-               <NavLink key={s.to} to={s.to} end onClick={handleFrozenNav} className={subLinkClass}>
-                 {({ isActive }) => (
-                   <>
-                     <span className={`flex h-3.5 w-3.5 items-center justify-center rounded-full border ${isActive ? "border-primary" : "border-muted-foreground/40"}`}>
-                       {isActive && <span className="h-1.5 w-1.5 rounded-full bg-primary" />}
-                     </span>
-                     <s.icon className="h-4 w-4" />
-                     <span>{s.label}</span>
-                   </>
-                 )}
-               </NavLink>
-             ))}
-           </div>
+           <div className="ml-4 mt-1 space-y-0.5 border-l-2 border-primary/30 pl-3">
+  {sendItems.map((s) => (
+    <NavLink
+      key={s.to}
+      to={s.to}
+      end
+      onClick={handleFrozenNav}
+      className={({ isActive }) =>
+        `flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 ${
+          isActive
+            ? "border-l-2 -ml-[14px] pl-[26px] border-primary bg-primary/10 text-primary"
+            : "text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
+        }`
+      }
+    >
+      {({ isActive }) => (
+        <>
+          <s.icon className={`h-4 w-4 shrink-0 ${isActive ? "text-primary" : "text-muted-foreground"}`} />
+          <span>{s.label}</span>
+        </>
+      )}
+    </NavLink>
+  ))}
+</div>
+
          </CollapsibleContent>
        </Collapsible>
 
