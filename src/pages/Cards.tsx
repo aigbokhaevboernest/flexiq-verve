@@ -64,7 +64,7 @@ const Cards = () => {
       cardholder_name: holder,
       card_type: "virtual",
       status: "active",
-      brand: "Visa",
+      card_type: "Visa",
     });
     if (error) return toast.error("Could not create card", { description: error.message });
     qc.invalidateQueries({ queryKey: ["cards"] });
