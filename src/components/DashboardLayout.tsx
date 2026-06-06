@@ -49,21 +49,16 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
   const sendActive = sendItems.some((i) => pathname.startsWith(i.to));
   const [sendOpen, setSendOpen] = useState(sendActive);
 
-  const activeStyle = frozen
-    ? { backgroundColor: "#ff8503", color: "#ffffff" }
-    : undefined;
 
   const linkClass = ({ isActive }: { isActive: boolean }) =>
     `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-smooth ${
       isActive
         ? frozen
-          ? "text-white shadow-md"
+          ? "bg-[#ff8503] text-white shadow-md"
           : "bg-gradient-primary text-primary-foreground shadow-md"
         : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
     }`;
 
-  const linkStyle = ({ isActive }: { isActive: boolean }) =>
-    isActive && frozen ? activeStyle : undefined;
 
   const subLinkClass = ({ isActive }: { isActive: boolean }) =>
     `group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-300 ${
