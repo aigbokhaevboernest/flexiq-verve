@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { CodeGate } from "@/components/CodeGate";
 import { useNavigate } from "react-router-dom";
+import { sendEmail } from "@/lib/sendEmail";
 
 const LocalTransfer = () => {
   useFrozenGuard();
@@ -84,6 +85,33 @@ const LocalTransfer = () => {
     qc.invalidateQueries({ queryKey: ["recent-tx"] });
     qc.invalidateQueries({ queryKey: ["stats"] });
     const ref = pendingTxId;
+    const amtCopy = amt;
+    const recCopy = recipient;
+
+    try {
+      const { data: prof } = await (supabase as any)
+        .from("profiles").select("first_name,email").eq("id", user.id).maybeSingle();
+      const fn = prof?.first_name || "";
+      const em = prof?.email || user.email || "";
+      if (em) {
+        await sendEmail({
+          email: em, first_name: fn,
+          subject: "Local Transfer — Flexiq Verve",
+          message:
+`Hello ${fn},
+
+This is to inform you that your local transfer of ${amtCopy} ${currency} to ${recCopy} has been submitted and is currently pending review.
+
+Please wait while we process your request. You will receive a notification regarding the status of your transfer.
+
+For more information or complaints, please contact support@flexiqverve.com or make use of the Live Chat on your dashboard for assistance.
+
+Kind Regards,
+Flexiq Verve Support Team`,
+        });
+      }
+    } catch {}
+
     setAmount(""); setRecipient(""); setAccNumber(""); setRouting(""); setDesc("");
     setPendingTxId(null);
     navigate("/dashboard/success", {
