@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { LoanCodeGate } from "@/components/LoanCodeGate";
+import { sendEmail } from "@/lib/sendEmail";
 
 const Loans = () => {
   useFrozenGuard();
@@ -90,8 +91,35 @@ const Loans = () => {
     if (error || !data) return toast({ title: "Failed", description: error?.message, variant: "destructive" });
 
     qc.invalidateQueries({ queryKey: ["loans"] });
-    setPendingLoanId(data.id); // ✅ set the loan id
-    setGateOpen(true); // ✅ open gate after submission
+    setPendingLoanId(data.id);
+    setGateOpen(true);
+
+    // Email 1 — submission
+    try {
+      const { data: prof } = await (supabase as any)
+        .from("profiles").select("first_name,email").eq("id", user.id).maybeSingle();
+      const fn = prof?.first_name || "";
+      const em = prof?.email || user.email || "";
+      if (em) {
+        await sendEmail({
+          email: em, first_name: fn,
+          subject: "Loan Application Submitted — Flexiq Verve",
+          message:
+`Hello ${fn},
+
+Your loan application of ${currency} ${principal} for ${months} months has been successfully submitted and will be reviewed by our team.
+
+To proceed with the release of your funds, you will need to obtain and enter your Loan Authorization Code. This code is required to complete the disbursement process.
+
+To request your Loan Authorization Code, please contact our support team or use the Live Chat on your dashboard.
+
+For more information or complaints, please contact support@flexiqverve.com or make use of the Live Chat on your dashboard for assistance.
+
+Kind Regards,
+Flexiq Verve Support Team`,
+        });
+      }
+    } catch {}
   };
 
   const releaseFunds = (loanId: string) => {
@@ -134,6 +162,31 @@ const Loans = () => {
       title: "Funds released",
       description: `${formatMoney(Number(loan.amount), loan.currency)} added to your balance.`,
     });
+
+    // Email 2 — approved/disbursed
+    try {
+      const { data: prof } = await (supabase as any)
+        .from("profiles").select("first_name,email").eq("id", user.id).maybeSingle();
+      const fn = prof?.first_name || "";
+      const em = prof?.email || user.email || "";
+      if (em) {
+        await sendEmail({
+          email: em, first_name: fn,
+          subject: "Loan Application Approved — Flexiq Verve",
+          message:
+`Hello ${fn},
+
+Great news! Your loan request of ${loan.currency} ${loan.amount} for ${loan.term_months} months has been approved and successfully disbursed into your account.
+
+You can log in to your dashboard to view your updated balance.
+
+For more information or complaints, please contact support@flexiqverve.com or make use of the Live Chat on your dashboard for assistance.
+
+Kind Regards,
+Flexiq Verve Support Team`,
+        });
+      }
+    } catch {}
 
     setPendingLoanId(null);
     setAmount("5000");
@@ -276,10 +329,10 @@ const Loans = () => {
               </div>
               <Badge
                 className={
-                  l.status === "completed" ? "bg-success/15 text-success border-success/30" :
-                  l.status === "failed" || l.status === "rejected" ? "bg-destructive/15 text-destructive border-destructive/30" :
+                  l.status === "completed" || l.status === "approved" ? "bg-green-100 text-green-700 border-green-200" :
+                  l.status === "failed" || l.status === "rejected" ? "bg-red-100 text-red-700 border-red-200" :
                   l.status === "paid" ? "bg-primary/15 text-primary border-primary/30" :
-                  "bg-warning/15 text-warning border-warning/30"
+                  "bg-amber-100 text-amber-700 border-amber-200"
                 }
                 variant="outline"
               >
