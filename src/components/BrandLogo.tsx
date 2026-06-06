@@ -1,7 +1,9 @@
-import logoAsset from "@/assets/flexiqverve-logo.png.asset.json";
-
 export const BrandLogo = ({ className = "" }: { className?: string }) => (
-  <img src={logoAsset.url} alt="Flexiq Verve" className={className} />
+  <img
+    src="https://nzideivdechbxhepmlvz.supabase.co/storage/v1/object/public/app-assets/Flexiqverve.PNG"
+    alt="Flexiq Verve"
+    className={className}
+  />
 );
 
 export default BrandLogo;
