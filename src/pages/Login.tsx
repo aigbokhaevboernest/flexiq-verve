@@ -7,7 +7,7 @@ import { useState } from "react";
 import { Eye, EyeOff, ShieldCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import adminLogo from "@/assets/logo.png";
+import { BrandLogo } from "@/components/BrandLogo";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -77,9 +77,8 @@ const Login = () => {
 
       <div className="w-full max-w-md overflow-hidden rounded-3xl border border-white/10 bg-white shadow-elev animate-fade-in">
         <div className="bg-gradient-to-br from-[#7C3AED] via-[#8B5CF6] to-[#A78BFA] px-8 pb-8 pt-10 text-center sm:px-10">
-          <Link to="/" className="flex flex-col items-center">
-            <img src={adminLogo} alt="Flexiq Verve" style={{ width: 72, height: "auto", display: "block" }} className="drop-shadow-lg" />
-            <span className="mt-3 font-display text-xl font-bold text-white">Flexiq Verve</span>
+          <Link to="/" className="flex flex-col items-center justify-center">
+            <BrandLogo className="h-10 w-auto object-contain drop-shadow-lg sm:h-12" />
           </Link>
           <h1 className="mt-4 font-display text-3xl font-bold tracking-tight text-white">Welcome back</h1>
           <p className="mt-2 text-sm text-white/80">Sign in to take control of your finances.</p>

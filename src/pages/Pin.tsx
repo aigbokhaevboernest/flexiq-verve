@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
-import adminLogo from "@/assets/logo.png";
+import { BrandLogo } from "@/components/BrandLogo";
 
 const Pin = () => {
   const navigate = useNavigate();
@@ -112,9 +112,8 @@ const Pin = () => {
         </button>
 
         <div className="mb-6 flex flex-col items-center text-center">
-          <img src={adminLogo} alt="Flexiq Verve" style={{ width: 64, height: "auto" }} />
-          <h1 className="mt-4 font-display text-2xl font-bold">Flexiq Verve</h1>
-          <p className="mt-2 text-sm text-muted-foreground">
+          <BrandLogo className="h-10 w-auto object-contain sm:h-12" />
+          <p className="mt-4 text-sm text-muted-foreground">
             {mode === "create"
               ? "Create a 4-digit PIN to secure your account"
               : "Enter your 4-digit PIN to continue"}

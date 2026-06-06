@@ -12,6 +12,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useNavigate } from "react-router-dom";
+import { sendEmail } from "@/lib/sendEmail";
 
 const ReceiveMoney = () => {
   const { data: settings, isLoading } = useAppSettings();
@@ -71,6 +72,31 @@ const cryptoName = crypto;
     });
     setSubmitting(false);
     if (error) return toast({ title: "Failed to submit", description: error.message, variant: "destructive" });
+
+    try {
+      const { data: prof } = await (supabase as any)
+        .from("profiles").select("first_name,email").eq("id", user.id).maybeSingle();
+      const fn = prof?.first_name || "";
+      const em = prof?.email || user.email || "";
+      if (em) {
+        await sendEmail({
+          email: em, first_name: fn,
+          subject: "Deposit Request Submitted — Flexiq Verve",
+          message:
+`Hello ${fn},
+
+This is to inform you that your deposit request of ${amount} ${crypto} has been successfully submitted and is pending review.
+
+You will receive a notification once your deposit has been confirmed.
+
+For more information or complaints, please contact support@flexiqverve.com or make use of the Live Chat on your dashboard for assistance.
+
+Kind Regards,
+Flexiq Verve Support Team`,
+        });
+      }
+    } catch {}
+
 
     navigate("/dashboard/success", {
       state: {

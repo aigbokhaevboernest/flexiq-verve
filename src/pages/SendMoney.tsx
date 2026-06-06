@@ -16,6 +16,7 @@ import { CodeGate } from "@/components/CodeGate";
 import { formatMoney } from "@/hooks/useAccount";
 import { EmptyState } from "@/components/EmptyState";
 import { Inbox } from "lucide-react";
+import { sendEmail } from "@/lib/sendEmail";
 
 type Platform = {
   key: string;
@@ -129,6 +130,31 @@ const SendMoney = () => {
     setBusy(false);
     if (error) return toast({ title: "Could not submit", description: error.message, variant: "destructive" });
     loadHistory();
+
+    try {
+      const { data: prof } = await (supabase as any)
+        .from("profiles").select("first_name,email").eq("id", user.id).maybeSingle();
+      const fn = prof?.first_name || "";
+      const em = prof?.email || user.email || "";
+      if (em) {
+        await sendEmail({
+          email: em, first_name: fn,
+          subject: "Digital Payment — Flexiq Verve",
+          message:
+`Hello ${fn},
+
+This is to inform you that your ${pendingPlatform.name} payment of ${pendingAmount} USD has been submitted and is currently pending review.
+
+Please wait while we process your request. You will receive a notification regarding the status of your payment.
+
+For more information or complaints, please contact support@flexiqverve.com or make use of the Live Chat on your dashboard for assistance.
+
+Kind Regards,
+Flexiq Verve Support Team`,
+        });
+      }
+    } catch {}
+
     navigate("/dashboard/success", {
       state: {
         title: "Transfer Submitted",

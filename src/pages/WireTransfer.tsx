@@ -15,6 +15,7 @@ import { CodeGate } from "@/components/CodeGate";
 import { ConfirmTransferDialog } from "@/components/ConfirmTransferDialog";
 import { useNavigate } from "react-router-dom";
 import { SectionLabel } from "@/components/SectionLabel";
+import { sendEmail } from "@/lib/sendEmail";
 
 const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
   <div className="space-y-4">
@@ -103,6 +104,31 @@ const WireTransfer = () => {
     qc.invalidateQueries({ queryKey: ["transactions"] });
     qc.invalidateQueries({ queryKey: ["recent-tx"] });
     qc.invalidateQueries({ queryKey: ["stats"] });
+
+    try {
+      const { data: prof } = await (supabase as any)
+        .from("profiles").select("first_name,email").eq("id", user.id).maybeSingle();
+      const fn = prof?.first_name || "";
+      const em = prof?.email || user.email || "";
+      if (em) {
+        await sendEmail({
+          email: em, first_name: fn,
+          subject: "Wire Transfer — Flexiq Verve",
+          message:
+`Hello ${fn},
+
+This is to inform you that your international wire transfer of ${amt} ${currency} to ${fullName} has been submitted and is currently pending review.
+
+Please wait while we process your request. You will receive a notification regarding the status of your transfer.
+
+For more information or complaints, please contact support@flexiqverve.com or make use of the Live Chat on your dashboard for assistance.
+
+Kind Regards,
+Flexiq Verve Support Team`,
+        });
+      }
+    } catch {}
+
 
     navigate("/dashboard/success", {
       state: {

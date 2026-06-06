@@ -112,7 +112,7 @@ const DashboardHome = () => {
     },
   });
 
-  const { data: card } = useQuery<any>({
+  const { data: card, isLoading: cardLoading } = useQuery<any>({
     queryKey: ["primary-card", user?.id],
     enabled: !!user,
     queryFn: async () => {
@@ -127,7 +127,7 @@ const DashboardHome = () => {
     },
   });
 
-  const { data: stats } = useQuery({
+  const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ["stats", user?.id],
     enabled: !!user,
     queryFn: async () => {
@@ -346,20 +346,34 @@ const DashboardHome = () => {
               </span>
               <CreditCard className="h-4 w-4" />
             </div>
-            <p className="mt-6 font-normal text-sm tracking-[0.2em]">
-              {card?.card_number || (profile as any)?.card_number
-                ? (card?.card_number || (profile as any)?.card_number)
-                    .replace(/(.{4})/g, "$1 ")
-                    .trim()
-                : "•••• •••• •••• ————"}
-            </p>
-            <div className="mt-3 flex justify-between text-xs opacity-90">
-              <span>
-                {card?.cardholder_name?.trim() ||
-                  (firstName ? firstName.toUpperCase() : "—")}
-              </span>
-              <span>{card?.expiry || (profile as any)?.expiry || "—"}</span>
-            </div>
+            {(() => {
+              const raw = card?.card_number || (profile as any)?.card_number;
+              const expiry = card?.expiry || (profile as any)?.expiry;
+              const cardName = card?.cardholder_name?.trim() || (firstName ? firstName.toUpperCase() : "");
+              if (cardLoading || profLoading) {
+                return (
+                  <>
+                    <Skeleton className="mt-6 h-5 w-56 bg-white/30" />
+                    <div className="mt-3 flex justify-between text-xs opacity-90">
+                      <Skeleton className="h-3 w-24 bg-white/30" />
+                      <Skeleton className="h-3 w-12 bg-white/30" />
+                    </div>
+                  </>
+                );
+              }
+              const masked = raw
+                ? `•••• •••• •••• ${String(raw).replace(/\s+/g, "").slice(-4)}`
+                : "•••• •••• •••• ————";
+              return (
+                <>
+                  <p className="mt-6 font-normal text-sm tracking-[0.2em]">{masked}</p>
+                  <div className="mt-3 flex justify-between text-xs opacity-90">
+                    <span>{cardName || "—"}</span>
+                    <span>{expiry || "—"}</span>
+                  </div>
+                </>
+              );
+            })()}
           </div>
           {(isFrozen ||
             card?.frozen ||
@@ -383,9 +397,9 @@ const DashboardHome = () => {
 
       <div className="grid gap-4 sm:grid-cols-3">
         {[
-          { label: "Credit", value: stats?.inSum ?? 0, icon: ArrowDownLeft, positive: true },
-          { label: "Debit", value: stats?.outSum ?? 0, icon: ArrowUpRight, positive: false },
-          { label: "Net", value: stats?.net ?? 0, icon: TrendingUp, positive: (stats?.net ?? 0) >= 0 },
+          { label: "Credit", value: stats?.inSum, icon: ArrowDownLeft, positive: true },
+          { label: "Debit", value: stats?.outSum, icon: ArrowUpRight, positive: false },
+          { label: "Net", value: stats?.net, icon: TrendingUp, positive: (stats?.net ?? 0) >= 0 },
         ].map((s) => {
           const Icon = s.icon;
           return (
@@ -396,9 +410,13 @@ const DashboardHome = () => {
                   <Icon className="h-4 w-4" />
                 </span>
               </div>
-              <p className={`mt-3 font-display text-2xl font-bold ${s.positive ? "text-success" : "text-foreground"}`}>
-                {formatMoney(Math.abs(s.value), currency || "USD")}
-              </p>
+              {statsLoading || s.value == null ? (
+                <Skeleton className="mt-3 h-7 w-32" />
+              ) : (
+                <p className={`mt-3 font-display text-2xl font-bold ${s.positive ? "text-success" : "text-foreground"}`}>
+                  {formatMoney(Math.abs(s.value), currency || "USD")}
+                </p>
+              )}
             </Card>
           );
         })}
@@ -436,10 +454,10 @@ const DashboardHome = () => {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="break-words text-sm font-medium">
-                    {t.description || t.recipient_name || t.type.replace(/_/g, " ")}
+                    {t.description || t.recipient_name || (t.type === "transfer_in" ? "Credit" : t.type === "transfer_out" ? "Debit" : t.type.replace(/_/g, " "))}
                   </p>
                   <p className="text-xs text-muted-foreground capitalize">
-                    {t.type.replace(/_/g, " ")} • {new Date(t.created_at).toLocaleDateString()}
+                    {t.type === "transfer_in" ? "Credit" : t.type === "transfer_out" ? "Debit" : t.type.replace(/_/g, " ")} • {new Date(t.created_at).toLocaleDateString()}
                   </p>
                 </div>
                 <div className="text-right shrink-0">

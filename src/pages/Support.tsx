@@ -115,8 +115,10 @@ const Support = () => {
           <h1 className="font-display text-2xl font-bold sm:text-3xl">Support</h1>
           <p className="mt-1 text-sm text-muted-foreground">We're here to help, 24/7.</p>
         </div>
-        <Button onClick={() => setNewOpen(true)} className="gap-2 bg-gradient-primary">
-          <Plus className="h-4 w-4" /> New ticket
+        <Button asChild className="gap-2 bg-gradient-primary">
+          <a href="mailto:support@flexiqverve.com?subject=New%20Support%20Ticket">
+            <Plus className="h-4 w-4" /> New ticket
+          </a>
         </Button>
       </div>
 

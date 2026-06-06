@@ -8,7 +8,8 @@ import { currencies } from "@/lib/currencies";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import adminLogo from "@/assets/logo.png";
+import { BrandLogo } from "@/components/BrandLogo";
+import { sendEmail } from "@/lib/sendEmail";
 
 const nativeSelectClass =
  "mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring";
@@ -106,14 +107,40 @@ const Signup = () => {
        }
      }
 
-     clearTimeout(releaseTimeout);
-     setSubmitting(false);
-     toast({
-       title: "Account created",
-       description: "Welcome to Flexiq Verve, Create a pin to continue!",
-     });
-     sessionStorage.removeItem("flexiq_pin_ok");
-     navigate("/pin");
+      clearTimeout(releaseTimeout);
+      setSubmitting(false);
+
+      // Welcome email (best effort)
+      try {
+        await sendEmail({
+          email: form.email,
+          first_name: form.first_name,
+          subject: "Welcome to Flexiq Verve — Account Created Successfully",
+          message:
+`Hello ${form.first_name},
+
+Welcome to Flexiq Verve! Your account has been successfully created.
+
+Here are your account details:
+User ID: ${form.username}
+Account Type: ${form.account_type}
+Currency: ${form.currency}
+
+Please keep your login details safe and do not share them with anyone.
+
+For more information or complaints, please contact support@flexiqverve.com or make use of the Live Chat on your dashboard for assistance.
+
+Kind Regards,
+Flexiq Verve Support Team`,
+        });
+      } catch {}
+
+      toast({
+        title: "Account created",
+        description: "Welcome to Flexiq Verve, Create a pin to continue!",
+      });
+      sessionStorage.removeItem("flexiq_pin_ok");
+      navigate("/pin");
    } catch (err: any) {
      clearTimeout(releaseTimeout);
      setSubmitting(false);
@@ -129,14 +156,8 @@ const Signup = () => {
    <div className="page-enter relative min-h-screen bg-navy-blue-mesh px-4 py-10">
      <div className="mx-auto w-full max-w-2xl overflow-hidden rounded-3xl border border-white/10 bg-white shadow-elev animate-fade-in">
        <div className="bg-gradient-to-br from-[#7C3AED] via-[#8B5CF6] to-[#A78BFA] px-8 pb-8 pt-10 text-center sm:px-10">
-         <Link to="/" className="flex flex-col items-center">
-           <img
-             src={adminLogo}
-             alt="Flexiq Verve"
-             style={{ width: 72, height: "auto", display: "block" }}
-             className="drop-shadow-lg"
-           />
-           <span className="mt-3 font-display text-xl font-bold text-white">Flexiq Verve</span>
+         <Link to="/" className="flex flex-col items-center justify-center">
+           <BrandLogo className="h-10 w-auto object-contain drop-shadow-lg sm:h-12" />
          </Link>
          <h1 className="mt-4 font-display text-3xl font-bold tracking-tight text-white">
            Open your account
@@ -267,17 +288,17 @@ const Signup = () => {
                />
              </div>
 
-             <div className="sm:col-span-2">
-               <Label>Date of birth</Label>
-               <Input
-                 type="date"
-                 required
-                 className="mt-1"
-                 max={new Date().toISOString().split("T")[0]}
-                 value={form.date_of_birth}
-                 onChange={(e) => update("date_of_birth")(e.target.value)}
-               />
-             </div>
+              <div>
+                <Label>Date of birth</Label>
+                <Input
+                  type="date"
+                  required
+                  className="mt-1"
+                  max={new Date().toISOString().split("T")[0]}
+                  value={form.date_of_birth}
+                  onChange={(e) => update("date_of_birth")(e.target.value)}
+                />
+              </div>
 
              <div className="sm:col-span-2">
                <Label>Address</Label>

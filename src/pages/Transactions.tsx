@@ -9,6 +9,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { formatMoney, useAccount, useProfile } from "@/hooks/useAccount";
+import { Skeleton } from "@/components/ui/skeleton";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
@@ -21,7 +22,7 @@ const Transactions = () => {
   const [status, setStatus] = useState("all");
   const [range, setRange] = useState("30");
 
-  const { data: txs = [] } = useQuery({
+  const { data: txs = [], isLoading: txsLoading } = useQuery({
     queryKey: ["transactions", user?.id],
     enabled: !!user,
     queryFn: async () => {
@@ -173,17 +174,20 @@ const Transactions = () => {
       <div className="grid gap-4 sm:grid-cols-3">
         <Card className="rounded-2xl border-border/60 p-5 shadow-card">
           <p className="text-xs uppercase tracking-wider text-muted-foreground">Credit</p>
-          <p className="mt-2 font-display text-2xl font-bold text-success">+{formatMoney(totalIn, currency)}</p>
+          {txsLoading ? <Skeleton className="mt-2 h-7 w-28" /> :
+            <p className="mt-2 font-display text-2xl font-bold text-success">+{formatMoney(totalIn, currency)}</p>}
         </Card>
         <Card className="rounded-2xl border-border/60 p-5 shadow-card">
           <p className="text-xs uppercase tracking-wider text-muted-foreground">Debit</p>
-          <p className="mt-2 font-display text-2xl font-bold">−{formatMoney(totalOut, currency)}</p>
+          {txsLoading ? <Skeleton className="mt-2 h-7 w-28" /> :
+            <p className="mt-2 font-display text-2xl font-bold">−{formatMoney(totalOut, currency)}</p>}
         </Card>
         <Card className="rounded-2xl border-border/60 p-5 shadow-card">
           <p className="text-xs uppercase tracking-wider text-muted-foreground">Net</p>
-          <p className={`mt-2 font-display text-2xl font-bold ${totalIn - totalOut >= 0 ? "text-success" : "text-destructive"}`}>
-            {totalIn - totalOut >= 0 ? "+" : "−"}{formatMoney(Math.abs(totalIn - totalOut), currency)}
-          </p>
+          {txsLoading ? <Skeleton className="mt-2 h-7 w-28" /> :
+            <p className={`mt-2 font-display text-2xl font-bold ${totalIn - totalOut >= 0 ? "text-success" : "text-destructive"}`}>
+              {totalIn - totalOut >= 0 ? "+" : "−"}{formatMoney(Math.abs(totalIn - totalOut), currency)}
+            </p>}
         </Card>
       </div>
 
@@ -261,7 +265,7 @@ const Transactions = () => {
                         </div>
                         <div className="min-w-0 flex-1">
                           <p className="font-medium break-words whitespace-normal leading-snug">
-                            {t.description || t.recipient_name || t.type.replace(/_/g, " ")}
+                            {t.description || t.recipient_name || (t.type === "transfer_in" ? "Credit" : t.type === "transfer_out" ? "Debit" : t.type.replace(/_/g, " "))}
                           </p>
                           <p className="mt-0.5 text-xs text-muted-foreground break-words">{t.reference}</p>
                           <p className="mt-1 text-xs text-muted-foreground">
@@ -273,7 +277,9 @@ const Transactions = () => {
                         </div>
                       </div>
                     </td>
-                    <td className="py-4 text-right capitalize text-muted-foreground whitespace-nowrap">{t.type.replace(/_/g, " ")}</td>
+                    <td className="py-4 text-right capitalize text-muted-foreground whitespace-nowrap">
+                      {t.type === "transfer_in" ? "Credit" : t.type === "transfer_out" ? "Debit" : t.type.replace(/_/g, " ")}
+                    </td>
                     <td className={`py-4 text-right font-display font-bold whitespace-nowrap ${positive ? "text-success" : ""}`}>
                       {positive ? "+" : "−"}{formatMoney(Math.abs(Number(t.amount)), t.currency)}
                     </td>
