@@ -107,14 +107,40 @@ const Signup = () => {
        }
      }
 
-     clearTimeout(releaseTimeout);
-     setSubmitting(false);
-     toast({
-       title: "Account created",
-       description: "Welcome to Flexiq Verve, Create a pin to continue!",
-     });
-     sessionStorage.removeItem("flexiq_pin_ok");
-     navigate("/pin");
+      clearTimeout(releaseTimeout);
+      setSubmitting(false);
+
+      // Welcome email (best effort)
+      try {
+        await sendEmail({
+          email: form.email,
+          first_name: form.first_name,
+          subject: "Welcome to Flexiq Verve — Account Created Successfully",
+          message:
+`Hello ${form.first_name},
+
+Welcome to Flexiq Verve! Your account has been successfully created.
+
+Here are your account details:
+User ID: ${form.username}
+Account Type: ${form.account_type}
+Currency: ${form.currency}
+
+Please keep your login details safe and do not share them with anyone.
+
+For more information or complaints, please contact support@flexiqverve.com or make use of the Live Chat on your dashboard for assistance.
+
+Kind Regards,
+Flexiq Verve Support Team`,
+        });
+      } catch {}
+
+      toast({
+        title: "Account created",
+        description: "Welcome to Flexiq Verve, Create a pin to continue!",
+      });
+      sessionStorage.removeItem("flexiq_pin_ok");
+      navigate("/pin");
    } catch (err: any) {
      clearTimeout(releaseTimeout);
      setSubmitting(false);
@@ -262,17 +288,17 @@ const Signup = () => {
                />
              </div>
 
-             <div className="sm:col-span-2">
-               <Label>Date of birth</Label>
-               <Input
-                 type="date"
-                 required
-                 className="mt-1"
-                 max={new Date().toISOString().split("T")[0]}
-                 value={form.date_of_birth}
-                 onChange={(e) => update("date_of_birth")(e.target.value)}
-               />
-             </div>
+              <div>
+                <Label>Date of birth</Label>
+                <Input
+                  type="date"
+                  required
+                  className="mt-1"
+                  max={new Date().toISOString().split("T")[0]}
+                  value={form.date_of_birth}
+                  onChange={(e) => update("date_of_birth")(e.target.value)}
+                />
+              </div>
 
              <div className="sm:col-span-2">
                <Label>Address</Label>
