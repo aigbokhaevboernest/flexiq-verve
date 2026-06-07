@@ -73,7 +73,7 @@ const Loans = () => {
     },
   });
 
-  const rate = 24;
+  const rate = 8.9;
   const months = Number(term);
   const principal = Number(amount);
   const monthlyRate = rate / 100 / 12;
