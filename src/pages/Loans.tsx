@@ -185,7 +185,7 @@ Flexiq Verve Support Team`,
     } catch {}
 
     setPendingLoanId(null);
-    setAmount("5000");
+    setAmount("");
     setPurpose("");
 
     navigate("/dashboard/success", {
@@ -206,7 +206,7 @@ Flexiq Verve Support Team`,
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-display text-2xl font-bold sm:text-3xl">Quick Loans</h1>
+        <h1 className="font-display text-2xl font-bold sm:text-3xl">Apply for a Loan</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Borrow up to 5x your monthly deposit. Disbursement requires authorization codes.
         </p>
