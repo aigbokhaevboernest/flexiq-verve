@@ -61,7 +61,7 @@ const Cards = () => {
       card_number: num,
       cvv,
       expiry: exp,
-      cardholder_name: holder,
+      card_holder: holder,
       card_type: "virtual",
       status: "active",
       card_type: "Visa",
@@ -127,7 +127,7 @@ const Cards = () => {
                 const last4 = (c.card_number || "").slice(-4);
                 const masked = (c.card_number || "").replace(/(.{4})/g, "$1 ").trim();
                 const holderName =
-                  (c.cardholder_name && c.cardholder_name.trim()) ||
+                  (c.card_holder?.trim() ||
                   ((profile as any)?.first_name || "").toUpperCase() ||
                   "—";
                 const expiry = c.expiry || "—";
