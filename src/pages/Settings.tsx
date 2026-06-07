@@ -86,9 +86,7 @@ Flexiq Verve Support Team`,
           email: em, first_name: fn,
           subject: "Password Changed — Flexiq Verve",
           message:
-`Hello ${fn},
-
-Your Flexiq Verve account password has been successfully changed.
+`Your Flexiq Verve account password has been successfully changed.
 
 If you did not perform this action, please contact support immediately as your account may be at risk.
 
