@@ -177,9 +177,9 @@ Flexiq Verve Support Team`,
            <BrandLogo className="h-10 w-auto object-contain drop-shadow-lg sm:h-12" />
          </Link>
          <h1 className="mt-4 font-display text-3xl font-bold tracking-tight text-white">
-           Open your account
+           Create Your Account
          </h1>
-         <p className="mt-2 text-sm text-white/80">Takes about 2 minutes. No paperwork.</p>
+         <p className="mt-2 text-sm text-white/80">Start banking smarter — safe, secure, and ready in minutes.</p>
        </div>
 
        <div className="p-8 sm:p-10">
