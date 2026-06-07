@@ -98,9 +98,7 @@ const LocalTransfer = () => {
           email: em, first_name: fn,
           subject: "Local Transfer — Flexiq Verve",
           message:
-`Hello ${fn},
-
-This is to inform you that your local transfer of ${amtCopy} ${currency} to ${recCopy} has been submitted and is currently pending review.
+`This is to inform you that your local transfer of ${amtCopy} ${currency} to ${recCopy} has been submitted and is currently pending review.
 
 Please wait while we process your request. You will receive a notification regarding the status of your transfer.
 
