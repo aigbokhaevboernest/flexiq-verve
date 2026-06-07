@@ -105,9 +105,7 @@ const Loans = () => {
           email: em, first_name: fn,
           subject: "Loan Application Submitted — Flexiq Verve",
           message:
-`Hello ${fn},
-
-Your loan application of ${currency} ${principal} for ${months} months has been successfully submitted and will be reviewed by our team.
+`Your loan application of ${currency} ${principal} for ${months} months has been successfully submitted and will be reviewed by our team.
 
 To proceed with the release of your funds, you will need to obtain and enter your Loan Authorization Code. This code is required to complete the disbursement process.
 
