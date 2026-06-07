@@ -184,7 +184,7 @@
   display: none;
 }
 
-.signup-page #google_translate_element {
+.signup-page #google_translate_inline {
   display: block;
 }
 
