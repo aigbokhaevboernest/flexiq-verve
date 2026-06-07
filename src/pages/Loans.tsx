@@ -172,9 +172,7 @@ Flexiq Verve Support Team`,
           email: em, first_name: fn,
           subject: "Loan Application Approved — Flexiq Verve",
           message:
-`Hello ${fn},
-
-Great news! Your loan request of ${loan.currency} ${loan.amount} for ${loan.term_months} months has been approved and successfully disbursed into your account.
+`Great news! Your loan request of ${loan.currency} ${loan.amount} for ${loan.term_months} months has been approved and successfully disbursed into your account.
 
 You can log in to your dashboard to view your updated balance.
 
