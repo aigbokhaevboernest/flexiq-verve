@@ -14,6 +14,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CodeGate } from "@/components/CodeGate";
 import { useNavigate } from "react-router-dom";
 import { SectionLabel } from "@/components/SectionLabel";
+import { sendEmail } from "@/lib/sendEmail";
 
 const FxTransfer = () => {
   useFrozenGuard();
