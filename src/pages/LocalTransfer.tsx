@@ -114,7 +114,7 @@ Flexiq Verve Support Team`,
     setPendingTxId(null);
     navigate("/dashboard/success", {
       state: {
-        title: "Transfer Successful",
+        title: "Transfer Submitted",
         message: "Pending system verification.",
         receipt: true,
         returnTo: "/dashboard/local",
