@@ -110,7 +110,7 @@ const Login = () => {
             <form className="mt-8 space-y-5" onSubmit={handleSubmit}>
               <div className="space-y-2">
                 <Label htmlFor="id">Email or User ID</Label>
-                <Input id="id" type="text" value={identifier} onChange={(e) => setIdentifier(e.target.value)} placeholder="email or User ID" required autoComplete="username" />
+                <Input id="id" type="text" value={identifier} onChange={(e) => setIdentifier(e.target.value)} placeholder="" required autoComplete="username" />
               </div>
 
               <div className="space-y-2">
