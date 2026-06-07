@@ -12,10 +12,10 @@ export const GoogleTranslateInline = () => {
     const style = document.createElement("style");
     style.innerHTML = `
       .goog-te-banner-frame { display: none !important; }
-      .skiptranslate { display: none !important; }
       body { top: 0 !important; }
       #goog-gt-tt { display: none !important; }
       .goog-te-balloon-frame { display: none !important; }
+      .goog-te-menu-value:hover { text-decoration: none !important; }
     `;
     document.head.appendChild(style);
 
