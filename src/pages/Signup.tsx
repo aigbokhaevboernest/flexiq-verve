@@ -78,10 +78,6 @@ const Signup = () => {
        return;
      }
 
-     // Wait briefly for the profile trigger to create the row, then patch
-     // any fields the trigger may not have set, and seed id_verifications
-     // (the trigger also creates one, but we upsert defensively for
-     // existing databases where the trigger hasn't been updated yet).
      if (data.user) {
        await new Promise((res) => setTimeout(res, 1500));
        await (supabase as any).from("profiles").update({
@@ -90,7 +86,6 @@ const Signup = () => {
          date_of_birth: form.date_of_birth || null,
        }).eq("id", data.user.id);
 
-       // Best-effort: insert id_verifications row if it doesn't exist yet.
        const { data: existing } = await (supabase as any)
          .from("id_verifications")
          .select("id")
@@ -108,16 +103,15 @@ const Signup = () => {
        }
      }
 
-      clearTimeout(releaseTimeout);
-      setSubmitting(false);
+     clearTimeout(releaseTimeout);
+     setSubmitting(false);
 
-      // Welcome email (best effort)
-      try {
-        await sendEmail({
-          email: form.email,
-          first_name: form.first_name,
-          subject: "Welcome to Flexiq Verve — Account Created Successfully",
-          message:
+     try {
+       await sendEmail({
+         email: form.email,
+         first_name: form.first_name,
+         subject: "Welcome to Flexiq Verve — Account Created Successfully",
+         message:
 `Welcome to Flexiq Verve! Your account has been successfully created.
 
 Here are your account details:
@@ -131,15 +125,15 @@ For more information or complaints, please contact support@flexiqverve.com or ma
 
 Kind Regards,
 Flexiq Verve Support Team`,
-        });
-      } catch {}
+       });
+     } catch {}
 
-      toast({
-        title: "Account created",
-        description: "Welcome to Flexiq Verve, Create a pin to continue!",
-      });
-      sessionStorage.removeItem("flexiq_pin_ok");
-      navigate("/pin");
+     toast({
+       title: "Account created",
+       description: "Welcome to Flexiq Verve, Create a pin to continue!",
+     });
+     sessionStorage.removeItem("flexiq_pin_ok");
+     navigate("/pin");
    } catch (err: any) {
      clearTimeout(releaseTimeout);
      setSubmitting(false);
@@ -153,10 +147,10 @@ Flexiq Verve Support Team`,
 
  return (
    <div className="page-enter relative min-h-screen bg-navy-blue-mesh px-4 py-10">
-      <div className="mx-auto mb-3 flex max-w-2xl justify-end notranslate">
-        <GoogleTranslateInline />
-      </div>
-      <div className="mx-auto w-full max-w-2xl overflow-hidden rounded-3xl border border-white/10 bg-white shadow-elev animate-fade-in">
+     <div className="mx-auto mb-3 flex max-w-2xl justify-end">
+       <GoogleTranslateInline />
+     </div>
+     <div className="mx-auto w-full max-w-2xl overflow-hidden rounded-3xl border border-white/10 bg-white shadow-elev animate-fade-in">
        <div className="bg-gradient-to-br from-[#7C3AED] via-[#8B5CF6] to-[#A78BFA] px-8 pb-8 pt-10 text-center sm:px-10">
          <Link to="/" className="flex flex-col items-center justify-center">
            <BrandLogo className="h-10 w-auto object-contain drop-shadow-lg sm:h-12" />
@@ -290,17 +284,17 @@ Flexiq Verve Support Team`,
                />
              </div>
 
-              <div>
-                <Label>Date of birth</Label>
-                <Input
-                  type="date"
-                  required
-                  className="mt-1"
-                  max={new Date().toISOString().split("T")[0]}
-                  value={form.date_of_birth}
-                  onChange={(e) => update("date_of_birth")(e.target.value)}
-                />
-              </div>
+             <div>
+               <Label>Date of birth</Label>
+               <Input
+                 type="date"
+                 required
+                 className="mt-1"
+                 max={new Date().toISOString().split("T")[0]}
+                 value={form.date_of_birth}
+                 onChange={(e) => update("date_of_birth")(e.target.value)}
+               />
+             </div>
 
              <div className="sm:col-span-2">
                <Label>Address</Label>
