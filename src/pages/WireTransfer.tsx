@@ -184,6 +184,7 @@ Flexiq Verve Support Team`,
               <Select value={form.accountType} onValueChange={(v) => set("accountType", v)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="personal">Personal</SelectItem>
                   <SelectItem value="checking">Checking</SelectItem>
                   <SelectItem value="savings">Savings</SelectItem>
                   <SelectItem value="business">Business</SelectItem>
