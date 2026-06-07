@@ -126,10 +126,11 @@ const Cards = () => {
                 const isTop = offset === 0;
                 const last4 = (c.card_number || "").slice(-4);
                 const masked = (c.card_number || "").replace(/(.{4})/g, "$1 ").trim();
-                const holderName =
-                  (c.card_holder?.trim() ||
-                  ((profile as any)?.first_name || "").toUpperCase() ||
-                  "—";
+                const cardHolder =
+  c.card_holder?.trim() ||
+  ((profile as any)?.first_name || "").toUpperCase() ||
+  "—";
+
                 const expiry = c.expiry || "—";
                 const isInactive = c.status && c.status !== "active";
                 return (
