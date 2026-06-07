@@ -23,10 +23,18 @@ import { useAuth } from "@/hooks/useAuth";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/EmptyState";
 
-const quickActions = [
+const BILL_ICON_URL = "https://cdn-icons-png.flaticon.com/512/11511752/11511752.png";
+
+const quickActions: Array<{
+  icon?: any;
+  iconUrl?: string;
+  label: string;
+  to: string;
+  disabled?: boolean;
+}> = [
  { icon: Send, label: "Send", to: "/dashboard/send/wire" },
  { icon: ArrowDownLeft, label: "Receive", to: "/dashboard/receive" },
- { icon: Receipt, label: "Bills", to: "/dashboard/bills", disabled: true },
+ { iconUrl: BILL_ICON_URL, label: "Bills", to: "/dashboard/bills", disabled: true },
  { icon: Wallet, label: "Loans", to: "/dashboard/loans" },
 ];
 
