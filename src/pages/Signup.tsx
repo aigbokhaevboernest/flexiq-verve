@@ -201,7 +201,7 @@ Flexiq Verve Support Team`,
                  type="email"
                  required
                  className="mt-1"
-                 placeholder="email address"
+                 placeholder="jane@email.com"
                  value={form.email}
                  onChange={(e) => update("email")(e.target.value)}
                />
