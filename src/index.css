@@ -180,9 +180,6 @@
 }
 .page-enter { animation: page-enter 0.5s cubic-bezier(0.4, 0, 0.2, 1) both; }
 
-#google_translate_element {
-  display: none;
-}
 
 .signup-page #google_translate_inline {
   display: block;
