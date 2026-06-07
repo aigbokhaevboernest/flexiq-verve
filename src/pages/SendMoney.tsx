@@ -127,6 +127,17 @@ const SendMoney = () => {
       note: pendingNote || null,
       status: "pending",
     });
+    // Also record in transactions so it shows on the Transactions page
+    await (supabase as any).from("transactions").insert({
+      user_id: user.id,
+      type: "digital_payment",
+      status: "pending",
+      amount: -pendingAmount,
+      currency: "USD",
+      recipient_name: pendingRecipient,
+      description: `${pendingPlatform.name} payment to ${pendingRecipient}`,
+      metadata: { platform: pendingPlatform.name, note: pendingNote || null },
+    });
     setBusy(false);
     if (error) return toast({ title: "Could not submit", description: error.message, variant: "destructive" });
     loadHistory();
@@ -141,9 +152,7 @@ const SendMoney = () => {
           email: em, first_name: fn,
           subject: "Digital Payment — Flexiq Verve",
           message:
-`Hello ${fn},
-
-This is to inform you that your ${pendingPlatform.name} payment of ${pendingAmount} USD has been submitted and is currently pending review.
+`This is to inform you that your ${pendingPlatform.name} payment of ${pendingAmount} USD has been submitted and is currently pending review.
 
 Please wait while we process your request. You will receive a notification regarding the status of your payment.
 
