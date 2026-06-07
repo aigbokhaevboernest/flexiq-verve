@@ -109,8 +109,8 @@ const Login = () => {
           <div className="p-8 sm:p-10">
             <form className="mt-8 space-y-5" onSubmit={handleSubmit}>
               <div className="space-y-2">
-                <Label htmlFor="id">Email or username</Label>
-                <Input id="id" type="text" value={identifier} onChange={(e) => setIdentifier(e.target.value)} placeholder="you@flexiqverve.com or username" required autoComplete="username" />
+                <Label htmlFor="id">Email or User ID</Label>
+                <Input id="id" type="text" value={identifier} onChange={(e) => setIdentifier(e.target.value)} placeholder="email or User ID" required autoComplete="username" />
               </div>
 
               <div className="space-y-2">
