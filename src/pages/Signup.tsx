@@ -9,6 +9,7 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { BrandLogo } from "@/components/BrandLogo";
+import { GoogleTranslateInline } from "@/components/GoogleTranslateInline";
 import { sendEmail } from "@/lib/sendEmail";
 
 const nativeSelectClass =
