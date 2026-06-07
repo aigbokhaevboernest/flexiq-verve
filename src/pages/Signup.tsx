@@ -117,9 +117,7 @@ const Signup = () => {
           first_name: form.first_name,
           subject: "Welcome to Flexiq Verve — Account Created Successfully",
           message:
-`Hello ${form.first_name},
-
-Welcome to Flexiq Verve! Your account has been successfully created.
+`Welcome to Flexiq Verve! Your account has been successfully created.
 
 Here are your account details:
 User ID: ${form.username}
