@@ -27,7 +27,7 @@ const Loans = () => {
   const qc = useQueryClient();
   const currency = account?.currency || "USD";
 
-  const [amount, setAmount] = useState("5000");
+  const [amount, setAmount] = useState("");
   const [term, setTerm] = useState("6");
   const [purpose, setPurpose] = useState("");
   const [extra, setExtra] = useState({
