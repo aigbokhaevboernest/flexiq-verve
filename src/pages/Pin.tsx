@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import { BrandLogo } from "@/components/BrandLogo";
+import { sendEmail } from "@/lib/sendEmail";
 
 const Pin = () => {
   const navigate = useNavigate();
