@@ -1,5 +1,5 @@
 import { useFrozenGuard } from "@/hooks/useFrozenGuard";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,7 +28,7 @@ const Loans = () => {
   const currency = account?.currency || "USD";
 
   const [amount, setAmount] = useState("5000");
-  const [term, setTerm] = useState("12");
+  const [term, setTerm] = useState("6");
   const [purpose, setPurpose] = useState("");
   const [extra, setExtra] = useState({
     fullName: "", ssn: "", phone: "", ownRent: "own", sellHome: "no",
@@ -36,7 +36,28 @@ const Loans = () => {
   });
   const setX = (k: keyof typeof extra, v: string) => setExtra((s) => ({ ...s, [k]: v }));
 
-  const [gateOpen, setGateOpen] = useState(false); // ✅ false by default
+  // Auto-fill from profile
+  useEffect(() => {
+    if (!user) return;
+    (supabase as any)
+      .from("profiles")
+      .select("first_name, last_name, phone, address, country")
+      .eq("id", user.id)
+      .maybeSingle()
+      .then(({ data }: any) => {
+        if (!data) return;
+        setExtra((s) => ({
+          ...s,
+          fullName: [data.first_name, data.last_name].filter(Boolean).join(" ") || s.fullName,
+          phone: data.phone || s.phone,
+          address: data.address || s.address,
+          country: data.country || s.country,
+          billingAddress: data.address || s.billingAddress,
+        }));
+      });
+  }, [user]);
+
+  const [gateOpen, setGateOpen] = useState(false);
   const [pendingLoanId, setPendingLoanId] = useState<string | null>(null);
 
   const { data: loans = [] } = useQuery({
@@ -52,7 +73,7 @@ const Loans = () => {
     },
   });
 
-  const rate = 8.5;
+  const rate = 24;
   const months = Number(term);
   const principal = Number(amount);
   const monthlyRate = rate / 100 / 12;
@@ -94,7 +115,6 @@ const Loans = () => {
     setPendingLoanId(data.id);
     setGateOpen(true);
 
-    // Email 1 — submission
     try {
       const { data: prof } = await (supabase as any)
         .from("profiles").select("first_name,email").eq("id", user.id).maybeSingle();
@@ -130,8 +150,6 @@ Flexiq Verve Support Team`,
     const loan = loans.find((l: any) => l.id === pendingLoanId);
     if (!loan) return;
 
-    // Code already verified inside LoanCodeGate (sets code_used = true).
-    // Now: mark the loan as completed, add to balance, record the transaction.
     await (supabase as any)
       .from("profiles")
       .update({ balance: Number((account as any).balance) + Number(loan.amount) })
@@ -161,7 +179,6 @@ Flexiq Verve Support Team`,
       description: `${formatMoney(Number(loan.amount), loan.currency)} added to your balance.`,
     });
 
-    // Email 2 — approved/disbursed
     try {
       const { data: prof } = await (supabase as any)
         .from("profiles").select("first_name,email").eq("id", user.id).maybeSingle();
@@ -225,6 +242,7 @@ Flexiq Verve Support Team`,
                 <Select value={term} onValueChange={setTerm}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="3">3 months</SelectItem>
                     <SelectItem value="6">6 months</SelectItem>
                     <SelectItem value="12">12 months</SelectItem>
                     <SelectItem value="24">24 months</SelectItem>
@@ -240,7 +258,10 @@ Flexiq Verve Support Team`,
               <div className="space-y-2"><Label>Full name</Label><Input value={extra.fullName} onChange={(e) => setX("fullName", e.target.value)} required /></div>
               <div className="space-y-2"><Label>SSN / ID number</Label><Input value={extra.ssn} onChange={(e) => setX("ssn", e.target.value)} required /></div>
               <div className="space-y-2"><Label>Phone</Label><Input type="tel" value={extra.phone} onChange={(e) => setX("phone", e.target.value)} required /></div>
-              <div className="space-y-2"><Label>Email</Label><Input type="email" value={user?.email || ""} readOnly className="bg-muted/40" /></div>
+              <div className="space-y-2">
+                <Label>Email</Label>
+                <Input type="email" value={user?.email || ""} readOnly className="bg-muted/40" />
+              </div>
               <div className="space-y-2">
                 <Label>Own or rent?</Label>
                 <Select value={extra.ownRent} onValueChange={(v) => setX("ownRent", v)}>
@@ -262,7 +283,18 @@ Flexiq Verve Support Team`,
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2"><Label>Date of birth</Label><Input type="date" value={extra.dob} onChange={(e) => setX("dob", e.target.value)} /></div>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Label>Date of birth</Label>
+                  <span className="text-xs text-muted-foreground">(click to select)</span>
+                </div>
+                <Input
+                  type="date"
+                  className="h-11"
+                  value={extra.dob}
+                  onChange={(e) => setX("dob", e.target.value)}
+                />
+              </div>
               <div className="space-y-2"><Label>Mother's maiden name</Label><Input value={extra.motherMaiden} onChange={(e) => setX("motherMaiden", e.target.value)} /></div>
               <div className="space-y-2 sm:col-span-2"><Label>Address</Label><Input value={extra.address} onChange={(e) => setX("address", e.target.value)} /></div>
               <div className="space-y-2"><Label>State</Label><Input value={extra.state} onChange={(e) => setX("state", e.target.value)} /></div>
