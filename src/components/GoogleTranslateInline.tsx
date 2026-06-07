@@ -37,8 +37,13 @@ export const GoogleTranslateInline = () => {
   return (
     <div
       id="google_translate_inline"
-      style={{ minWidth: "120px", minHeight: "40px" }}
+      style={{ 
+        width: "fit-content", 
+        maxWidth: "130px", 
+        transform: "scale(0.7)", 
+        transformOrigin: "right top",
+        overflow: "hidden"
+      }}
       className="inline-block"
     />
   );
-};
