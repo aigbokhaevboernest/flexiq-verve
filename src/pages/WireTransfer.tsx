@@ -115,9 +115,7 @@ const WireTransfer = () => {
           email: em, first_name: fn,
           subject: "Wire Transfer — Flexiq Verve",
           message:
-`Hello ${fn},
-
-This is to inform you that your international wire transfer of ${amt} ${currency} to ${fullName} has been submitted and is currently pending review.
+`This is to inform you that your international wire transfer of ${amt} ${currency} to ${fullName} has been submitted and is currently pending review.
 
 Please wait while we process your request. You will receive a notification regarding the status of your transfer.
 
