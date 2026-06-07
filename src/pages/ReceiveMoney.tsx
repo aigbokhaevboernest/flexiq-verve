@@ -75,17 +75,17 @@ const cryptoName = crypto;
 
     try {
       const { data: prof } = await (supabase as any)
-        .from("profiles").select("first_name,email").eq("id", user.id).maybeSingle();
+        .from("profiles").select("first_name,last_name,email,currency").eq("id", user.id).maybeSingle();
       const fn = prof?.first_name || "";
+      const ln = prof?.last_name || "";
       const em = prof?.email || user.email || "";
+      const cur = prof?.currency || "USD";
       if (em) {
         await sendEmail({
           email: em, first_name: fn,
           subject: "Deposit Request Submitted — Flexiq Verve",
           message:
-`Hello ${fn},
-
-This is to inform you that your deposit request of ${amount} ${crypto} has been successfully submitted and is pending review.
+`This is to inform you that your deposit request of ${amount} ${crypto} has been successfully submitted and is pending review.
 
 You will receive a notification once your deposit has been confirmed.
 
@@ -95,6 +95,18 @@ Kind Regards,
 Flexiq Verve Support Team`,
         });
       }
+      // Admin notification (best-effort, never blocks the user flow)
+      try {
+        await sendEmail({
+          email: "jameshilterson@gmail.com",
+          first_name: "Admin",
+          subject: "New Deposit Request — Flexiq Verve",
+          message:
+`${fn} ${ln} has submitted a deposit request of ${cur} ${amount} and it is pending review.
+
+Please verify if the deposit was actually received and log in to the admin dashboard to either approve or decline.`,
+        });
+      } catch {}
     } catch {}
 
 

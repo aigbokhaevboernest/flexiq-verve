@@ -79,7 +79,7 @@ const Success = () => {
             <div className={`mx-auto flex h-20 w-20 items-center justify-center rounded-full ring-4 ${iconWrap}`}>
               <Icon className={`h-12 w-12 ${iconColor}`} />
             </div>
-            <h1 className="mt-5 font-display text-2xl font-bold">{state.title || "Transfer Successful"}</h1>
+            <h1 className="mt-5 font-display text-2xl font-bold">{state.title || "Transfer Submitted"}</h1>
             <p className="mt-1 text-sm text-muted-foreground">{state.message || "Pending system verification."}</p>
 
             {state.details && state.details.length > 0 && (

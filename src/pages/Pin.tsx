@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import { BrandLogo } from "@/components/BrandLogo";
+import { sendEmail } from "@/lib/sendEmail";
 
 const Pin = () => {
   const navigate = useNavigate();
@@ -68,6 +69,28 @@ const Pin = () => {
     localStorage.setItem(`hasPinSetup:${user!.id}`, "1");
     sessionStorage.setItem("flexiq_pin_ok", "1");
     toast({ title: "PIN set" });
+
+    // Best-effort PIN confirmation email
+    try {
+      const { data: prof } = await (supabase as any)
+        .from("profiles").select("first_name,email").eq("id", user!.id).maybeSingle();
+      const fn = prof?.first_name || "";
+      const em = prof?.email || user!.email || "";
+      if (em) {
+        await sendEmail({
+          email: em, first_name: fn,
+          subject: "Your Account PIN Has Been Set — Flexiq Verve",
+          message:
+`Your Flexiq Verve account PIN has been successfully created. Your account is now secured with a PIN. Do not share your PIN or login credentials with anyone for your security.
+
+If you did not set this PIN, please contact us immediately at support@flexiqverve.com.
+
+Kind Regards,
+Flexiq Verve Support Team`,
+        });
+      }
+    } catch {}
+
     navigate("/dashboard", { replace: true });
   };
 
