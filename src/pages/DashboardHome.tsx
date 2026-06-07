@@ -127,27 +127,22 @@ const DashboardHome = () => {
     },
   });
 
-  const { data: stats, isLoading: statsLoading } = useQuery({
-    queryKey: ["stats", user?.id],
-    enabled: !!user,
-    queryFn: async () => {
-      const since = new Date();
-      since.setDate(since.getDate() - 30);
-      const { data } = await supabase
-        .from("transactions")
-        .select("amount,type,status")
-        .eq("user_id", user!.id)
-        .eq("status", "completed")
-        .gte("created_at", since.toISOString());
-      const inSum = (data || [])
-        .filter((t) => Number(t.amount) > 0)
-        .reduce((s, t) => s + Number(t.amount), 0);
-      const outSum = (data || [])
-        .filter((t) => Number(t.amount) < 0)
-        .reduce((s, t) => s + Math.abs(Number(t.amount)), 0);
-      return { inSum, outSum, net: inSum - outSum };
-    },
-  });
+  queryFn: async () => {
+  const { data } = await supabase
+    .from("transactions")
+    .select("amount,type,status")
+    .eq("user_id", user!.id)
+    .eq("status", "completed");
+
+  const inSum = (data || [])
+    .filter((t) => Number(t.amount) > 0)
+    .reduce((s, t) => s + Number(t.amount), 0);
+  const outSum = (data || [])
+    .filter((t) => Number(t.amount) < 0)
+    .reduce((s, t) => s + Math.abs(Number(t.amount)), 0);
+  return { inSum, outSum, net: inSum - outSum };
+},
+
 
   const profileReady = !!profile && !profLoading;
   const firstName = (profile as any)?.first_name?.trim() || "";
