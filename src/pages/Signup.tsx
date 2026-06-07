@@ -9,11 +9,15 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { BrandLogo } from "@/components/BrandLogo";
-import { GoogleTranslateInline } from "@/components/GoogleTranslateInline";
 import { sendEmail } from "@/lib/sendEmail";
 
 const nativeSelectClass =
  "mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring";
+
+const langChange = (val: string) => {
+  const select = document.querySelector(".goog-te-combo") as HTMLSelectElement;
+  if (select) { select.value = val; select.dispatchEvent(new Event("change")); }
+};
 
 const Signup = () => {
  const navigate = useNavigate();
@@ -148,7 +152,24 @@ Flexiq Verve Support Team`,
  return (
    <div className="page-enter relative min-h-screen bg-navy-blue-mesh px-4 py-10">
      <div className="mx-auto mb-3 flex max-w-2xl justify-end">
-       <GoogleTranslateInline />
+       <select
+         onChange={(e) => langChange(e.target.value)}
+         className="text-sm rounded-md border border-white/20 bg-white/10 text-white px-3 py-1.5 backdrop-blur-sm cursor-pointer"
+       >
+         <option value="">🌐 Language</option>
+         <option value="es">Spanish</option>
+         <option value="fr">French</option>
+         <option value="de">German</option>
+         <option value="zh-CN">Chinese</option>
+         <option value="ar">Arabic</option>
+         <option value="pt">Portuguese</option>
+         <option value="ru">Russian</option>
+         <option value="ja">Japanese</option>
+         <option value="ko">Korean</option>
+         <option value="hi">Hindi</option>
+         <option value="it">Italian</option>
+         <option value="tr">Turkish</option>
+       </select>
      </div>
      <div className="mx-auto w-full max-w-2xl overflow-hidden rounded-3xl border border-white/10 bg-white shadow-elev animate-fade-in">
        <div className="bg-gradient-to-br from-[#7C3AED] via-[#8B5CF6] to-[#A78BFA] px-8 pb-8 pt-10 text-center sm:px-10">
@@ -166,81 +187,34 @@ Flexiq Verve Support Team`,
            <div className="grid gap-4 sm:grid-cols-2">
              <div>
                <Label>First name</Label>
-               <Input
-                 required
-                 className="mt-1"
-                 placeholder="First name"
-                 value={form.first_name}
-                 onChange={(e) => update("first_name")(e.target.value)}
-               />
+               <Input required className="mt-1" placeholder="First name" value={form.first_name} onChange={(e) => update("first_name")(e.target.value)} />
              </div>
              <div>
                <Label>Last name</Label>
-               <Input
-                 required
-                 className="mt-1"
-                 placeholder="Last name"
-                 value={form.last_name}
-                 onChange={(e) => update("last_name")(e.target.value)}
-               />
+               <Input required className="mt-1" placeholder="Last name" value={form.last_name} onChange={(e) => update("last_name")(e.target.value)} />
              </div>
-
              <div>
                <Label>Username</Label>
-               <Input
-                 required
-                 className="mt-1"
-                 placeholder="username"
-                 value={form.username}
-                 onChange={(e) => update("username")(e.target.value.replace(/\s+/g, ""))}
-               />
+               <Input required className="mt-1" placeholder="username" value={form.username} onChange={(e) => update("username")(e.target.value.replace(/\s+/g, ""))} />
              </div>
              <div>
                <Label>Email</Label>
-               <Input
-                 type="email"
-                 required
-                 className="mt-1"
-                 placeholder="jane@email.com"
-                 value={form.email}
-                 onChange={(e) => update("email")(e.target.value)}
-               />
+               <Input type="email" required className="mt-1" placeholder="email address" value={form.email} onChange={(e) => update("email")(e.target.value)} />
              </div>
-
              <div>
                <Label>Phone</Label>
-               <Input
-                 type="tel"
-                 required
-                 className="mt-1"
-                 placeholder="Phone number"
-                 value={form.phone}
-                 onChange={(e) => update("phone")(e.target.value)}
-               />
+               <Input type="tel" required className="mt-1" placeholder="Phone number" value={form.phone} onChange={(e) => update("phone")(e.target.value)} />
              </div>
              <div>
                <Label>Country</Label>
-               <select
-                 required
-                 className={nativeSelectClass}
-                 value={form.country}
-                 onChange={(e) => update("country")(e.target.value)}
-               >
+               <select required className={nativeSelectClass} value={form.country} onChange={(e) => update("country")(e.target.value)}>
                  <option value="">Select country</option>
-                 {countries.map((c) => (
-                   <option key={c} value={c}>{c}</option>
-                 ))}
+                 {countries.map((c) => <option key={c} value={c}>{c}</option>)}
                </select>
              </div>
-
              <div>
                <Label>Account type</Label>
-               <select
-                 required
-                 className={nativeSelectClass}
-                 value={form.account_type}
-                 onChange={(e) => update("account_type")(e.target.value)}
-               >
+               <select required className={nativeSelectClass} value={form.account_type} onChange={(e) => update("account_type")(e.target.value)}>
                  <option value="">Choose account</option>
                  <option value="personal">Personal</option>
                  <option value="business">Business</option>
@@ -250,86 +224,34 @@ Flexiq Verve Support Team`,
              </div>
              <div>
                <Label>Preferred currency</Label>
-               <select
-                 required
-                 className={nativeSelectClass}
-                 value={form.currency}
-                 onChange={(e) => update("currency")(e.target.value)}
-               >
+               <select required className={nativeSelectClass} value={form.currency} onChange={(e) => update("currency")(e.target.value)}>
                  <option value="">Currency</option>
-                 {currencies.map((c) => (
-                   <option key={c.code} value={c.code}>{c.code} — {c.name}</option>
-                 ))}
+                 {currencies.map((c) => <option key={c.code} value={c.code}>{c.code} — {c.name}</option>)}
                </select>
              </div>
-
              <div>
                <Label>City</Label>
-               <Input
-                 required
-                 className="mt-1"
-                 placeholder="City"
-                 value={form.city}
-                 onChange={(e) => update("city")(e.target.value)}
-               />
+               <Input required className="mt-1" placeholder="City" value={form.city} onChange={(e) => update("city")(e.target.value)} />
              </div>
              <div>
                <Label>Postal code</Label>
-               <Input
-                 required
-                 className="mt-1"
-                 placeholder="Postal code"
-                 value={form.postal_code}
-                 onChange={(e) => update("postal_code")(e.target.value)}
-               />
+               <Input required className="mt-1" placeholder="Postal code" value={form.postal_code} onChange={(e) => update("postal_code")(e.target.value)} />
              </div>
-
              <div>
                <Label>Date of birth</Label>
-               <Input
-                 type="date"
-                 required
-                 className="mt-1"
-                 max={new Date().toISOString().split("T")[0]}
-                 value={form.date_of_birth}
-                 onChange={(e) => update("date_of_birth")(e.target.value)}
-               />
+               <Input type="date" required className="mt-1" max={new Date().toISOString().split("T")[0]} value={form.date_of_birth} onChange={(e) => update("date_of_birth")(e.target.value)} />
              </div>
-
              <div className="sm:col-span-2">
                <Label>Address</Label>
-               <Input
-                 required
-                 className="mt-1"
-                 placeholder="Street address"
-                 value={form.address}
-                 onChange={(e) => update("address")(e.target.value)}
-               />
+               <Input required className="mt-1" placeholder="Street address" value={form.address} onChange={(e) => update("address")(e.target.value)} />
              </div>
-
              <div>
                <Label>Password</Label>
-               <Input
-                 type="password"
-                 required
-                 minLength={8}
-                 className="mt-1"
-                 placeholder="At least 8 characters"
-                 value={form.password}
-                 onChange={(e) => update("password")(e.target.value)}
-               />
+               <Input type="password" required minLength={8} className="mt-1" placeholder="At least 8 characters" value={form.password} onChange={(e) => update("password")(e.target.value)} />
              </div>
              <div>
                <Label>Confirm password</Label>
-               <Input
-                 type="password"
-                 required
-                 minLength={8}
-                 className="mt-1"
-                 placeholder="Repeat password"
-                 value={form.confirm_password}
-                 onChange={(e) => update("confirm_password")(e.target.value)}
-               />
+               <Input type="password" required minLength={8} className="mt-1" placeholder="Repeat password" value={form.confirm_password} onChange={(e) => update("confirm_password")(e.target.value)} />
              </div>
            </div>
 
@@ -337,31 +259,20 @@ Flexiq Verve Support Team`,
              <Checkbox required className="mt-0.5" />
              <span>
                I agree to the{" "}
-               <Link to="/terms" className="font-medium text-primary hover:underline">
-                 Terms of Service
-               </Link>{" "}
+               <Link to="/terms" className="font-medium text-primary hover:underline">Terms of Service</Link>{" "}
                and{" "}
-               <Link to="/policies" className="font-medium text-primary hover:underline">
-                 Privacy Policy
-               </Link>.
+               <Link to="/policies" className="font-medium text-primary hover:underline">Privacy Policy</Link>.
              </span>
            </label>
 
-           <Button
-             type="submit"
-             size="lg"
-             disabled={submitting}
-             className="w-full bg-gradient-primary text-primary-foreground shadow-md hover:opacity-95"
-           >
+           <Button type="submit" size="lg" disabled={submitting} className="w-full bg-gradient-primary text-primary-foreground shadow-md hover:opacity-95">
              {submitting ? "Creating account…" : "Create account"}
            </Button>
          </form>
 
          <p className="mt-6 text-center text-sm text-muted-foreground">
            Already have an account?{" "}
-           <Link to="/login" className="font-medium text-primary hover:underline">
-             Login
-           </Link>
+           <Link to="/login" className="font-medium text-primary hover:underline">Login</Link>
          </p>
        </div>
      </div>
