@@ -153,7 +153,10 @@ Flexiq Verve Support Team`,
 
  return (
    <div className="page-enter relative min-h-screen bg-navy-blue-mesh px-4 py-10">
-     <div className="mx-auto w-full max-w-2xl overflow-hidden rounded-3xl border border-white/10 bg-white shadow-elev animate-fade-in">
+      <div className="mx-auto mb-3 flex max-w-2xl justify-end notranslate">
+        <GoogleTranslateInline />
+      </div>
+      <div className="mx-auto w-full max-w-2xl overflow-hidden rounded-3xl border border-white/10 bg-white shadow-elev animate-fade-in">
        <div className="bg-gradient-to-br from-[#7C3AED] via-[#8B5CF6] to-[#A78BFA] px-8 pb-8 pt-10 text-center sm:px-10">
          <Link to="/" className="flex flex-col items-center justify-center">
            <BrandLogo className="h-10 w-auto object-contain drop-shadow-lg sm:h-12" />
