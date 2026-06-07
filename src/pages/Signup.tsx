@@ -194,8 +194,8 @@ Flexiq Verve Support Team`,
                <Input required className="mt-1" placeholder="Last name" value={form.last_name} onChange={(e) => update("last_name")(e.target.value)} />
              </div>
              <div>
-               <Label>Username</Label>
-               <Input required className="mt-1" placeholder="username" value={form.username} onChange={(e) => update("username")(e.target.value.replace(/\s+/g, ""))} />
+               <Label>User ID</Label>
+               <Input required className="mt-1" placeholder="User ID" value={form.username} onChange={(e) => update("username")(e.target.value.replace(/\s+/g, ""))} />
              </div>
              <div>
                <Label>Email</Label>
