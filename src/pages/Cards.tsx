@@ -64,7 +64,6 @@ const Cards = () => {
       card_holder: holder,
       card_type: "virtual",
       status: "active",
-      card_type: "Visa",
     });
     if (error) return toast.error("Could not create card", { description: error.message });
     qc.invalidateQueries({ queryKey: ["cards"] });
@@ -166,7 +165,7 @@ const Cards = () => {
                       <div className="flex items-end justify-between text-xs">
                         <div>
                           <p className="text-[10px] uppercase opacity-70">Cardholder</p>
-                          <p className="font-medium">{holderName}</p>
+                          <p className="font-medium">{cardHolder}</p>
                         </div>
                         <div>
                           <p className="text-[10px] uppercase opacity-70">Exp</p>
