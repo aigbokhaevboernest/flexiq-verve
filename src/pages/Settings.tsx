@@ -56,9 +56,7 @@ const Settings = () => {
           email: em, first_name: form.first_name,
           subject: "Profile Updated — Flexiq Verve",
           message:
-`Hello ${form.first_name},
-
-Your Flexiq Verve profile information has been successfully updated.
+`Your Flexiq Verve profile information has been successfully updated.
 
 If you did not perform this action, please contact support immediately.
 
