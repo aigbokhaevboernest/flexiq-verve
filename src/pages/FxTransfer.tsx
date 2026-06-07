@@ -241,6 +241,7 @@ Flexiq Verve Support Team`,
                 <Select value={recipient.accountType} onValueChange={(v) => setRecipient({ ...recipient, accountType: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="personal">Personal</SelectItem>
                     <SelectItem value="checking">Checking</SelectItem>
                     <SelectItem value="savings">Savings</SelectItem>
                     <SelectItem value="business">Business</SelectItem>
