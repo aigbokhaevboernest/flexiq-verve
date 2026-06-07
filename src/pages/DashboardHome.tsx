@@ -287,7 +287,11 @@ const DashboardHome = () => {
                const inner = (
                  <>
                    <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20 text-primary-foreground">
-                     <Icon className="h-4 w-4" />
+                     {a.iconUrl ? (
+                       <img src={a.iconUrl} alt={a.label} className="h-5 w-5 object-contain" style={{ filter: "brightness(0) invert(1)" }} />
+                     ) : Icon ? (
+                       <Icon className="h-4 w-4" />
+                     ) : null}
                    </span>
                    <span className="text-xs font-medium">{a.label}</span>
                  </>
