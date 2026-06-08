@@ -12,6 +12,7 @@ import {
  LogOut,
  Menu,
  MoonStar,
+ Receipt,
  Repeat,
  Search,
  Send,
