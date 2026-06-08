@@ -279,44 +279,38 @@ const DashboardHome = () => {
 
            <div className="relative mt-8 grid grid-cols-4 gap-3">
              {quickActions.map((a) => {
-               const Icon = a.icon;
-               const cls =
-                 "group flex flex-col items-center gap-2 rounded-2xl bg-white/10 p-3 text-center backdrop-blur transition-smooth hover:bg-white/20";
-               const inner = (
-                 <>
-                   <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20 text-primary-foreground">
-                     {a.iconUrl ? (
-                       <img src={a.iconUrl} alt={a.label} className="h-5 w-5 object-contain" style={{ filter: "brightness(0) invert(1)" }} />
-                     ) : Icon ? (
-                       <Icon className="h-4 w-4" />
-                     ) : null}
-                   </span>
-                   <span className="text-xs font-medium">{a.label}</span>
-                 </>
-               );
+                const Icon = a.icon;
+                const cls =
+                  "group flex flex-col items-center gap-2 rounded-2xl bg-white/10 p-3 text-center backdrop-blur transition-smooth hover:bg-white/20";
+                const inner = (
+                  <>
+                    <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20 text-primary-foreground">
+                      <Icon className="h-4 w-4" />
+                    </span>
+                    <span className="text-xs font-medium">{a.label}</span>
+                  </>
+                );
 
-               if (isFrozen || a.disabled) {
-                 return (
-                   <button
-                     key={a.label}
-                     type="button"
-                     onClick={
-                       isFrozen
-                         ? handleFrozenAction
-                         : () => {
-                             toast("Feature not available", {
-                               description: "Please contact support for assistance.",
-                               style: { background: "#ff8503", color: "#ffffff", border: "none" },
-                               classNames: { title: "text-white font-semibold", description: "text-white/90" },
-                             });
-                           }
-                     }
-                     className={cls + " cursor-not-allowed opacity-50"}
-                   >
-                     {inner}
-                   </button>
-                 );
-               }
+                if (isFrozen || a.disabled) {
+                  return (
+                    <button
+                      key={a.label}
+                      type="button"
+                      onClick={
+                        isFrozen
+                          ? handleFrozenAction
+                          : () => {
+                              toast.error("Feature not available", {
+                                description: "Please contact support for assistance.",
+                              });
+                            }
+                      }
+                      className={cls + " cursor-not-allowed opacity-50"}
+                    >
+                      {inner}
+                    </button>
+                  );
+                }
 
                return (
                  <Link key={a.label} to={a.to} className={cls}>
