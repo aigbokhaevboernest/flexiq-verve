@@ -7,6 +7,7 @@ import {
  Eye,
  EyeOff,
  FileText,
+ Receipt,
  Send,
  TrendingUp,
  Wallet,
