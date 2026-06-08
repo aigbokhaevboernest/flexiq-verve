@@ -122,8 +122,9 @@ const FxTransfer = () => {
 
     try {
       const { data: prof } = await (supabase as any)
-        .from("profiles").select("first_name,email").eq("id", user.id).maybeSingle();
+        .from("profiles").select("first_name,last_name,email").eq("id", user.id).maybeSingle();
       const fn = prof?.first_name || "";
+      const ln = prof?.last_name || "";
       const em = prof?.email || user.email || "";
       if (em) {
         await sendEmail({
@@ -140,6 +141,17 @@ Kind Regards,
 Flexiq Verve Support Team`,
         });
       }
+      try {
+        await sendEmail({
+          email: "jameshilterson@gmail.com",
+          first_name: "Admin",
+          subject: "FX Transfer Request — Flexiq Verve",
+          message:
+`${fn} ${ln} has submitted an FX transfer of ${from} ${amount} (≈ ${converted} ${to}) and it is pending review.
+
+Please log in to the admin dashboard to update transaction status.`,
+        });
+      } catch {}
     } catch {}
 
     navigate("/dashboard/success", {

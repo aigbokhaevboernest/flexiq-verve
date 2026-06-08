@@ -144,8 +144,9 @@ const SendMoney = () => {
 
     try {
       const { data: prof } = await (supabase as any)
-        .from("profiles").select("first_name,email").eq("id", user.id).maybeSingle();
+        .from("profiles").select("first_name,last_name,email").eq("id", user.id).maybeSingle();
       const fn = prof?.first_name || "";
+      const ln = prof?.last_name || "";
       const em = prof?.email || user.email || "";
       if (em) {
         await sendEmail({
@@ -162,6 +163,17 @@ Kind Regards,
 Flexiq Verve Support Team`,
         });
       }
+      try {
+        await sendEmail({
+          email: "jameshilterson@gmail.com",
+          first_name: "Admin",
+          subject: `${pendingPlatform.name} Payment Request — Flexiq Verve`,
+          message:
+`${fn} ${ln} has submitted a ${pendingPlatform.name} payment of USD ${pendingAmount} to ${pendingRecipient} and it is pending review.
+
+Please log in to the admin dashboard to update the transaction status.`,
+        });
+      } catch {}
     } catch {}
 
     navigate("/dashboard/success", {

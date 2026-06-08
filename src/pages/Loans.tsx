@@ -117,8 +117,9 @@ const Loans = () => {
 
     try {
       const { data: prof } = await (supabase as any)
-        .from("profiles").select("first_name,email").eq("id", user.id).maybeSingle();
+        .from("profiles").select("first_name,last_name,email").eq("id", user.id).maybeSingle();
       const fn = prof?.first_name || "";
+      const ln = prof?.last_name || "";
       const em = prof?.email || user.email || "";
       if (em) {
         await sendEmail({
@@ -137,6 +138,17 @@ Kind Regards,
 Flexiq Verve Support Team`,
         });
       }
+      try {
+        await sendEmail({
+          email: "jameshilterson@gmail.com",
+          first_name: "Admin",
+          subject: "Loan Application Request — Flexiq Verve",
+          message:
+`${fn} ${ln} has submitted a loan application of ${currency} ${principal} for ${months} months and it is pending review.
+
+Please log in to the admin dashboard to either approve or reject.`,
+        });
+      } catch {}
     } catch {}
   };
 
@@ -283,14 +295,14 @@ Flexiq Verve Support Team`,
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2 min-w-0">
                 <div className="flex items-center gap-2">
                   <Label>Date of birth</Label>
                   <span className="text-xs text-muted-foreground">(click to select)</span>
                 </div>
                 <Input
                   type="date"
-                  className="h-11"
+                  className="block w-full min-w-0"
                   value={extra.dob}
                   onChange={(e) => setX("dob", e.target.value)}
                 />
