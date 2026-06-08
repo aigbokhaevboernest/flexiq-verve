@@ -1,17 +1,17 @@
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { BrandLogo } from "@/components/BrandLogo";
-import { useAccount } from "@/hooks/useAccount";
+import { BrandLogo } from "@components/BrandLogo";
+import { useAccount } from "@hooks/useAccount";
 import {
  Banknote,
  ChevronDown,
  CreditCard,
+ FileText,
  Globe2,
  Headphones,
  LayoutDashboard,
  LogOut,
  Menu,
  MoonStar,
- Receipt,
  Repeat,
  Search,
  Send,
