@@ -5,6 +5,7 @@ import {
  Banknote,
  ChevronDown,
  CreditCard,
+ FileText,
  Globe2,
  Headphones,
  LayoutDashboard,
@@ -148,13 +149,13 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
        <NavLink to="/dashboard/transactions" onClick={onNavigate} className={linkClass}>
          <Receipt className="h-4 w-4" /> Transactions
        </NavLink>
-       <button
-         type="button"
-         onClick={() => { onNavigate?.(); toast.error("Feature not available", { description: "Please contact support." }); }}
-         className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-sidebar-foreground/60 transition-smooth hover:bg-sidebar-accent/50"
-       >
-         <Receipt className="h-4 w-4" /> Bill Payment
-       </button>
+        <button
+          type="button"
+          onClick={() => { onNavigate?.(); toast.error("Feature not available", { description: "Please contact support." }); }}
+          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-sidebar-foreground/60 transition-smooth hover:bg-sidebar-accent/50"
+        >
+          <FileText className="h-4 w-4" /> Bill Payment
+        </button>
        <NavLink to="/dashboard/settings" onClick={onNavigate} className={linkClass}>
          <Settings className="h-4 w-4" /> Settings
        </NavLink>
