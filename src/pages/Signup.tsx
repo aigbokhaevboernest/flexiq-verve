@@ -14,6 +14,9 @@ import { sendEmail } from "@/lib/sendEmail";
 const nativeSelectClass =
  "mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring";
 
+const nativeDateClass =
+  "mt-1 h-11 w-full rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring box-border";
+
 const langChange = (val: string) => {
   const select = document.querySelector(".goog-te-combo") as HTMLSelectElement;
   if (select) { select.value = val; select.dispatchEvent(new Event("change")); }
@@ -237,13 +240,20 @@ Flexiq Verve Support Team`,
                <Label>Postal code</Label>
                <Input required className="mt-1" placeholder="Postal code" value={form.postal_code} onChange={(e) => update("postal_code")(e.target.value)} />
              </div>
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <Label>Date of birth</Label>
-                  <span className="text-xs text-muted-foreground">(click to select)</span>
-                </div>
-                <Input type="date" required className="mt-1 block w-full min-w-0" max={new Date().toISOString().split("T")[0]} value={form.date_of_birth} onChange={(e) => update("date_of_birth")(e.target.value)} />
-              </div>
+             <div>
+               <div className="flex items-center gap-2">
+                 <Label>Date of birth</Label>
+                 <span className="text-xs text-muted-foreground">(click to select)</span>
+               </div>
+               <input
+                 type="date"
+                 required
+                 className={nativeDateClass}
+                 max={new Date().toISOString().split("T")[0]}
+                 value={form.date_of_birth}
+                 onChange={(e) => update("date_of_birth")(e.target.value)}
+               />
+             </div>
              <div className="sm:col-span-2">
                <Label>Address</Label>
                <Input required className="mt-1" placeholder="Street address" value={form.address} onChange={(e) => update("address")(e.target.value)} />
