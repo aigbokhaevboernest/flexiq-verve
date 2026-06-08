@@ -295,18 +295,34 @@ Flexiq Verve Support Team`,
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2 min-w-0">
-                <div className="flex items-center gap-2">
-                  <Label>Date of birth</Label>
-                  <span className="text-xs text-muted-foreground">(click to select)</span>
-                </div>
-                <Input
-                  type="date"
-                  className="block w-full min-w-0"
-                  value={extra.dob}
-                  onChange={(e) => setX("dob", e.target.value)}
-                />
-              </div>
+              <div className="space-y-2">
+  <div className="flex items-center gap-2">
+    <Label>Date of birth</Label>
+    <span className="text-xs text-muted-foreground">(click to select)</span>
+  </div>
+  <input
+    type="date"
+    value={extra.dob}
+    onChange={(e) => setX("dob", e.target.value)}
+    style={{
+      marginTop: "4px",
+      height: "44px",
+      lineHeight: "44px",
+      width: "100%",
+      maxWidth: "100%",
+      padding: "0 12px",
+      borderRadius: "8px",
+      border: "1px solid #e2e8f0",
+      backgroundColor: "#f8fafc",
+      fontSize: "14px",
+      boxSizing: "border-box",
+      display: "block",
+      overflow: "hidden",
+      WebkitAppearance: "none",
+    }}
+  />
+</div>
+
               <div className="space-y-2"><Label>Mother's maiden name</Label><Input value={extra.motherMaiden} onChange={(e) => setX("motherMaiden", e.target.value)} /></div>
               <div className="space-y-2 sm:col-span-2"><Label>Address</Label><Input value={extra.address} onChange={(e) => setX("address", e.target.value)} /></div>
               <div className="space-y-2"><Label>State</Label><Input value={extra.state} onChange={(e) => setX("state", e.target.value)} /></div>
