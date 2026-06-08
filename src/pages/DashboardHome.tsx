@@ -6,7 +6,7 @@ import {
  CreditCard,
  Eye,
  EyeOff,
- Receipt,
+ FileText,
  Send,
  TrendingUp,
  Wallet,
