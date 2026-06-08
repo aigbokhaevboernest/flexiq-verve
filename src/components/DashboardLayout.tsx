@@ -1,6 +1,6 @@
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { BrandLogo } from "@components/BrandLogo";
-import { useAccount } from "@hooks/useAccount";
+import { BrandLogo } from "@/components/BrandLogo";
+import { useAccount } from "@/hooks/useAccount";
 import {
  Banknote,
  ChevronDown,
