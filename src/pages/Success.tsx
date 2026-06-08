@@ -41,10 +41,9 @@ const Success = () => {
     doc.save("flexiq-receipt.pdf");
   };
 
-  const isPending = !!state.pending;
-  const iconWrap = isPending ? "bg-yellow-100 ring-yellow-200" : "bg-green-100 ring-green-200";
-  const iconColor = isPending ? "text-yellow-600" : "text-green-600";
-  const Icon = isPending ? Clock : CheckCircle2;
+  const iconWrap = "bg-amber-100 ring-amber-200";
+  const iconColor = "text-amber-600";
+  const Icon = Clock;
 
   const handleCancel = () => {
     if (state.returnTo) navigate(state.returnTo);
