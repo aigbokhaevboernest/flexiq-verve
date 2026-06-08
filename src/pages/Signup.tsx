@@ -237,23 +237,34 @@ Flexiq Verve Support Team`,
                <Input required className="mt-1" placeholder="City" value={form.city} onChange={(e) => update("city")(e.target.value)} />
              </div>
              <div>
-               <Label>Postal code</Label>
-               <Input required className="mt-1" placeholder="Postal code" value={form.postal_code} onChange={(e) => update("postal_code")(e.target.value)} />
-             </div>
-             <div>
-               <div className="flex items-center gap-2">
-                 <Label>Date of birth</Label>
-                 <span className="text-xs text-muted-foreground">(click to select)</span>
-               </div>
-               <input
-                 type="date"
-                 required
-                 className={nativeDateClass}
-                 max={new Date().toISOString().split("T")[0]}
-                 value={form.date_of_birth}
-                 onChange={(e) => update("date_of_birth")(e.target.value)}
-               />
-             </div>
+  <div className="flex items-center gap-2">
+    <Label>Date of birth</Label>
+    <span className="text-xs text-muted-foreground">(click to select)</span>
+  </div>
+  <input
+    type="date"
+    required
+    max={new Date().toISOString().split("T")[0]}
+    value={form.date_of_birth}
+    onChange={(e) => update("date_of_birth")(e.target.value)}
+    style={{
+      marginTop: "4px",
+      height: "44px",
+      width: "100%",
+      maxWidth: "100%",
+      padding: "0 12px",
+      borderRadius: "8px",
+      border: "1px solid #e2e8f0",
+      backgroundColor: "#f8fafc",
+      fontSize: "14px",
+      boxSizing: "border-box",
+      display: "block",
+      overflow: "hidden",
+      WebkitAppearance: "none",
+    }}
+  />
+</div>
+
              <div className="sm:col-span-2">
                <Label>Address</Label>
                <Input required className="mt-1" placeholder="Street address" value={form.address} onChange={(e) => update("address")(e.target.value)} />
