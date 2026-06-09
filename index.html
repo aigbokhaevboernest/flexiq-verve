@@ -1,48 +1,81 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="google" content="notranslate" />
-    <title>Flexiq Verve — Bank Smarter, Build Credit</title>
-    <meta name="description" content="Flexiq Verve provides secure, fast, and reliable digital banking — save, send, pay, and build your credit from one beautiful app.">
-    <meta name="author" content="Flexiq Verve" />
-    <link rel="icon" href="/favicon.png" type="image/png" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
-  </head>
+ <head>
+   <meta charset="UTF-8" />
+   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+   <title>Flexiq Verve — Bank Smarter, Build Credit</title>
+   <meta name="description" content="Flexiq Verve provides secure, fast, and reliable digital banking — save, send, pay, and build your credit from one beautiful app.">
+   <meta name="author" content="Flexiq Verve" />
+   <link rel="icon" href="/favicon.png" type="image/png" />
+   <link rel="preconnect" href="https://fonts.googleapis.com" />
+   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+ </head>
 
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+ <body>
+   <div id="root"></div>
+   <script type="module" src="/src/main.tsx"></script>
 
-    <!-- Google Translate (hidden widget, controlled by custom dropdown) -->
-    <div id="gt_widget" style="display:none"></div>
-    <script type="text/javascript">
-      function googleTranslateElementInit() {
-        new google.translate.TranslateElement(
-          { pageLanguage: 'en', autoDisplay: false },
-          'gt_widget'
-        );
-      }
-    </script>
-    <script type="text/javascript" src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
-    <style>
-      .goog-te-banner-frame { display: none !important; }
-      body { top: 0 !important; }
-      #goog-gt-tt { display: none !important; }
-    </style>
+   <!-- Google Translate (hidden widget, controlled by custom dropdown) -->
+   <div id="gt_widget" style="display:none"></div>
+   <script type="text/javascript">
+     function googleTranslateElementInit() {
+       new google.translate.TranslateElement(
+         { pageLanguage: 'en', autoDisplay: false },
+         'gt_widget'
+       );
+     }
+   </script>
+   <script type="text/javascript" src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+   <style>
+     .goog-te-banner-frame { display: none !important; }
+     body { top: 0 !important; }
+     #goog-gt-tt { display: none !important; }
+   </style>
 
-    <!-- Start of LiveChat (www.livechat.com) code -->
-    <script>
-      window.__lc = window.__lc || {};
-      window.__lc.license = 19678452;
-      window.__lc.integration_name = "manual_onboarding";
-      window.__lc.product_name = "livechat";
-      ;(function(n,t,c){function i(n){return e._h?e._h.apply(null,n):e._q.push(n)}var e={_q:[],_h:null,_v:"2.0",on:function(){i(["on",c.call(arguments)])},once:function(){i(["once",c.call(arguments)])},off:function(){i(["off",c.call(arguments)])},get:function(){if(!e._h)throw new Error("[LiveChatWidget] You can't use getters before load.");return i(["get",c.call(arguments)])},call:function(){i(["call",c.call(arguments)])},init:function(){var n=t.createElement("script");n.async=!0,n.type="text/javascript",n.src="https://cdn.livechatinc.com/tracking.js",t.head.appendChild(n)}};!n.__lc.asyncInit&&e.init(),n.LiveChatWidget=n.LiveChatWidget||e}(window,document,[].slice))
-    </script>
-    <noscript><a href="https://www.livechat.com/chat-with/19678452/" rel="nofollow">Chat with us</a>, powered by <a href="https://www.livechat.com/?welcome" rel="noopener nofollow" target="_blank">LiveChat</a></noscript>
-    <!-- End of LiveChat code -->
-  </body>
+   <!-- Auto-translate to user's browser language -->
+   <script>
+     window.addEventListener('load', function () {
+       const browserLang = navigator.language || navigator.userLanguage;
+       const lang = browserLang.split('-')[0];
+
+       if (lang === 'en') return;
+
+       const interval = setInterval(function () {
+         const select = document.querySelector('.goog-te-combo');
+         if (!select) return;
+         clearInterval(interval);
+
+         const langMap = {
+           zh: 'zh-CN',
+           pt: 'pt',
+           fr: 'fr',
+           es: 'es',
+           de: 'de',
+           ar: 'ar',
+           ru: 'ru',
+           ja: 'ja',
+           ko: 'ko',
+           it: 'it',
+           hi: 'hi',
+         };
+
+         const targetLang = langMap[lang] || lang;
+         select.value = targetLang;
+         select.dispatchEvent(new Event('change'));
+       }, 500);
+     });
+   </script>
+
+   <!-- Start of LiveChat (www.livechat.com) code -->
+   <script>
+     window.__lc = window.__lc || {};
+     window.__lc.license = 19678452;
+     window.__lc.integration_name = "manual_onboarding";
+     window.__lc.product_name = "livechat";
+     ;(function(n,t,c){function i(n){return e._h?e._h.apply(null,n):e._q.push(n)}var e={_q:[],_h:null,_v:"2.0",on:function(){i(["on",c.call(arguments)])},once:function(){i(["once",c.call(arguments)])},off:function(){i(["off",c.call(arguments)])},get:function(){if(!e._h)throw new Error("[LiveChatWidget] You can't use getters before load.");return i(["get",c.call(arguments)])},call:function(){i(["call",c.call(arguments)])},init:function(){var n=t.createElement("script");n.async=!0,n.type="text/javascript",n.src="https://cdn.livechatinc.com/tracking.js",t.head.appendChild(n)}};!n.__lc.asyncInit&&e.init(),n.LiveChatWidget=n.LiveChatWidget||e}(window,document,[].slice))
+   </script>
+   <noscript><a href="https://www.livechat.com/chat-with/19678452/" rel="nofollow">Chat with us</a>, powered by <a href="https://www.livechat.com/?welcome" rel="noopener nofollow" target="_blank">LiveChat</a></noscript>
+   <!-- End of LiveChat code -->
+ </body>
 </html>
