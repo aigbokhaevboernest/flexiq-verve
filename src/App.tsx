@@ -28,7 +28,6 @@ import Verify from "./pages/Verify.tsx";
 import FAQ from "./pages/FAQ.tsx";
 import Terms from "./pages/Terms.tsx";
 import Policies from "./pages/Policies.tsx";
-import Inventory from "./pages/Inventory.tsx";
 import Services from "./pages/Services.tsx";
 import Accounts from "./pages/Accounts.tsx";
 import Transfers from "./pages/Transfers.tsx";
