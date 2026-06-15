@@ -44,12 +44,11 @@ export const Footer = () => (
   <footer className="bg-navy text-on-dark">
     <div className="container grid gap-10 py-14 md:grid-cols-5">
       <div className="md:col-span-1 space-y-3">
-        <Link to="/" className="flex items-center gap-2">
-          <img src={adminLogo} alt="Flexiq Verve" style={{ width: 48, height: "auto", display: "block" }} />
-          <span className="font-display text-lg font-bold">Flexiq Verve</span>
+        <Link to="/" className="flex items-center">
+          <BrandLogo className="h-9 w-auto object-contain sm:h-10" />
         </Link>
         <p className="max-w-xs text-sm text-on-dark-muted">
-          Banking reimagined. Save, send and grow — all from one place.
+          Banking reimagined. Save, grow and manage — all from one place.
         </p>
       </div>
       {cols.map((col) => (
