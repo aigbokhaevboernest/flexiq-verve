@@ -68,26 +68,21 @@ const ForgotPasswordModal = ({ open, onClose }: { open: boolean; onClose: () => 
     if (!emailInput.trim()) return;
     setLoading(true);
 
-    const { data: profile, error } = await supabase
-  .rpc("get_profile_by_email", { 
-    _email: emailInput.trim().toLowerCase() 
-  });
+    // Use SECURITY DEFINER function to bypass RLS
+    const { data: profileData, error } = await supabase
+      .rpc("get_profile_by_email", {
+        _email: emailInput.trim().toLowerCase(),
+      });
 
-const user = Array.isArray(profile) ? profile[0] : profile;
+    const user = Array.isArray(profileData) ? profileData[0] : profileData;
 
-if (error || !user) {
-  ...
-}
-
-const firstName = user.full_name?.split(" ")[0] ?? "there";
-
-    if (error || !profile) {
+    if (error || !user) {
       setLoading(false);
       toast({ title: "No account found with that email address.", variant: "destructive" });
       return;
     }
 
-    const firstName = profile.full_name?.split(" ")[0] ?? "there";
+    const firstName = (user as any).full_name?.split(" ")[0] ?? "there";
     const code = generateCode();
 
     // Clear old unused codes
@@ -108,7 +103,7 @@ const firstName = user.full_name?.split(" ")[0] ?? "there";
       return;
     }
 
-    // Send reset code email via fetch (no session needed)
+    // Send reset code email
     const sent = await sendEmail(
       emailInput.trim().toLowerCase(),
       "Your Password Reset Code — Flexiq Verve",
@@ -202,7 +197,7 @@ const firstName = user.full_name?.split(" ")[0] ?? "there";
       .eq("email", foundUser.email)
       .eq("used", false);
 
-    // Send confirmation email via fetch (no session needed)
+    // Send confirmation email
     await sendEmail(
       foundUser.email,
       "Your Password Has Been Changed — Flexiq Verve",
