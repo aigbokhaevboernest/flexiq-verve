@@ -76,13 +76,13 @@ const Profile = () => {
       const path = `avatars/${user.id}.${ext}`;
 
       const { error: uploadError } = await supabase.storage
-        .from("proof-of-payment")
+        .from("app-assets")
         .upload(path, file, { upsert: true, contentType: file.type });
 
       if (uploadError) throw uploadError;
 
       const { data: urlData } = supabase.storage
-        .from("proof-of-payment")
+        .from("app-assets")
         .getPublicUrl(path);
 
       const publicUrl = urlData?.publicUrl;
