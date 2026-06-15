@@ -68,11 +68,18 @@ const ForgotPasswordModal = ({ open, onClose }: { open: boolean; onClose: () => 
     if (!emailInput.trim()) return;
     setLoading(true);
 
-    const { data: profile, error } = await (supabase as any)
-      .from("profiles")
-      .select("email, full_name")
-      .eq("email", emailInput.trim().toLowerCase())
-      .maybeSingle();
+    const { data: profile, error } = await supabase
+  .rpc("get_profile_by_email", { 
+    _email: emailInput.trim().toLowerCase() 
+  });
+
+const user = Array.isArray(profile) ? profile[0] : profile;
+
+if (error || !user) {
+  ...
+}
+
+const firstName = user.full_name?.split(" ")[0] ?? "there";
 
     if (error || !profile) {
       setLoading(false);
