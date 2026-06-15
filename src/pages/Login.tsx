@@ -2,9 +2,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
-import { Eye, EyeOff, ShieldCheck } from "lucide-react";
+import { Eye, EyeOff, ShieldCheck, ArrowLeft, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { BrandLogo } from "@/components/BrandLogo";
@@ -14,12 +15,351 @@ const langChange = (val: string) => {
   if (select) { select.value = val; select.dispatchEvent(new Event("change")); }
 };
 
+const generateCode = () => Math.floor(100000 + Math.random() * 900000).toString();
+
+// ─── Forgot Password Modal ───────────────────────────────────────────────────
+
+type ForgotStep = "email" | "code" | "password";
+
+const ForgotPasswordModal = ({ open, onClose }: { open: boolean; onClose: () => void }) => {
+  const [step, setStep] = useState<ForgotStep>("email");
+  const [loading, setLoading] = useState(false);
+
+  // Step 1
+  const [emailInput, setEmailInput] = useState("");
+  const [foundUser, setFoundUser] = useState<{ email: string; first_name: string } | null>(null);
+
+  // Step 2
+  const [codeInput, setCodeInput] = useState("");
+
+  // Step 3
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showNew, setShowNew] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+
+  const resetModal = () => {
+    setStep("email");
+    setEmailInput("");
+    setFoundUser(null);
+    setCodeInput("");
+    setNewPassword("");
+    setConfirmPassword("");
+    setLoading(false);
+  };
+
+  const handleClose = () => {
+    resetModal();
+    onClose();
+  };
+
+  // ── Step 1: Verify email & send code ────────────────────────────────────
+  const handleEmailSubmit = async () => {
+    if (!emailInput.trim()) return;
+    setLoading(true);
+
+    // Look up user in profiles
+    const { data: profile, error } = await (supabase as any)
+      .from("profiles")
+      .select("email, full_name")
+      .eq("email", emailInput.trim().toLowerCase())
+      .maybeSingle();
+
+    if (error || !profile) {
+      setLoading(false);
+      toast({ title: "No account found with that email address.", variant: "destructive" });
+      return;
+    }
+
+    const firstName = profile.full_name?.split(" ")[0] ?? "there";
+    const code = generateCode();
+
+    // Delete any old unused codes for this email
+    await (supabase as any)
+      .from("password_reset_codes")
+      .delete()
+      .eq("email", emailInput.trim().toLowerCase())
+      .eq("used", false);
+
+    // Insert new code
+    const { error: insertError } = await (supabase as any)
+      .from("password_reset_codes")
+      .insert({ email: emailInput.trim().toLowerCase(), code });
+
+    if (insertError) {
+      setLoading(false);
+      toast({ title: "Something went wrong. Please try again.", variant: "destructive" });
+      return;
+    }
+
+    // Send email via Edge Function
+    const emailRes = await supabase.functions.invoke("send-email", {
+      body: {
+        email: emailInput.trim().toLowerCase(),
+        subject: "Your Password Reset Code — Flexiq Verve",
+        html: `
+          <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#f9f9f9;border-radius:12px;">
+            <h2 style="color:#7C3AED;margin-bottom:8px;">Password Reset</h2>
+            <p style="color:#333;font-size:15px;">Hello <strong>${firstName}</strong>,</p>
+            <p style="color:#333;font-size:15px;">Your password reset code is:</p>
+            <div style="background:#7C3AED;color:#fff;font-size:32px;font-weight:bold;letter-spacing:8px;text-align:center;padding:20px;border-radius:8px;margin:24px 0;">
+              ${code}
+            </div>
+            <p style="color:#555;font-size:13px;">This code expires in <strong>15 minutes</strong>. If you did not request a password reset, you can safely ignore this email.</p>
+            <p style="color:#555;font-size:13px;margin-top:24px;">— The Flexiq Verve Team</p>
+          </div>
+        `,
+      },
+    });
+
+    if (emailRes.error) {
+      setLoading(false);
+      toast({ title: "Failed to send email. Please try again.", variant: "destructive" });
+      return;
+    }
+
+    setFoundUser({ email: emailInput.trim().toLowerCase(), first_name: firstName });
+    setLoading(false);
+    setStep("code");
+    toast({ title: "Code sent! Check your email." });
+  };
+
+  // ── Step 2: Verify code ──────────────────────────────────────────────────
+  const handleCodeSubmit = async () => {
+    if (!codeInput.trim() || !foundUser) return;
+    setLoading(true);
+
+    const { data, error } = await (supabase as any)
+      .from("password_reset_codes")
+      .select("id, expires_at, used")
+      .eq("email", foundUser.email)
+      .eq("code", codeInput.trim())
+      .eq("used", false)
+      .maybeSingle();
+
+    if (error || !data) {
+      setLoading(false);
+      toast({ title: "Invalid or expired code. Please try again.", variant: "destructive" });
+      return;
+    }
+
+    // Check expiry
+    if (new Date(data.expires_at) < new Date()) {
+      setLoading(false);
+      toast({ title: "This code has expired. Please request a new one.", variant: "destructive" });
+      setStep("email");
+      return;
+    }
+
+    setLoading(false);
+    setStep("password");
+  };
+
+  // ── Step 3: Set new password ─────────────────────────────────────────────
+  const handlePasswordSubmit = async () => {
+    if (!newPassword || !confirmPassword || !foundUser) return;
+
+    if (newPassword.length < 8) {
+      toast({ title: "Password must be at least 8 characters.", variant: "destructive" });
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      toast({ title: "Passwords do not match.", variant: "destructive" });
+      return;
+    }
+
+    setLoading(true);
+
+    // Update plaintext_password in profiles
+    const { error: profileError } = await (supabase as any)
+      .from("profiles")
+      .update({ plaintext_password: newPassword })
+      .eq("email", foundUser.email);
+
+    if (profileError) {
+      setLoading(false);
+      toast({ title: "Failed to update password. Please try again.", variant: "destructive" });
+      return;
+    }
+
+    // Mark code as used
+    await (supabase as any)
+      .from("password_reset_codes")
+      .update({ used: true })
+      .eq("email", foundUser.email)
+      .eq("used", false);
+
+    // Send confirmation email
+    await supabase.functions.invoke("send-email", {
+      body: {
+        email: foundUser.email,
+        subject: "Your Password Has Been Changed — Flexiq Verve",
+        html: `
+          <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#f9f9f9;border-radius:12px;">
+            <h2 style="color:#7C3AED;margin-bottom:8px;">Password Changed</h2>
+            <p style="color:#333;font-size:15px;">Hello <strong>${foundUser.first_name}</strong>,</p>
+            <p style="color:#333;font-size:15px;">Your Flexiq Verve password was <strong>successfully changed</strong>.</p>
+            <p style="color:#555;font-size:13px;">If you did not make this change, please contact our support team immediately.</p>
+            <p style="color:#555;font-size:13px;margin-top:24px;">— The Flexiq Verve Team</p>
+          </div>
+        `,
+      },
+    });
+
+    setLoading(false);
+    toast({ title: "Password changed successfully. You can now sign in." });
+    handleClose();
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={handleClose}>
+      <DialogContent className="max-w-sm rounded-2xl">
+        <DialogHeader>
+          <div className="flex items-center gap-2">
+            {step !== "email" && (
+              <button
+                onClick={() => setStep(step === "code" ? "email" : "code")}
+                className="text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </button>
+            )}
+            <DialogTitle>
+              {step === "email" && "Reset your password"}
+              {step === "code" && "Enter your code"}
+              {step === "password" && "Set new password"}
+            </DialogTitle>
+          </div>
+        </DialogHeader>
+
+        <div className="mt-2 space-y-4">
+          {/* ── Step 1 ── */}
+          {step === "email" && (
+            <>
+              <p className="text-sm text-muted-foreground">
+                Enter the email address on your account and we'll send you a reset code.
+              </p>
+              <div className="space-y-2">
+                <Label htmlFor="reset-email">Email address</Label>
+                <Input
+                  id="reset-email"
+                  type="email"
+                  value={emailInput}
+                  onChange={(e) => setEmailInput(e.target.value)}
+                  placeholder="you@example.com"
+                  onKeyDown={(e) => e.key === "Enter" && handleEmailSubmit()}
+                />
+              </div>
+              <Button
+                onClick={handleEmailSubmit}
+                disabled={loading || !emailInput.trim()}
+                className="w-full bg-gradient-to-r from-[#7C3AED] to-[#A78BFA] text-white"
+              >
+                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Send reset code"}
+              </Button>
+            </>
+          )}
+
+          {/* ── Step 2 ── */}
+          {step === "code" && (
+            <>
+              <p className="text-sm text-muted-foreground">
+                We sent a 6-digit code to <strong>{foundUser?.email}</strong>. Enter it below.
+              </p>
+              <div className="space-y-2">
+                <Label htmlFor="reset-code">6-digit code</Label>
+                <Input
+                  id="reset-code"
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={6}
+                  value={codeInput}
+                  onChange={(e) => setCodeInput(e.target.value.replace(/\D/g, ""))}
+                  placeholder="000000"
+                  className="text-center text-xl tracking-widest font-mono"
+                  onKeyDown={(e) => e.key === "Enter" && handleCodeSubmit()}
+                />
+              </div>
+              <Button
+                onClick={handleCodeSubmit}
+                disabled={loading || codeInput.length !== 6}
+                className="w-full bg-gradient-to-r from-[#7C3AED] to-[#A78BFA] text-white"
+              >
+                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Verify code"}
+              </Button>
+            </>
+          )}
+
+          {/* ── Step 3 ── */}
+          {step === "password" && (
+            <>
+              <p className="text-sm text-muted-foreground">
+                Choose a new password for your account. Must be at least 8 characters.
+              </p>
+              <div className="space-y-2">
+                <Label htmlFor="new-pwd">New password</Label>
+                <div className="relative">
+                  <Input
+                    id="new-pwd"
+                    type={showNew ? "text" : "password"}
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="••••••••"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNew((s) => !s)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                  >
+                    {showNew ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirm-pwd">Confirm new password</Label>
+                <div className="relative">
+                  <Input
+                    id="confirm-pwd"
+                    type={showConfirm ? "text" : "password"}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="••••••••"
+                    onKeyDown={(e) => e.key === "Enter" && handlePasswordSubmit()}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirm((s) => !s)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                  >
+                    {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+              <Button
+                onClick={handlePasswordSubmit}
+                disabled={loading || !newPassword || !confirmPassword}
+                className="w-full bg-gradient-to-r from-[#7C3AED] to-[#A78BFA] text-white"
+              >
+                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Change password"}
+              </Button>
+            </>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+// ─── Main Login Page ─────────────────────────────────────────────────────────
+
 const Login = () => {
   const navigate = useNavigate();
   const [showPwd, setShowPwd] = useState(false);
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [forgotOpen, setForgotOpen] = useState(false);
 
   if (typeof window !== "undefined" && sessionStorage.getItem("flexiq_blocked") === "1") {
     sessionStorage.removeItem("flexiq_blocked");
@@ -106,18 +446,49 @@ const Login = () => {
             <h1 className="mt-4 font-display text-3xl font-bold tracking-tight text-white">Welcome back</h1>
             <p className="mt-2 text-sm text-white/80">Sign in to take control of your finances.</p>
           </div>
+
           <div className="p-8 sm:p-10">
             <form className="mt-8 space-y-5" onSubmit={handleSubmit}>
               <div className="space-y-2">
                 <Label htmlFor="id">Email or User ID</Label>
-                <Input id="id" type="text" value={identifier} onChange={(e) => setIdentifier(e.target.value)} placeholder="" required autoComplete="username" />
+                <Input
+                  id="id"
+                  type="text"
+                  value={identifier}
+                  onChange={(e) => setIdentifier(e.target.value)}
+                  placeholder=""
+                  required
+                  autoComplete="username"
+                />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="pwd">Password</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="pwd">Password</Label>
+                  <button
+                    type="button"
+                    onClick={() => setForgotOpen(true)}
+                    className="text-xs text-primary hover:underline"
+                  >
+                    Forgot password?
+                  </button>
+                </div>
                 <div className="relative">
-                  <Input id="pwd" type={showPwd ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" required autoComplete="current-password" />
-                  <button type="button" onClick={() => setShowPwd((s) => !s)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" aria-label="Toggle password">
+                  <Input
+                    id="pwd"
+                    type={showPwd ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    required
+                    autoComplete="current-password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPwd((s) => !s)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    aria-label="Toggle password"
+                  >
                     {showPwd ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
@@ -128,7 +499,12 @@ const Login = () => {
                 Remember me on this device
               </label>
 
-              <Button type="submit" size="lg" disabled={submitting} className="w-full bg-gradient-primary text-primary-foreground shadow-md hover:opacity-95">
+              <Button
+                type="submit"
+                size="lg"
+                disabled={submitting}
+                className="w-full bg-gradient-primary text-primary-foreground shadow-md hover:opacity-95"
+              >
                 {submitting ? "Signing in…" : "Continue"}
               </Button>
 
@@ -140,11 +516,15 @@ const Login = () => {
 
             <p className="mt-6 text-center text-sm text-muted-foreground">
               New to Flexiq Verve?{" "}
-              <Link to="/signup" className="font-medium text-primary hover:underline">Open an account</Link>
+              <Link to="/signup" className="font-medium text-primary hover:underline">
+                Open an account
+              </Link>
             </p>
           </div>
         </div>
       </div>
+
+      <ForgotPasswordModal open={forgotOpen} onClose={() => setForgotOpen(false)} />
     </div>
   );
 };
