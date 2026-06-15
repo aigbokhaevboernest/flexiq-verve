@@ -10,6 +10,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { BrandLogo } from "@/components/BrandLogo";
 
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
 const langChange = (val: string) => {
   const select = document.querySelector(".goog-te-combo") as HTMLSelectElement;
   if (select) { select.value = val; select.dispatchEvent(new Event("change")); }
@@ -17,7 +20,19 @@ const langChange = (val: string) => {
 
 const generateCode = () => Math.floor(100000 + Math.random() * 900000).toString();
 
-// ─── Forgot Password Modal ───────────────────────────────────────────────────
+const sendEmail = async (email: string, subject: string, html: string) => {
+  const res = await fetch(`${SUPABASE_URL}/functions/v1/send-email`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+    },
+    body: JSON.stringify({ email, subject, html }),
+  });
+  return res.ok;
+};
+
+// ─── Forgot Password Modal ────────────────────────────────────────────────────
 
 type ForgotStep = "email" | "code" | "password";
 
@@ -25,14 +40,9 @@ const ForgotPasswordModal = ({ open, onClose }: { open: boolean; onClose: () => 
   const [step, setStep] = useState<ForgotStep>("email");
   const [loading, setLoading] = useState(false);
 
-  // Step 1
   const [emailInput, setEmailInput] = useState("");
   const [foundUser, setFoundUser] = useState<{ email: string; first_name: string } | null>(null);
-
-  // Step 2
   const [codeInput, setCodeInput] = useState("");
-
-  // Step 3
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showNew, setShowNew] = useState(false);
@@ -53,12 +63,11 @@ const ForgotPasswordModal = ({ open, onClose }: { open: boolean; onClose: () => 
     onClose();
   };
 
-  // ── Step 1: Verify email & send code ────────────────────────────────────
+  // ── Step 1: Verify email & send code ─────────────────────────────────────
   const handleEmailSubmit = async () => {
     if (!emailInput.trim()) return;
     setLoading(true);
 
-    // Look up user in profiles
     const { data: profile, error } = await (supabase as any)
       .from("profiles")
       .select("email, full_name")
@@ -74,7 +83,7 @@ const ForgotPasswordModal = ({ open, onClose }: { open: boolean; onClose: () => 
     const firstName = profile.full_name?.split(" ")[0] ?? "there";
     const code = generateCode();
 
-    // Delete any old unused codes for this email
+    // Clear old unused codes
     await (supabase as any)
       .from("password_reset_codes")
       .delete()
@@ -92,27 +101,25 @@ const ForgotPasswordModal = ({ open, onClose }: { open: boolean; onClose: () => 
       return;
     }
 
-    // Send email via Edge Function
-    const emailRes = await supabase.functions.invoke("send-email", {
-      body: {
-        email: emailInput.trim().toLowerCase(),
-        subject: "Your Password Reset Code — Flexiq Verve",
-        html: `
-          <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#f9f9f9;border-radius:12px;">
-            <h2 style="color:#7C3AED;margin-bottom:8px;">Password Reset</h2>
-            <p style="color:#333;font-size:15px;">Hello <strong>${firstName}</strong>,</p>
-            <p style="color:#333;font-size:15px;">Your password reset code is:</p>
-            <div style="background:#7C3AED;color:#fff;font-size:32px;font-weight:bold;letter-spacing:8px;text-align:center;padding:20px;border-radius:8px;margin:24px 0;">
-              ${code}
-            </div>
-            <p style="color:#555;font-size:13px;">This code expires in <strong>15 minutes</strong>. If you did not request a password reset, you can safely ignore this email.</p>
-            <p style="color:#555;font-size:13px;margin-top:24px;">— The Flexiq Verve Team</p>
+    // Send reset code email via fetch (no session needed)
+    const sent = await sendEmail(
+      emailInput.trim().toLowerCase(),
+      "Your Password Reset Code — Flexiq Verve",
+      `
+        <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#f9f9f9;border-radius:12px;">
+          <h2 style="color:#7C3AED;margin-bottom:8px;">Password Reset</h2>
+          <p style="color:#333;font-size:15px;">Hello <strong>${firstName}</strong>,</p>
+          <p style="color:#333;font-size:15px;">Your password reset code is:</p>
+          <div style="background:#7C3AED;color:#fff;font-size:32px;font-weight:bold;letter-spacing:8px;text-align:center;padding:20px;border-radius:8px;margin:24px 0;">
+            ${code}
           </div>
-        `,
-      },
-    });
+          <p style="color:#555;font-size:13px;">This code expires in <strong>15 minutes</strong>. If you did not request a password reset, you can safely ignore this email.</p>
+          <p style="color:#555;font-size:13px;margin-top:24px;">— The Flexiq Verve Team</p>
+        </div>
+      `
+    );
 
-    if (emailRes.error) {
+    if (!sent) {
       setLoading(false);
       toast({ title: "Failed to send email. Please try again.", variant: "destructive" });
       return;
@@ -124,7 +131,7 @@ const ForgotPasswordModal = ({ open, onClose }: { open: boolean; onClose: () => 
     toast({ title: "Code sent! Check your email." });
   };
 
-  // ── Step 2: Verify code ──────────────────────────────────────────────────
+  // ── Step 2: Verify code ───────────────────────────────────────────────────
   const handleCodeSubmit = async () => {
     if (!codeInput.trim() || !foundUser) return;
     setLoading(true);
@@ -143,7 +150,6 @@ const ForgotPasswordModal = ({ open, onClose }: { open: boolean; onClose: () => 
       return;
     }
 
-    // Check expiry
     if (new Date(data.expires_at) < new Date()) {
       setLoading(false);
       toast({ title: "This code has expired. Please request a new one.", variant: "destructive" });
@@ -155,7 +161,7 @@ const ForgotPasswordModal = ({ open, onClose }: { open: boolean; onClose: () => 
     setStep("password");
   };
 
-  // ── Step 3: Set new password ─────────────────────────────────────────────
+  // ── Step 3: Set new password ──────────────────────────────────────────────
   const handlePasswordSubmit = async () => {
     if (!newPassword || !confirmPassword || !foundUser) return;
 
@@ -171,7 +177,6 @@ const ForgotPasswordModal = ({ open, onClose }: { open: boolean; onClose: () => 
 
     setLoading(true);
 
-    // Update plaintext_password in profiles
     const { error: profileError } = await (supabase as any)
       .from("profiles")
       .update({ plaintext_password: newPassword })
@@ -190,22 +195,20 @@ const ForgotPasswordModal = ({ open, onClose }: { open: boolean; onClose: () => 
       .eq("email", foundUser.email)
       .eq("used", false);
 
-    // Send confirmation email
-    await supabase.functions.invoke("send-email", {
-      body: {
-        email: foundUser.email,
-        subject: "Your Password Has Been Changed — Flexiq Verve",
-        html: `
-          <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#f9f9f9;border-radius:12px;">
-            <h2 style="color:#7C3AED;margin-bottom:8px;">Password Changed</h2>
-            <p style="color:#333;font-size:15px;">Hello <strong>${foundUser.first_name}</strong>,</p>
-            <p style="color:#333;font-size:15px;">Your Flexiq Verve password was <strong>successfully changed</strong>.</p>
-            <p style="color:#555;font-size:13px;">If you did not make this change, please contact our support team immediately.</p>
-            <p style="color:#555;font-size:13px;margin-top:24px;">— The Flexiq Verve Team</p>
-          </div>
-        `,
-      },
-    });
+    // Send confirmation email via fetch (no session needed)
+    await sendEmail(
+      foundUser.email,
+      "Your Password Has Been Changed — Flexiq Verve",
+      `
+        <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#f9f9f9;border-radius:12px;">
+          <h2 style="color:#7C3AED;margin-bottom:8px;">Password Changed</h2>
+          <p style="color:#333;font-size:15px;">Hello <strong>${foundUser.first_name}</strong>,</p>
+          <p style="color:#333;font-size:15px;">Your Flexiq Verve password was <strong>successfully changed</strong>.</p>
+          <p style="color:#555;font-size:13px;">If you did not make this change, please contact our support team immediately.</p>
+          <p style="color:#555;font-size:13px;margin-top:24px;">— The Flexiq Verve Team</p>
+        </div>
+      `
+    );
 
     setLoading(false);
     toast({ title: "Password changed successfully. You can now sign in." });
@@ -351,7 +354,7 @@ const ForgotPasswordModal = ({ open, onClose }: { open: boolean; onClose: () => 
   );
 };
 
-// ─── Main Login Page ─────────────────────────────────────────────────────────
+// ─── Main Login Page ──────────────────────────────────────────────────────────
 
 const Login = () => {
   const navigate = useNavigate();
