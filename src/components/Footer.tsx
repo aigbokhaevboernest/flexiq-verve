@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import adminLogo from "@/assets/logo.png";
+import { BrandLogo } from "@/components/BrandLogo";
 
 const cols: { title: string; items: { label: string; to: string }[] }[] = [
   {
