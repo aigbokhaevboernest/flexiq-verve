@@ -88,7 +88,7 @@ const Index = () => {
               <span className="block">your money & build credit with Flexiq Verve</span>
             </motion.h1>
             <motion.p {...fade(0.15)} className="mt-6 max-w-xl text-base text-on-dark-muted sm:text-lg">
-              Flexiq Verve provides secure, fast, and reliable digital banking services to help you manage your finances with ease — from anywhere, on any device.
+              Flexiq Verve provides secure, fast, and reliable digital banking services to help you manage your finances with ease, from anywhere, on any device.
             </motion.p>
             <motion.div {...fade(0.25)} className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Button asChild size="lg" className="bg-[hsl(var(--mediumblue))] text-white shadow-glow hover:bg-[hsl(var(--mediumblue))]/90">
@@ -117,8 +117,8 @@ const Index = () => {
         <div className="container">
           <motion.div {...fade()} className="mx-auto max-w-2xl text-center text-on-dark">
             <p className="text-sm font-semibold uppercase tracking-widest text-[hsl(var(--mediumblue))]">Core banking</p>
-            <h2 className="mt-3 font-display text-3xl font-bold sm:text-4xl">Everything you need, beautifully simple</h2>
-            <p className="mt-4 text-on-dark-muted">A modern banking experience designed around how you actually live.</p>
+            <h2 className="mt-3 font-display text-3xl font-bold sm:text-4xl">Sophisticated banking, simplified.</h2>
+            <p className="mt-4 text-on-dark-muted">A modern, intuitive experience designed around security and simplicity.</p>
           </motion.div>
 
           <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
