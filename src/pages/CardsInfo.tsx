@@ -4,16 +4,41 @@ import { CreditCard, Snowflake, Smartphone, Gift, Shield, Globe2 } from "lucide-
 const CardsInfo = () => (
   <MarketingPage
     eyebrow="Cards"
-    title="Cards that adapt to every part of your life"
-    intro="Virtual and physical cards with controls, rewards, and security that put you in charge."
+    title="Smart cards designed for the way you spend"
+    intro="Whether you're shopping online, traveling abroad, or managing everyday expenses, Flexiq Verve cards give you the freedom, security, and control to pay with confidence."
     sections={[
-      { icon: CreditCard, title: "Virtual Cards", desc: "Spin up unlimited virtual cards for online spending." },
-      { icon: Smartphone, title: "Apple & Google Pay", desc: "Tap to pay anywhere contactless is accepted." },
-      { icon: Snowflake, title: "Freeze Anytime", desc: "Pause and resume cards instantly from the app." },
-      { icon: Shield, title: "Fraud Protection", desc: "Real-time alerts and zero liability on unauthorized charges." },
-      { icon: Gift, title: "Cashback Rewards", desc: "Earn up to 3% on dining, travel, and groceries." },
-      { icon: Globe2, title: "No FX Fees", desc: "Spend in any currency without hidden conversion fees." },
+      {
+        icon: CreditCard,
+        title: "Virtual Cards",
+        desc: "Create secure virtual cards instantly for online purchases and subscriptions.",
+      },
+      {
+        icon: Smartphone,
+        title: "Digital Wallet Ready",
+        desc: "Add your card to Apple Pay or Google Pay and make fast, contactless payments worldwide.",
+      },
+      {
+        icon: Snowflake,
+        title: "Instant Card Controls",
+        desc: "Freeze or unfreeze your card anytime directly from the app for added peace of mind.",
+      },
+      {
+        icon: Shield,
+        title: "Advanced Security",
+        desc: "Stay protected with real-time transaction alerts and industry-leading fraud prevention.",
+      },
+      {
+        icon: Gift,
+        title: "Rewards That Matter",
+        desc: "Earn cashback and exclusive perks on everyday spending, travel, and lifestyle purchases.",
+      },
+      {
+        icon: Globe2,
+        title: "Borderless Spending",
+        desc: "Use your card globally with competitive exchange rates and no hidden foreign transaction fees.",
+      },
     ]}
   />
 );
+
 export default CardsInfo;
