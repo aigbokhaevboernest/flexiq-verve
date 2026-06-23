@@ -98,7 +98,7 @@ const PlaceholderCard = ({ type, hidden, currency }: PlaceholderCardProps) => {
   const Icon = PLACEHOLDER_ICONS[type];
   return (
     <div
-      className="relative overflow-hidden rounded-3xl p-8 text-white shadow-elev"
+      className="relative overflow-hidden rounded-3xl p-8 text-white shadow-elev h-full flex flex-col"
       style={{ background: PLACEHOLDER_GRADIENTS[type] }}
     >
       {/* Decorative blobs */}
@@ -165,12 +165,7 @@ const PlaceholderCard = ({ type, hidden, currency }: PlaceholderCardProps) => {
         })}
       </div>
 
-      {/* Coming soon pill */}
-      <div className="relative mt-6 flex justify-center">
-        <span className="rounded-full bg-white/15 px-4 py-1.5 text-xs font-semibold backdrop-blur-sm">
-          Coming soon · Open this account
-        </span>
-      </div>
+      {/* Removed Coming soon pill as requested */}
     </div>
   );
 };
@@ -330,7 +325,7 @@ const DashboardHome = () => {
 
   // ── Real account card (slide 0) — original logic 100% untouched ─────────
   const RealAccountSlide = (
-    <div className="relative overflow-hidden rounded-3xl bg-gradient-primary p-8 text-primary-foreground shadow-elev">
+    <div className="relative overflow-hidden rounded-3xl bg-gradient-primary p-8 text-primary-foreground shadow-elev h-full flex flex-col">
       <div className="absolute -right-16 -top-16 h-56 w-56 rounded-full bg-white/15 blur-2xl pointer-events-none" />
       <div className="absolute -bottom-20 -left-10 h-56 w-56 rounded-full bg-accent/40 blur-3xl pointer-events-none" />
 
@@ -382,7 +377,6 @@ const DashboardHome = () => {
             </div>
             <div>
               <p className="text-xs opacity-70">Account type</p>
-              {/* FIX: removed the <> fragment that was rendering literal angle-brackets */}
               <p className="font-medium">
                 {(profile as any)?.account_type || "Personal"}
               </p>
@@ -507,41 +501,26 @@ const DashboardHome = () => {
         {/* ── Swipable carousel ──────────────────────────────────────────── */}
         <div className="lg:col-span-2">
           <div className="relative select-none">
-            {/*
-              Outer container: clip to width, show a sliver of next card.
-              padding-right: ~16px lets the next card peek.
-              overflow-hidden clips the rest.
-            */}
             <div
               className="overflow-hidden"
               style={{ borderRadius: "1.5rem" }}
               onTouchStart={handleTouchStart}
               onTouchEnd={handleTouchEnd}
             >
-              {/*
-                Track: translateX moves by (activeSlide * (100% - peek)).
-                Using CSS custom property so we can calculate cleanly.
-                Each slide takes the full container width minus the peek gap.
-              */}
               <div
                 className="flex"
                 style={{
-                  // Smooth spring-like easing
                   transition: "transform 380ms cubic-bezier(0.25, 0.46, 0.45, 0.94)",
-                  // Each slide = 100% of visible area; gap between slides
                   gap: "12px",
-                  // Shift by (slide width + gap) × activeSlide
-                  // slide width = calc(100% - 28px) to leave peek room
                   transform: `translateX(calc(-${activeSlide} * (100% - 16px + 12px)))`,
                 }}
               >
                 {slides.map((slide, i) => (
                   <div
                     key={slide.key}
+                    className="flex-shrink-0 w-full"
                     style={{
-                      // Each slide is slightly less than 100% so the next peeks
                       flex: "0 0 calc(100% - 28px)",
-                      // Dim non-active slides slightly
                       opacity: i === activeSlide ? 1 : 0.72,
                       transition: "opacity 380ms cubic-bezier(0.25, 0.46, 0.45, 0.94)",
                     }}
@@ -597,7 +576,7 @@ const DashboardHome = () => {
         </div>
 
         {/* ── Your card panel — unchanged ────────────────────────────────── */}
-        <Card className="rounded-3xl border-border/60 p-6 shadow-card">
+        <Card className="rounded-3xl border-border/60 p-6 shadow-card h-full">
           <div className="flex items-center justify-between">
             <p className="text-sm font-semibold">Your card</p>
             <Button variant="ghost" size="sm" className="h-8 text-xs" asChild>
