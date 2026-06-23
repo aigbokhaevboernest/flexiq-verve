@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import {
   ArrowRight,
   Banknote,
@@ -88,28 +88,58 @@ const testimonials = [
 ];
 
 /**
- * Real, official logo files — hotlinked from Wikimedia Commons, which mirrors
- * the exact SVG assets each company publishes in their own brand/press kit.
- * Nothing here is redrawn or approximated.
+ * Real, official logo files — hotlinked from Wikimedia Commons via the
+ * Special:FilePath redirect, which resolves by filename alone (more robust
+ * than guessing the hash-prefixed folder path). These mirror the exact SVG
+ * assets each company publishes in their own brand/press kit — nothing here
+ * is redrawn or approximated.
  *
- * NOTE: spot-check these URLs once in-browser. Wikimedia occasionally renames
- * or re-versions a file, so confirm each one resolves before shipping.
+ * HONEST CAVEAT: my sandbox has no outbound network access, so I cannot
+ * fetch and verify these resolve before handing them to you. Each logo below
+ * has a built-in text fallback (see PartnerLogo component) — if one is wrong,
+ * it shows the partner name as text instead of breaking the layout. Tell me
+ * which name renders as text and I'll find a corrected filename.
  */
 const partners = [
-  { name: "Visa", src: "https://upload.wikimedia.org/wikipedia/commons/0/04/Visa_2021.svg" },
-  { name: "Mastercard", src: "https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" },
-  { name: "PayPal", src: "https://upload.wikimedia.org/wikipedia/commons/b/b5/PayPal.svg" },
-  { name: "Stripe", src: "https://upload.wikimedia.org/wikipedia/commons/b/b4/Stripe_Logo%2C_revised_2016.svg" },
-  { name: "Apple Pay", src: "https://upload.wikimedia.org/wikipedia/commons/e/ee/Apple_Pay_logo.svg" },
-  { name: "Google Pay", src: "https://upload.wikimedia.org/wikipedia/commons/c/c4/Google_Pay_Logo.svg" },
-  { name: "Zelle", src: "https://upload.wikimedia.org/wikipedia/commons/a/ad/Zelle_logo.svg" },
-  { name: "Cash App", src: "https://upload.wikimedia.org/wikipedia/commons/4/44/Cash_App_logo.svg" },
-  { name: "Plaid", src: "https://upload.wikimedia.org/wikipedia/commons/6/6f/Plaid_logo.svg" },
-  { name: "Dwolla", src: "https://upload.wikimedia.org/wikipedia/commons/d/d3/Dwolla_logo.svg" },
+  { name: "Visa", src: "https://upload.wikimedia.org/wikipedia/commons/special/filepath/Visa_2021.svg" },
+  { name: "Mastercard", src: "https://upload.wikimedia.org/wikipedia/commons/special/filepath/Mastercard-logo.svg" },
+  { name: "PayPal", src: "https://upload.wikimedia.org/wikipedia/commons/special/filepath/PayPal.svg" },
+  { name: "Stripe", src: "https://upload.wikimedia.org/wikipedia/commons/special/filepath/Stripe_Logo,_revised_2016.svg" },
+  { name: "Apple Pay", src: "https://upload.wikimedia.org/wikipedia/commons/special/filepath/Apple_Pay_logo.svg" },
+  { name: "Google Pay", src: "https://upload.wikimedia.org/wikipedia/commons/special/filepath/Google_Pay_Logo.svg" },
+  { name: "Zelle", src: "https://upload.wikimedia.org/wikipedia/commons/special/filepath/Zelle_logo.svg" },
+  { name: "Cash App", src: "https://upload.wikimedia.org/wikipedia/commons/special/filepath/Cash_App_logo.svg" },
+  { name: "Plaid", src: "https://upload.wikimedia.org/wikipedia/commons/special/filepath/Plaid_logo.svg" },
+  { name: "Dwolla", src: "https://upload.wikimedia.org/wikipedia/commons/special/filepath/Dwolla_logo.svg" },
+  { name: "Marqeta", src: "https://upload.wikimedia.org/wikipedia/commons/special/filepath/Marqeta_logo.svg" },
+  { name: "ACH", src: "https://upload.wikimedia.org/wikipedia/commons/special/filepath/Nacha_logo.svg" },
+  { name: "Fedwire", src: "https://upload.wikimedia.org/wikipedia/commons/special/filepath/Federal_Reserve_System_logo.svg" },
 ];
 
-// Duplicate once for a seamless 0% -> -50% loop
+// One clean duplicate — the rAF loop math below relies on exactly 2 copies.
 const ticker = [...partners, ...partners];
+
+const PartnerLogo = ({ name, src }: { name: string; src: string }) => {
+  const [failed, setFailed] = useState(false);
+  return (
+    <div className="flex h-20 w-[150px] flex-shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white px-6 py-4">
+      {failed ? (
+        <span className="text-xs font-semibold uppercase tracking-wide text-gray-400 text-center">
+          {name}
+        </span>
+      ) : (
+        <img
+          src={src}
+          alt={name}
+          draggable={false}
+          loading="lazy"
+          onError={() => setFailed(true)}
+          className="h-7 max-h-7 w-auto max-w-[110px] object-contain"
+        />
+      )}
+    </div>
+  );
+};
 
 const faqs = [
   { q: "How do I open an account?", a: "Click 'Open Account' and complete the 2-minute signup. You'll need basic personal info and a valid email." },
@@ -123,25 +153,74 @@ const faqs = [
 
 const Index = () => {
   const partnerTrackRef = useRef<HTMLDivElement>(null);
+  const [partnerTrackWidth, setPartnerTrackWidth] = useState(0);
   const [isPartnerDragging, setIsPartnerDragging] = useState(false);
-  const partnerDragState = useRef({ startX: 0, startScroll: 0 });
+  const partnerOffsetRef = useRef(0); // current translateX, negative = scrolled right
+  const partnerDragStartX = useRef(0);
+  const partnerDragStartOffset = useRef(0);
+  const partnerRafRef = useRef<number | null>(null);
+
+  // Medium speed in px/sec — tune here. Lower = slower, higher = faster.
+  const PARTNER_SPEED_PX_PER_SEC = 55;
+
+  // Measure one full set's width (half of the duplicated track) for the loop point.
+  useEffect(() => {
+    if (partnerTrackRef.current) {
+      setPartnerTrackWidth(partnerTrackRef.current.scrollWidth / 2);
+    }
+  }, []);
+
+  // Single rAF loop drives both auto-scroll and drag rendering, so they never fight each other.
+  useEffect(() => {
+    let lastTime = performance.now();
+
+    const tick = (now: number) => {
+      const dt = (now - lastTime) / 1000;
+      lastTime = now;
+
+      if (!isPartnerDragging && partnerTrackWidth > 0) {
+        partnerOffsetRef.current -= PARTNER_SPEED_PX_PER_SEC * dt;
+        if (partnerOffsetRef.current <= -partnerTrackWidth) {
+          partnerOffsetRef.current += partnerTrackWidth;
+        }
+      }
+
+      if (partnerTrackRef.current) {
+        partnerTrackRef.current.style.transform = `translateX(${partnerOffsetRef.current}px)`;
+      }
+
+      partnerRafRef.current = requestAnimationFrame(tick);
+    };
+
+    partnerRafRef.current = requestAnimationFrame(tick);
+    return () => {
+      if (partnerRafRef.current) cancelAnimationFrame(partnerRafRef.current);
+    };
+  }, [isPartnerDragging, partnerTrackWidth]);
+
+  const normalizePartnerOffset = () => {
+    if (partnerTrackWidth <= 0) return;
+    while (partnerOffsetRef.current <= -partnerTrackWidth) partnerOffsetRef.current += partnerTrackWidth;
+    while (partnerOffsetRef.current > 0) partnerOffsetRef.current -= partnerTrackWidth;
+  };
 
   const onPartnerPointerDown = (e: React.PointerEvent) => {
-    if (!partnerTrackRef.current) return;
     setIsPartnerDragging(true);
-    partnerDragState.current = { startX: e.clientX, startScroll: partnerTrackRef.current.scrollLeft };
-    partnerTrackRef.current.setPointerCapture(e.pointerId);
+    partnerDragStartX.current = e.clientX;
+    partnerDragStartOffset.current = partnerOffsetRef.current;
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
   };
 
   const onPartnerPointerMove = (e: React.PointerEvent) => {
-    if (!isPartnerDragging || !partnerTrackRef.current) return;
-    const dx = e.clientX - partnerDragState.current.startX;
-    partnerTrackRef.current.scrollLeft = partnerDragState.current.startScroll - dx;
+    if (!isPartnerDragging) return;
+    const dx = e.clientX - partnerDragStartX.current;
+    partnerOffsetRef.current = partnerDragStartOffset.current + dx;
   };
 
-  const onPartnerPointerUp = (e: React.PointerEvent) => {
+  const endPartnerDrag = () => {
+    if (!isPartnerDragging) return;
     setIsPartnerDragging(false);
-    partnerTrackRef.current?.releasePointerCapture(e.pointerId);
+    normalizePartnerOffset();
   };
 
   return (
@@ -361,56 +440,24 @@ const Index = () => {
           <div className="pointer-events-none absolute left-0 top-0 z-10 h-full w-20 bg-gradient-to-r from-[hsl(var(--navy))] to-transparent" />
           <div className="pointer-events-none absolute right-0 top-0 z-10 h-full w-20 bg-gradient-to-l from-[hsl(var(--navy))] to-transparent" />
 
+          {/* Drag surface — fixed width, clips the moving track. No native scroll here. */}
           <div
-            ref={partnerTrackRef}
+            className={`w-full select-none ${isPartnerDragging ? "cursor-grabbing" : "cursor-grab"}`}
             onPointerDown={onPartnerPointerDown}
             onPointerMove={onPartnerPointerMove}
-            onPointerUp={onPartnerPointerUp}
-            onPointerLeave={onPartnerPointerUp}
-            className={`flex gap-4 overflow-x-auto scrollbar-none select-none ${
-              isPartnerDragging ? "cursor-grabbing" : "cursor-grab"
-            }`}
-            style={{
-              scrollbarWidth: "none",
-              animation: isPartnerDragging ? "none" : "partners-scroll 32s linear infinite",
-            }}
+            onPointerUp={endPartnerDrag}
+            onPointerLeave={endPartnerDrag}
+            onPointerCancel={endPartnerDrag}
+            style={{ touchAction: "pan-y" }}
           >
-            {ticker.map((p, i) => (
-              <div
-                key={`${p.name}-${i}`}
-                className="flex h-20 w-[150px] flex-shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white px-6 py-4"
-              >
-                <img
-                  src={p.src}
-                  alt={p.name}
-                  draggable={false}
-                  className="h-7 max-w-full object-contain"
-                  loading="lazy"
-                />
-              </div>
-            ))}
-
-            <div className="flex h-20 w-[160px] flex-shrink-0 flex-col items-center justify-center gap-1 rounded-2xl border-2 border-dashed border-white/15 bg-transparent">
-              <p className="text-2xl font-bold text-white/30">···</p>
-              <p className="text-[11px] font-semibold tracking-wider text-on-dark-muted uppercase text-center leading-tight">
-                150+ more
-                <br />
-                supported
-              </p>
+            {/* Moving track — position controlled entirely by the rAF loop above */}
+            <div ref={partnerTrackRef} className="flex w-max gap-4" style={{ willChange: "transform" }}>
+              {ticker.map((p, i) => (
+                <PartnerLogo key={`${p.name}-${i}`} name={p.name} src={p.src} />
+              ))}
             </div>
           </div>
         </div>
-
-        <style>{`
-          @keyframes partners-scroll {
-            0%   { transform: translateX(0); }
-            100% { transform: translateX(-50%); }
-          }
-          .scrollbar-none::-webkit-scrollbar { display: none; }
-          @media (prefers-reduced-motion: reduce) {
-            [style*="partners-scroll"] { animation: none !important; }
-          }
-        `}</style>
       </section>
 
       {/* ── FAQ ── */}
