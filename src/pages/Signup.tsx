@@ -175,7 +175,7 @@ Flexiq Verve Support Team`,
        </select>
      </div>
      <div className="mx-auto w-full max-w-2xl overflow-hidden rounded-3xl border border-white/10 bg-white shadow-elev animate-fade-in">
-       <div className="bg-gradient-to-br from-[#4FA9F0] via-[#3D8FE0] to-[#7FC1F5] px-8 pb-8 pt-10 text-center sm:px-10">
+       <div className="bg-gradient-to-br from-[#7C3AED] via-[#8B5CF6] to-[#A78BFA] px-8 pb-8 pt-10 text-center sm:px-10">
          <Link to="/" className="flex flex-col items-center justify-center">
            <BrandLogo className="h-10 w-auto object-contain drop-shadow-lg sm:h-12" />
          </Link>
