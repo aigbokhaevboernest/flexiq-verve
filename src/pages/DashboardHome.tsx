@@ -23,6 +23,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/EmptyState";
+import AccountCarousel from "@/components/dashboard/AccountCarousel";
 
 const quickActions: Array<{
   icon: any;
@@ -46,6 +47,31 @@ const maskAccountNumber = (raw?: string | null): string => {
   // Group masked digits in blocks of 4 for readability
   const maskedBlocks = "•".repeat(hiddenCount).match(/.{1,4}/g) || [];
   return [...maskedBlocks, last4].join(" ");
+};
+
+/**
+ * Determine which secondary placeholder account cards to show in the
+ * carousel, based on the account type chosen at signup.
+ *
+ * Rule: never show the signup-selected type again as a secondary card.
+ *  - signup = "checking" -> secondary = ["savings"]
+ *  - signup = "savings"  -> secondary = ["checking"]
+ *  - signup = "personal" | "business" | anything else/unknown
+ *                         -> secondary = ["checking", "savings"]
+ *
+ * Matching is case-insensitive since the exact stored casing of
+ * account_type is unconfirmed.
+ */
+const getSecondaryAccountTypes = (
+  accountType: string | null | undefined
+): Array<"checking" | "savings"> => {
+  const normalized = (accountType || "").trim().toLowerCase();
+
+  if (normalized === "checking") return ["savings"];
+  if (normalized === "savings") return ["checking"];
+
+  // personal, business, empty/unknown -> neither was claimed, show both
+  return ["checking", "savings"];
 };
 
 const DashboardHome = () => {
@@ -175,6 +201,13 @@ const DashboardHome = () => {
   // Stable masked account number — only recomputes when accountNumber changes, no flicker
   const maskedAccountNumber = useMemo(() => maskAccountNumber(accountNumber), [accountNumber]);
 
+  // Which secondary placeholder cards to show alongside the primary card,
+  // based on the signup account_type. Never duplicates the signup type.
+  const secondaryAccountTypes = useMemo(
+    () => getSecondaryAccountTypes((profile as any)?.account_type),
+    [(profile as any)?.account_type]
+  );
+
   return (
     <div className="space-y-6">
       <div>
@@ -215,125 +248,130 @@ const DashboardHome = () => {
 
       <div className="grid gap-5 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <div className="relative overflow-hidden rounded-3xl bg-gradient-primary p-8 text-primary-foreground shadow-elev">
-            <div className="absolute -right-16 -top-16 h-56 w-56 rounded-full bg-white/15 blur-2xl" />
-            <div className="absolute -bottom-20 -left-10 h-56 w-56 rounded-full bg-accent/40 blur-3xl" />
+          <AccountCarousel
+            secondaryTypes={secondaryAccountTypes}
+            primarySlide={
+              <div className="relative h-full overflow-hidden rounded-3xl bg-gradient-primary p-8 text-primary-foreground shadow-elev">
+                <div className="absolute -right-16 -top-16 h-56 w-56 rounded-full bg-white/15 blur-2xl" />
+                <div className="absolute -bottom-20 -left-10 h-56 w-56 rounded-full bg-accent/40 blur-3xl" />
 
-            <div className="relative flex items-start justify-between">
-              <div className="flex-1">
-                {isFrozen && (
-                  <span
-                    className="mb-3 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold text-white backdrop-blur-sm"
-                    style={{ backgroundColor: "rgba(255, 133, 3, 0.8)" }}
-                  >
-                    <ShieldAlert className="h-3 w-3" />
-                    Account Frozen
-                  </span>
-                )}
+                <div className="relative flex items-start justify-between">
+                  <div className="flex-1">
+                    {isFrozen && (
+                      <span
+                        className="mb-3 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold text-white backdrop-blur-sm"
+                        style={{ backgroundColor: "rgba(255, 133, 3, 0.8)" }}
+                      >
+                        <ShieldAlert className="h-3 w-3" />
+                        Account Frozen
+                      </span>
+                    )}
 
-                <p className="text-xs uppercase tracking-widest opacity-70">
-                  Available Balance
-                </p>
-                <div className="mt-2 flex items-center gap-3">
-                  {!balanceKnown || !currency ? (
-                    <Skeleton className="h-10 w-44 bg-white/20" />
-                  ) : (
-                    <p
-                      className="font-sans font-bold tracking-tight truncate max-w-[260px] sm:max-w-[340px]"
-                      style={{ fontSize: "clamp(2rem, 6vw, 3.5rem)" }}
-                      title={formatMoney(balanceValue, currency)}
-                    >
-                      {hidden ? "••••••" : formatMoney(balanceValue, currency)}
+                    <p className="text-xs uppercase tracking-widest opacity-70">
+                      Available Balance
                     </p>
-                  )}
-                  <button
-                    onClick={() => setHidden((h) => !h)}
-                    className="rounded-full bg-white/15 p-2 backdrop-blur transition-smooth hover:bg-white/25"
-                  >
-                    {hidden ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-                  </button>
-                </div>
-
-                <div className="mt-6 flex flex-wrap gap-x-8 gap-y-2 text-sm opacity-90">
-                  <div>
-                    <p className="text-xs opacity-70">Account No.</p>
-                    <p className="font-mono">
-                      {!profileReady ? (
-                        <Skeleton className="inline-block h-3 w-24 bg-white/20 align-middle" />
+                    <div className="mt-2 flex items-center gap-3">
+                      {!balanceKnown || !currency ? (
+                        <Skeleton className="h-10 w-44 bg-white/20" />
                       ) : (
-                        maskedAccountNumber
+                        <p
+                          className="font-sans font-bold tracking-tight truncate max-w-[260px] sm:max-w-[340px]"
+                          style={{ fontSize: "clamp(2rem, 6vw, 3.5rem)" }}
+                          title={formatMoney(balanceValue, currency)}
+                        >
+                          {hidden ? "••••••" : formatMoney(balanceValue, currency)}
+                        </p>
                       )}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs opacity-70">Account type</p>
-                    <p className="font-medium">
-                      {(profile as any)?.account_type || "Personal"}
-                      {currency ? <> · {currency}</> : null}
-                    </p>
-                  </div>
-                  {isFrozen && (
-                    <div>
-                      <p className="text-xs opacity-70">Status</p>
-                      <p className="font-semibold" style={{ color: "#ff8503" }}>
-                        ● Frozen
-                      </p>
+                      <button
+                        onClick={() => setHidden((h) => !h)}
+                        className="rounded-full bg-white/15 p-2 backdrop-blur transition-smooth hover:bg-white/25"
+                      >
+                        {hidden ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                      </button>
                     </div>
-                  )}
+
+                    <div className="mt-6 flex flex-wrap gap-x-8 gap-y-2 text-sm opacity-90">
+                      <div>
+                        <p className="text-xs opacity-70">Account No.</p>
+                        <p className="font-mono">
+                          {!profileReady ? (
+                            <Skeleton className="inline-block h-3 w-24 bg-white/20 align-middle" />
+                          ) : (
+                            maskedAccountNumber
+                          )}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs opacity-70">Account type</p>
+                        <p className="font-medium">
+                          {(profile as any)?.account_type || "Personal"}
+                          {currency ? <> · {currency}</> : null}
+                        </p>
+                      </div>
+                      {isFrozen && (
+                        <div>
+                          <p className="text-xs opacity-70">Status</p>
+                          <p className="font-semibold" style={{ color: "#ff8503" }}>
+                            ● Frozen
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="hidden text-right sm:block">
+                    <Wifi className="ml-auto h-5 w-5 rotate-90 opacity-90" />
+                    <p className="mt-12 font-display text-sm font-semibold opacity-90">
+                      PLATINUM
+                    </p>
+                  </div>
+                </div>
+
+                <div className="relative mt-8 grid grid-cols-4 gap-3">
+                  {quickActions.map((a) => {
+                    const Icon = a.icon;
+                    const cls =
+                      "group flex flex-col items-center gap-2 rounded-2xl bg-white/10 p-3 text-center backdrop-blur transition-smooth hover:bg-white/20";
+                    const inner = (
+                      <>
+                        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20 text-primary-foreground">
+                          <Icon className="h-4 w-4" />
+                        </span>
+                        <span className="text-xs font-medium">{a.label}</span>
+                      </>
+                    );
+
+                    if (isFrozen || a.disabled) {
+                      return (
+                        <button
+                          key={a.label}
+                          type="button"
+                          onClick={
+                            isFrozen
+                              ? handleFrozenAction
+                              : () => {
+                                  toast.error("Feature not available", {
+                                    description: "Please contact support for assistance.",
+                                  });
+                                }
+                          }
+                          className={cls + " cursor-not-allowed opacity-50"}
+                        >
+                          {inner}
+                        </button>
+                      );
+                    }
+
+                    return (
+                      <Link key={a.label} to={a.to} className={cls}>
+                        {inner}
+                      </Link>
+                    );
+                  })}
                 </div>
               </div>
-
-              <div className="hidden text-right sm:block">
-                <Wifi className="ml-auto h-5 w-5 rotate-90 opacity-90" />
-                <p className="mt-12 font-display text-sm font-semibold opacity-90">
-                  PLATINUM
-                </p>
-              </div>
-            </div>
-
-            <div className="relative mt-8 grid grid-cols-4 gap-3">
-              {quickActions.map((a) => {
-                const Icon = a.icon;
-                const cls =
-                  "group flex flex-col items-center gap-2 rounded-2xl bg-white/10 p-3 text-center backdrop-blur transition-smooth hover:bg-white/20";
-                const inner = (
-                  <>
-                    <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20 text-primary-foreground">
-                      <Icon className="h-4 w-4" />
-                    </span>
-                    <span className="text-xs font-medium">{a.label}</span>
-                  </>
-                );
-
-                if (isFrozen || a.disabled) {
-                  return (
-                    <button
-                      key={a.label}
-                      type="button"
-                      onClick={
-                        isFrozen
-                          ? handleFrozenAction
-                          : () => {
-                              toast.error("Feature not available", {
-                                description: "Please contact support for assistance.",
-                              });
-                            }
-                      }
-                      className={cls + " cursor-not-allowed opacity-50"}
-                    >
-                      {inner}
-                    </button>
-                  );
-                }
-
-                return (
-                  <Link key={a.label} to={a.to} className={cls}>
-                    {inner}
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
+            }
+          />
         </div>
 
         <Card className="rounded-3xl border-border/60 p-6 shadow-card">
