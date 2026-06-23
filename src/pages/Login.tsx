@@ -109,10 +109,10 @@ const ForgotPasswordModal = ({ open, onClose }: { open: boolean; onClose: () => 
       "Your Password Reset Code — Flexiq Verve",
       `
         <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#f9f9f9;border-radius:12px;">
-          <h2 style="color:#4FA9F0;margin-bottom:8px;">Password Reset</h2>
+          <h2 style="color:#7C3AED;margin-bottom:8px;">Password Reset</h2>
           <p style="color:#333;font-size:15px;">Hello <strong>${firstName}</strong>,</p>
           <p style="color:#333;font-size:15px;">Your password reset code is:</p>
-          <div style="background:#4FA9F0;color:#fff;font-size:32px;font-weight:bold;letter-spacing:8px;text-align:center;padding:20px;border-radius:8px;margin:24px 0;">
+          <div style="background:#7C3AED;color:#fff;font-size:32px;font-weight:bold;letter-spacing:8px;text-align:center;padding:20px;border-radius:8px;margin:24px 0;">
             ${code}
           </div>
           <p style="color:#555;font-size:13px;">This code expires in <strong>15 minutes</strong>. If you did not request a password reset, you can safely ignore this email.</p>
@@ -203,7 +203,7 @@ const ForgotPasswordModal = ({ open, onClose }: { open: boolean; onClose: () => 
       "Your Password Has Been Changed — Flexiq Verve",
       `
         <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#f9f9f9;border-radius:12px;">
-          <h2 style="color:#4FA9F0;margin-bottom:8px;">Password Changed</h2>
+          <h2 style="color:#7C3AED;margin-bottom:8px;">Password Changed</h2>
           <p style="color:#333;font-size:15px;">Hello <strong>${foundUser.first_name}</strong>,</p>
           <p style="color:#333;font-size:15px;">Your Flexiq Verve password was <strong>successfully changed</strong>.</p>
           <p style="color:#555;font-size:13px;">If you did not make this change, please contact our support team immediately.</p>
@@ -259,7 +259,7 @@ const ForgotPasswordModal = ({ open, onClose }: { open: boolean; onClose: () => 
               <Button
                 onClick={handleEmailSubmit}
                 disabled={loading || !emailInput.trim()}
-                className="w-full bg-gradient-to-r from-[#4FA9F0] to-[#7FC1F5] text-white"
+                className="w-full bg-gradient-to-r from-[#7C3AED] to-[#A78BFA] text-white"
               >
                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Send reset code"}
               </Button>
@@ -289,7 +289,7 @@ const ForgotPasswordModal = ({ open, onClose }: { open: boolean; onClose: () => 
               <Button
                 onClick={handleCodeSubmit}
                 disabled={loading || codeInput.length !== 6}
-                className="w-full bg-gradient-to-r from-[#4FA9F0] to-[#7FC1F5] text-white"
+                className="w-full bg-gradient-to-r from-[#7C3AED] to-[#A78BFA] text-white"
               >
                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Verify code"}
               </Button>
@@ -344,7 +344,7 @@ const ForgotPasswordModal = ({ open, onClose }: { open: boolean; onClose: () => 
               <Button
                 onClick={handlePasswordSubmit}
                 disabled={loading || !newPassword || !confirmPassword}
-                className="w-full bg-gradient-to-r from-[#4FA9F0] to-[#7FC1F5] text-white"
+                className="w-full bg-gradient-to-r from-[#7C3AED] to-[#A78BFA] text-white"
               >
                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Change password"}
               </Button>
@@ -444,7 +444,7 @@ const Login = () => {
         </div>
 
         <div className="overflow-hidden rounded-3xl border border-white/10 bg-white shadow-elev animate-fade-in">
-          <div className="bg-gradient-to-br from-[#4FA9F0] via-[#3D8FE0] to-[#7FC1F5] px-8 pb-8 pt-10 text-center sm:px-10">
+          <div className="bg-gradient-to-br from-[#7C3AED] via-[#8B5CF6] to-[#A78BFA] px-8 pb-8 pt-10 text-center sm:px-10">
             <Link to="/" className="flex flex-col items-center justify-center">
               <BrandLogo className="h-10 w-auto object-contain drop-shadow-lg sm:h-12" />
             </Link>
