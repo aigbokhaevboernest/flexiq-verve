@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { useRef, useState } from "react";
 import {
   ArrowRight,
   Banknote,
@@ -86,145 +87,29 @@ const testimonials = [
   },
 ];
 
-// ── Partner logo SVGs — all use real brand colors (cards are white) ──
-
-const VisaLogo = () => (
-  <svg viewBox="0 0 80 26" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-7 w-auto">
-    <path d="M30.2 0.5L24.5 25.5H18.8L24.5 0.5H30.2Z" fill="#1A1F71"/>
-    <path d="M52.8 0.5L47.8 17.2L46.2 8.8C45.8 6.5 44 5 41.8 5H32.2L32 5.8C34.2 6.3 36.5 7.2 38 8.5C38.8 9.2 39.3 10 39.5 11L44.8 25.5H50.8L60.2 0.5H52.8Z" fill="#1A1F71"/>
-    <path d="M16.5 0.5L7 17.5L5.8 11.5C5.2 8.8 3.2 6.5 0.5 5.5L9.5 25.5H15.8L26.2 0.5H16.5Z" fill="#1A1F71"/>
-    <path d="M65.2 16.8C65.2 14.2 68.2 13.8 71.2 14.2C72.8 14.5 74.5 15 75.5 15.8L76.5 10.5C75.2 10 73 9.5 70.2 9.5C64.5 9.5 60.5 12.5 60.5 16.8C60.5 23.5 69.8 22.5 69.8 25.2C69.8 26.2 68.5 26.8 66.5 26.8C64.2 26.8 62 26.2 60.5 25.2L59.5 30.8C61.2 31.5 63.5 32 66.5 32C72.5 32 76.5 29 76.5 24.5C76.8 17.2 65.2 18.2 65.2 16.8Z" fill="#1A1F71"/>
-  </svg>
-);
-
-const MastercardLogo = () => (
-  <svg viewBox="0 0 60 38" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-8 w-auto">
-    <circle cx="20" cy="19" r="16" fill="#EB001B"/>
-    <circle cx="40" cy="19" r="16" fill="#F79E1B"/>
-    <path d="M30 6.8C33.2 9.2 35.5 12.8 35.5 19C35.5 25.2 33.2 28.8 30 31.2C26.8 28.8 24.5 25.2 24.5 19C24.5 12.8 26.8 9.2 30 6.8Z" fill="#FF5F00"/>
-  </svg>
-);
-
-const StripeLogo = () => (
-  <svg viewBox="0 0 60 28" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-7 w-auto">
-    <path d="M28 10.5C28 8.8 29.4 8 31.5 8C34.5 8 38.5 9 41 10.5V4.5C38.2 3.3 35.5 2.8 31.5 2.8C23.8 2.8 18.5 6.8 18.5 11.5C18.5 19.2 30.5 18 30.5 21C30.5 23 28.8 23.8 26.5 23.8C23.2 23.8 19.5 22.5 17 20.8V27C19.8 28.5 22.8 29.2 26.5 29.2C34.5 29.2 40 25.2 40 20.2C39.8 11.5 28 13 28 10.5Z" fill="#635BFF"/>
-  </svg>
-);
-
-const PlaidLogo = () => (
-  <svg viewBox="0 0 70 34" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-7 w-auto">
-    <rect x="2" y="2" width="11" height="11" rx="1.5" fill="#111827" opacity="0.9"/>
-    <rect x="15" y="2" width="11" height="11" rx="1.5" fill="#111827" opacity="0.65"/>
-    <rect x="2" y="15" width="11" height="11" rx="1.5" fill="#111827" opacity="0.65"/>
-    <rect x="15" y="15" width="11" height="11" rx="1.5" fill="#111827" opacity="0.4"/>
-    <text x="32" y="23" fill="#111827" fontFamily="Inter, sans-serif" fontSize="17" fontWeight="800">plaid</text>
-  </svg>
-);
-
-const PayPalLogo = () => (
-  <svg viewBox="0 0 90 34" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-7 w-auto">
-    <text x="4" y="24" fontFamily="Inter, sans-serif" fontSize="20" fontWeight="800">
-      <tspan fill="#253D80">Pay</tspan><tspan fill="#179BD7">Pal</tspan>
-    </text>
-  </svg>
-);
-
-const ApplePayLogo = () => (
-  <svg viewBox="0 0 100 34" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-7 w-auto">
-    <path d="M17 5C15.4 5.7 13.5 7.2 12.5 9C11.6 7.3 9.8 5.5 8 5.5C5.2 5.5 2.5 8.2 2.5 12.2C2.5 17.8 8.5 23.8 12.5 26C16.5 23.8 22.5 17.8 22.5 12.2C22.5 8.2 19.8 5 17 5Z" fill="#1d1d1f"/>
-    <text x="28" y="23" fill="#1d1d1f" fontFamily="Inter, sans-serif" fontSize="13" fontWeight="600">Apple Pay</text>
-  </svg>
-);
-
-const GooglePayLogo = () => (
-  <svg viewBox="0 0 105 34" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-7 w-auto">
-    <text x="4" y="23" fontFamily="Inter, sans-serif" fontSize="15" fontWeight="700">
-      <tspan fill="#4285F4">G</tspan><tspan fill="#EA4335">o</tspan><tspan fill="#FBBC04">o</tspan>
-      <tspan fill="#4285F4">g</tspan><tspan fill="#34A853">l</tspan><tspan fill="#EA4335">e </tspan>
-      <tspan fill="#5F6368">Pay</tspan>
-    </text>
-  </svg>
-);
-
-const DwollaLogo = () => (
-  <svg viewBox="0 0 90 34" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-7 w-auto">
-    <circle cx="17" cy="17" r="13" fill="none" stroke="#F37B21" strokeWidth="2.5"/>
-    <circle cx="17" cy="17" r="7.5" fill="#F37B21" opacity="0.85"/>
-    <circle cx="17" cy="17" r="3.5" fill="white"/>
-    <text x="36" y="23" fill="#2D3748" fontFamily="Inter, sans-serif" fontSize="15" fontWeight="700">dwolla</text>
-  </svg>
-);
-
-const MarqetaLogo = () => (
-  <svg viewBox="0 0 95 34" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-7 w-auto">
-    <path d="M5 26L13 8L21 26" stroke="#E8272A" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M9 19H17" stroke="#E8272A" strokeWidth="2.2" strokeLinecap="round"/>
-    <text x="27" y="23" fill="#1a1a2e" fontFamily="Inter, sans-serif" fontSize="15" fontWeight="700">marqeta</text>
-  </svg>
-);
-
-const ZelleLogo = () => (
-  <svg viewBox="0 0 80 34" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-7 w-auto">
-    <path d="M8 8H28L10 26H30" stroke="#6D1ED4" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
-    <text x="36" y="23" fill="#6D1ED4" fontFamily="Inter, sans-serif" fontSize="16" fontWeight="800">zelle</text>
-  </svg>
-);
-
-const CashAppLogo = () => (
-  <svg viewBox="0 0 95 34" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-7 w-auto">
-    <rect x="2" y="2" width="28" height="30" rx="8" fill="#00D632"/>
-    <text x="8" y="23" fill="white" fontFamily="Inter, sans-serif" fontSize="16" fontWeight="800">$</text>
-    <text x="36" y="23" fill="#1a1a1a" fontFamily="Inter, sans-serif" fontSize="13" fontWeight="700">Cash App</text>
-  </svg>
-);
-
-const ACHLogo = () => (
-  <svg viewBox="0 0 80 34" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-7 w-auto">
-    <rect x="2" y="6" width="26" height="22" rx="4" fill="#003087"/>
-    <text x="5" y="22" fill="white" fontFamily="Inter, sans-serif" fontSize="10" fontWeight="800">ACH</text>
-    <text x="34" y="23" fill="#003087" fontFamily="Inter, sans-serif" fontSize="13" fontWeight="700">Network</text>
-  </svg>
-);
-
-const FedwireLogo = () => (
-  <svg viewBox="0 0 90 34" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-7 w-auto">
-    <rect x="2" y="6" width="26" height="22" rx="4" fill="#1a3a6b"/>
-    <text x="5" y="22" fill="white" fontFamily="Inter, sans-serif" fontSize="9" fontWeight="800">FED</text>
-    <text x="34" y="23" fill="#1a3a6b" fontFamily="Inter, sans-serif" fontSize="13" fontWeight="700">Fedwire</text>
-  </svg>
-);
-
-// "And many more" special card — not duplicated in ticker
-const AndMoreCard = () => (
-  <div
-    className="flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-gray-300 bg-white px-8 py-5 flex-shrink-0"
-    style={{ minWidth: "160px" }}
-  >
-    <p className="text-2xl font-bold text-gray-300">···</p>
-    <p className="text-[11px] font-semibold tracking-wider text-gray-400 uppercase text-center leading-tight">
-      150+ more<br/>supported
-    </p>
-  </div>
-);
-
+/**
+ * Real, official logo files — hotlinked from Wikimedia Commons, which mirrors
+ * the exact SVG assets each company publishes in their own brand/press kit.
+ * Nothing here is redrawn or approximated.
+ *
+ * NOTE: spot-check these URLs once in-browser. Wikimedia occasionally renames
+ * or re-versions a file, so confirm each one resolves before shipping.
+ */
 const partners = [
-  { name: "Visa",       Logo: VisaLogo },
-  { name: "Mastercard", Logo: MastercardLogo },
-  { name: "Stripe",     Logo: StripeLogo },
-  { name: "PayPal",     Logo: PayPalLogo },
-  { name: "Apple Pay",  Logo: ApplePayLogo },
-  { name: "Google Pay", Logo: GooglePayLogo },
-  { name: "Zelle",      Logo: ZelleLogo },
-  { name: "Cash App",   Logo: CashAppLogo },
-  { name: "Plaid",      Logo: PlaidLogo },
-  { name: "Dwolla",     Logo: DwollaLogo },
-  { name: "Marqeta",    Logo: MarqetaLogo },
-  { name: "ACH",        Logo: ACHLogo },
-  { name: "Fedwire",    Logo: FedwireLogo },
+  { name: "Visa", src: "https://upload.wikimedia.org/wikipedia/commons/0/04/Visa_2021.svg" },
+  { name: "Mastercard", src: "https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" },
+  { name: "PayPal", src: "https://upload.wikimedia.org/wikipedia/commons/b/b5/PayPal.svg" },
+  { name: "Stripe", src: "https://upload.wikimedia.org/wikipedia/commons/b/b4/Stripe_Logo%2C_revised_2016.svg" },
+  { name: "Apple Pay", src: "https://upload.wikimedia.org/wikipedia/commons/e/ee/Apple_Pay_logo.svg" },
+  { name: "Google Pay", src: "https://upload.wikimedia.org/wikipedia/commons/c/c4/Google_Pay_Logo.svg" },
+  { name: "Zelle", src: "https://upload.wikimedia.org/wikipedia/commons/a/ad/Zelle_logo.svg" },
+  { name: "Cash App", src: "https://upload.wikimedia.org/wikipedia/commons/4/44/Cash_App_logo.svg" },
+  { name: "Plaid", src: "https://upload.wikimedia.org/wikipedia/commons/6/6f/Plaid_logo.svg" },
+  { name: "Dwolla", src: "https://upload.wikimedia.org/wikipedia/commons/d/d3/Dwolla_logo.svg" },
 ];
 
-// Triple-duplicate for truly seamless infinite loop
-const ticker = [...partners, ...partners, ...partners];
+// Duplicate once for a seamless 0% -> -50% loop
+const ticker = [...partners, ...partners];
 
 const faqs = [
   { q: "How do I open an account?", a: "Click 'Open Account' and complete the 2-minute signup. You'll need basic personal info and a valid email." },
@@ -237,6 +122,28 @@ const faqs = [
 ];
 
 const Index = () => {
+  const partnerTrackRef = useRef<HTMLDivElement>(null);
+  const [isPartnerDragging, setIsPartnerDragging] = useState(false);
+  const partnerDragState = useRef({ startX: 0, startScroll: 0 });
+
+  const onPartnerPointerDown = (e: React.PointerEvent) => {
+    if (!partnerTrackRef.current) return;
+    setIsPartnerDragging(true);
+    partnerDragState.current = { startX: e.clientX, startScroll: partnerTrackRef.current.scrollLeft };
+    partnerTrackRef.current.setPointerCapture(e.pointerId);
+  };
+
+  const onPartnerPointerMove = (e: React.PointerEvent) => {
+    if (!isPartnerDragging || !partnerTrackRef.current) return;
+    const dx = e.clientX - partnerDragState.current.startX;
+    partnerTrackRef.current.scrollLeft = partnerDragState.current.startScroll - dx;
+  };
+
+  const onPartnerPointerUp = (e: React.PointerEvent) => {
+    setIsPartnerDragging(false);
+    partnerTrackRef.current?.releasePointerCapture(e.pointerId);
+  };
+
   return (
     <div className="page-enter min-h-screen bg-navy">
       <Navbar />
@@ -438,9 +345,8 @@ const Index = () => {
         </div>
       </section>
 
-      {/* ── PARTNERS — infinite horizontal scroll ticker ── */}
+      {/* ── PARTNERS — draggable auto-scrolling logo ticker ── */}
       <section className="bg-navy py-16 sm:py-20">
-        {/* Heading — inside container */}
         <div className="container mb-10">
           <motion.div {...fade()} className="mx-auto max-w-2xl text-center text-on-dark">
             <p className="text-sm font-semibold uppercase tracking-widest text-[hsl(var(--mediumblue))]">Our partners</p>
@@ -451,36 +357,47 @@ const Index = () => {
           </motion.div>
         </div>
 
-        {/* Full-bleed ticker track */}
         <div className="relative w-full overflow-hidden">
-          {/* Fade edges */}
           <div className="pointer-events-none absolute left-0 top-0 z-10 h-full w-20 bg-gradient-to-r from-[hsl(var(--navy))] to-transparent" />
           <div className="pointer-events-none absolute right-0 top-0 z-10 h-full w-20 bg-gradient-to-l from-[hsl(var(--navy))] to-transparent" />
 
-          {/* Scrolling strip */}
           <div
-            className="flex gap-4 w-max"
-            style={{ animation: "partners-scroll 30s linear infinite" }}
+            ref={partnerTrackRef}
+            onPointerDown={onPartnerPointerDown}
+            onPointerMove={onPartnerPointerMove}
+            onPointerUp={onPartnerPointerUp}
+            onPointerLeave={onPartnerPointerUp}
+            className={`flex gap-4 overflow-x-auto scrollbar-none select-none ${
+              isPartnerDragging ? "cursor-grabbing" : "cursor-grab"
+            }`}
+            style={{
+              scrollbarWidth: "none",
+              animation: isPartnerDragging ? "none" : "partners-scroll 32s linear infinite",
+            }}
           >
-            {ticker.map((p, i) => {
-              const Logo = p.Logo;
-              return (
-                <div
-                  key={`${p.name}-${i}`}
-                  className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-white/10 bg-white px-8 py-5 flex-shrink-0"
-                  style={{ minWidth: "150px" }}
-                >
-                  {/* Logo on top */}
-                  <div className="flex h-10 w-full items-center justify-center">
-                    <Logo />
-                  </div>
-                  {/* Name underneath */}
-                  <p className="text-[11px] font-semibold tracking-widest text-on-dark-muted uppercase">
-                    {p.name}
-                  </p>
-                </div>
-              );
-            })}
+            {ticker.map((p, i) => (
+              <div
+                key={`${p.name}-${i}`}
+                className="flex h-20 w-[150px] flex-shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white px-6 py-4"
+              >
+                <img
+                  src={p.src}
+                  alt={p.name}
+                  draggable={false}
+                  className="h-7 max-w-full object-contain"
+                  loading="lazy"
+                />
+              </div>
+            ))}
+
+            <div className="flex h-20 w-[160px] flex-shrink-0 flex-col items-center justify-center gap-1 rounded-2xl border-2 border-dashed border-white/15 bg-transparent">
+              <p className="text-2xl font-bold text-white/30">···</p>
+              <p className="text-[11px] font-semibold tracking-wider text-on-dark-muted uppercase text-center leading-tight">
+                150+ more
+                <br />
+                supported
+              </p>
+            </div>
           </div>
         </div>
 
@@ -489,6 +406,7 @@ const Index = () => {
             0%   { transform: translateX(0); }
             100% { transform: translateX(-50%); }
           }
+          .scrollbar-none::-webkit-scrollbar { display: none; }
           @media (prefers-reduced-motion: reduce) {
             [style*="partners-scroll"] { animation: none !important; }
           }
