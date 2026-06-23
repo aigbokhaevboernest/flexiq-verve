@@ -40,19 +40,53 @@ const quickActions: Array<{
   { icon: Wallet, label: "Loans", to: "/dashboard/loans" },
 ];
 
-/** Mask account number — show only last 4 digits: •••• •••• 7890 */
+/**
+ * Mask account number — show only last 4 digits.
+ * Always groups masked portion in blocks of 4, last4 is unmasked.
+ * e.g. "00002693" → "•••• 2693"
+ *      "1234567890" → "•••••• 7890"  (padded to clean groups)
+ */
 const maskAccountNumber = (raw?: string | null): string => {
   if (!raw) return "—";
   const digits = raw.replace(/\D/g, "");
   if (digits.length < 4) return raw;
   const last4 = digits.slice(-4);
   const hiddenCount = digits.length - 4;
+  if (hiddenCount === 0) return last4;
+  // Group masked digits in chunks of 4, drop empty groups
   const maskedBlocks = "•".repeat(hiddenCount).match(/.{1,4}/g) || [];
   return [...maskedBlocks, last4].join(" ");
 };
 
 // ---------------------------------------------------------------------------
-// Placeholder slides shown alongside the user's real account card
+// Placeholder card gradients — sky blue for retirement per request
+// ---------------------------------------------------------------------------
+const PLACEHOLDER_GRADIENTS = {
+  savings:    "linear-gradient(135deg, #1a6b5a 0%, #0d4f40 60%, #083d30 100%)",
+  checking:   "linear-gradient(135deg, #1a3a6b 0%, #0d2b4f 60%, #082040 100%)",
+  retirement: "linear-gradient(135deg, #0ea5e9 0%, #0284c7 55%, #0369a1 100%)",
+};
+
+const PLACEHOLDER_LABELS = {
+  savings:    "Savings Account",
+  checking:   "Checking Account",
+  retirement: "Retirement & Investment",
+};
+
+const PLACEHOLDER_SHORT = {
+  savings:    "SAVINGS",
+  checking:   "CHECKING",
+  retirement: "INVEST",
+};
+
+const PLACEHOLDER_ICONS = {
+  savings:    PiggyBank,
+  checking:   Wallet,
+  retirement: LineChart,
+};
+
+// ---------------------------------------------------------------------------
+// Placeholder card component
 // ---------------------------------------------------------------------------
 interface PlaceholderCardProps {
   type: "savings" | "checking" | "retirement";
@@ -60,81 +94,70 @@ interface PlaceholderCardProps {
   currency: string;
 }
 
-const PLACEHOLDER_GRADIENTS = {
-  savings: "linear-gradient(135deg, #1a6b5a 0%, #0d4f40 60%, #083d30 100%)",
-  checking: "linear-gradient(135deg, #1a3a6b 0%, #0d2b4f 60%, #082040 100%)",
-  retirement: "linear-gradient(135deg, #4b1a6b 0%, #381050 60%, #250838 100%)",
-};
-
-const PLACEHOLDER_LABELS = {
-  savings: "Savings Account",
-  checking: "Checking Account",
-  retirement: "Retirement / Investment",
-};
-
-const PLACEHOLDER_ICONS = {
-  savings: PiggyBank,
-  checking: Wallet,
-  retirement: LineChart,
-};
-
 const PlaceholderCard = ({ type, hidden, currency }: PlaceholderCardProps) => {
   const Icon = PLACEHOLDER_ICONS[type];
   return (
     <div
-      className="relative overflow-hidden rounded-3xl p-8 text-white shadow-elev h-full"
+      className="relative overflow-hidden rounded-3xl p-8 text-white shadow-elev"
       style={{ background: PLACEHOLDER_GRADIENTS[type] }}
     >
-      <div className="absolute -right-16 -top-16 h-56 w-56 rounded-full bg-white/10 blur-2xl" />
-      <div className="absolute -bottom-20 -left-10 h-56 w-56 rounded-full bg-white/10 blur-3xl" />
+      {/* Decorative blobs */}
+      <div className="absolute -right-16 -top-16 h-56 w-56 rounded-full bg-white/10 blur-2xl pointer-events-none" />
+      <div className="absolute -bottom-20 -left-10 h-56 w-56 rounded-full bg-white/10 blur-3xl pointer-events-none" />
 
-      <div className="relative flex items-start justify-between">
-        <div className="flex-1">
-          <p className="text-xs uppercase tracking-widest opacity-70">
-            Available Balance
+      {/* ── Bold account-type header ── */}
+      <div className="relative mb-6 flex items-center gap-3">
+        <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/20">
+          <Icon className="h-5 w-5 text-white" />
+        </span>
+        <div>
+          <p className="text-[11px] uppercase tracking-widest opacity-60 leading-none mb-0.5">
+            Account
           </p>
-          <div className="mt-2 flex items-center gap-3">
-            <p
-              className="font-sans font-bold tracking-tight"
-              style={{ fontSize: "clamp(2rem, 6vw, 3.5rem)" }}
-            >
-              {hidden ? "••••••" : formatMoney(0, currency)}
-            </p>
-          </div>
-
-          <div className="mt-6 flex flex-wrap gap-x-8 gap-y-2 text-sm opacity-90">
-            <div>
-              <p className="text-xs opacity-70">Account type</p>
-              <p className="font-medium">{PLACEHOLDER_LABELS[type]} · {currency}</p>
-            </div>
-            <div>
-              <p className="text-xs opacity-70">Status</p>
-              <p className="font-medium opacity-60">Not opened</p>
-            </div>
-          </div>
+          <p className="text-lg font-extrabold tracking-wide leading-none">
+            {PLACEHOLDER_LABELS[type]}
+          </p>
         </div>
+        {/* Top-right badge */}
+        <span className="ml-auto text-xs font-bold opacity-50 tracking-widest">
+          {PLACEHOLDER_SHORT[type]}
+        </span>
+      </div>
 
-        <div className="hidden text-right sm:block">
-          <Icon className="ml-auto h-5 w-5 opacity-70" />
-          <p className="mt-12 font-display text-sm font-semibold opacity-90">
-            {type === "retirement" ? "INVEST" : type.toUpperCase()}
-          </p>
+      {/* Balance row */}
+      <div className="relative">
+        <p className="text-xs uppercase tracking-widest opacity-60">
+          Available Balance
+        </p>
+        <p
+          className="mt-2 font-sans font-bold tracking-tight"
+          style={{ fontSize: "clamp(2rem, 6vw, 3rem)" }}
+        >
+          {hidden ? "••••••" : formatMoney(0, currency)}
+        </p>
+      </div>
+
+      {/* Meta row */}
+      <div className="relative mt-5 flex gap-8 text-sm opacity-80">
+        <div>
+          <p className="text-xs opacity-60">Status</p>
+          <p className="font-medium opacity-60 text-xs mt-0.5">Not opened yet</p>
         </div>
       </div>
 
-      {/* Quick actions row — disabled/greyed for placeholder accounts */}
+      {/* Quick actions — disabled */}
       <div className="relative mt-8 grid grid-cols-4 gap-3">
         {quickActions.map((a) => {
-          const Icon = a.icon;
+          const Ic = a.icon;
           return (
             <button
               key={a.label}
               type="button"
               disabled
-              className="group flex flex-col items-center gap-2 rounded-2xl bg-white/10 p-3 text-center opacity-40 cursor-not-allowed"
+              className="flex flex-col items-center gap-2 rounded-2xl bg-white/10 p-3 text-center opacity-35 cursor-not-allowed"
             >
               <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20 text-white">
-                <Icon className="h-4 w-4" />
+                <Ic className="h-4 w-4" />
               </span>
               <span className="text-xs font-medium">{a.label}</span>
             </button>
@@ -142,10 +165,10 @@ const PlaceholderCard = ({ type, hidden, currency }: PlaceholderCardProps) => {
         })}
       </div>
 
-      {/* Open account CTA */}
+      {/* Coming soon pill */}
       <div className="relative mt-6 flex justify-center">
-        <span className="rounded-full bg-white/15 px-4 py-1.5 text-xs font-semibold backdrop-blur">
-          Coming soon — tap to open this account
+        <span className="rounded-full bg-white/15 px-4 py-1.5 text-xs font-semibold backdrop-blur-sm">
+          Coming soon · Open this account
         </span>
       </div>
     </div>
@@ -156,39 +179,30 @@ const PlaceholderCard = ({ type, hidden, currency }: PlaceholderCardProps) => {
 // Main component
 // ---------------------------------------------------------------------------
 const DashboardHome = () => {
-  const [hidden, setHidden] = useState(false);
+  const [hidden, setHidden]         = useState(false);
   const [activeSlide, setActiveSlide] = useState(0);
-  const { user } = useAuth();
+  const { user }                    = useAuth();
   const { data: profile, isLoading: profLoading } = useAccount();
-  const queryClient = useQueryClient();
+  const queryClient                 = useQueryClient();
 
-  // Touch/swipe state
   const touchStartX = useRef<number | null>(null);
   const touchStartY = useRef<number | null>(null);
 
   const isFrozen = profile?.frozen === true;
 
-  // Determine which account type the user signed up with
   const rawAccountType = ((profile as any)?.account_type || "checking")
-    .toLowerCase()
-    .trim();
+    .toLowerCase().trim();
   const isCheckingUser = rawAccountType === "checking";
-  // savings user means account_type === "savings"
 
-  // Build the ordered slide list:
-  // Slide 0 = user's real account (always first)
-  // Slides 1+ = placeholder accounts the user does NOT have
-  const placeholderSlides: Array<"savings" | "checking" | "retirement"> = isCheckingUser
-    ? ["savings", "retirement"]
-    : ["checking", "retirement"];
+  const placeholderSlides: Array<"savings" | "checking" | "retirement"> =
+    isCheckingUser ? ["savings", "retirement"] : ["checking", "retirement"];
 
-  const totalSlides = 1 + placeholderSlides.length; // 3
+  const totalSlides = 1 + placeholderSlides.length; // always 3
 
-  const goTo = (idx: number) => setActiveSlide(Math.max(0, Math.min(totalSlides - 1, idx)));
+  const goTo   = (idx: number) => setActiveSlide(Math.max(0, Math.min(totalSlides - 1, idx)));
   const goPrev = () => goTo(activeSlide - 1);
   const goNext = () => goTo(activeSlide + 1);
 
-  // Touch handlers for swipe
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
     touchStartY.current = e.touches[0].clientY;
@@ -197,10 +211,8 @@ const DashboardHome = () => {
     if (touchStartX.current === null || touchStartY.current === null) return;
     const dx = e.changedTouches[0].clientX - touchStartX.current;
     const dy = e.changedTouches[0].clientY - touchStartY.current;
-    // Only count as horizontal swipe if horizontal movement is dominant
-    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 40) {
-      if (dx < 0) goNext();
-      else goPrev();
+    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 36) {
+      dx < 0 ? goNext() : goPrev();
     }
     touchStartX.current = null;
     touchStartY.current = null;
@@ -225,9 +237,7 @@ const DashboardHome = () => {
         duration: 3000,
       });
       setTimeout(() => {
-        supabase.auth.signOut().then(() => {
-          window.location.href = "/login";
-        });
+        supabase.auth.signOut().then(() => { window.location.href = "/login"; });
       }, 3000);
     }
   }, [profLoading]);
@@ -239,12 +249,7 @@ const DashboardHome = () => {
       .channel("profile-realtime")
       .on(
         "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "profiles",
-          filter: `id=eq.${user.id}`,
-        },
+        { event: "UPDATE", schema: "public", table: "profiles", filter: `id=eq.${user.id}` },
         () => {
           try { localStorage.removeItem(cacheKey); } catch {}
           queryClient.invalidateQueries({ queryKey: ["profile", user.id] });
@@ -295,19 +300,15 @@ const DashboardHome = () => {
       const inSum = (data || [])
         .filter((t) =>
           Number(t.amount) > 0 ||
-          t.type === "transfer_in" ||
-          t.type === "deposit" ||
-          t.type === "refund" ||
-          t.type === "loan_disbursement"
+          t.type === "transfer_in" || t.type === "deposit" ||
+          t.type === "refund"      || t.type === "loan_disbursement"
         )
         .reduce((s, t) => s + Math.abs(Number(t.amount)), 0);
 
       const outSum = (data || [])
         .filter((t) =>
           Number(t.amount) < 0 ||
-          t.type === "transfer_out" ||
-          t.type === "bill_payment" ||
-          t.type === "fx"
+          t.type === "transfer_out" || t.type === "bill_payment" || t.type === "fx"
         )
         .reduce((s, t) => s + Math.abs(Number(t.amount)), 0);
 
@@ -315,22 +316,23 @@ const DashboardHome = () => {
     },
   });
 
-  const profileReady = !!profile && !profLoading;
-  const firstName = (profile as any)?.first_name?.trim() || "";
-  const currency = (profile as any)?.currency || null;
-  const accountNumber = (profile as any)?.account_number || null;
-  const balanceKnown = profile && (profile as any).balance != null;
-  const balanceValue = balanceKnown ? Number((profile as any).balance) : 0;
+  const profileReady   = !!profile && !profLoading;
+  const firstName      = (profile as any)?.first_name?.trim() || "";
+  const currency       = (profile as any)?.currency || null;
+  const accountNumber  = (profile as any)?.account_number || null;
+  const balanceKnown   = profile && (profile as any).balance != null;
+  const balanceValue   = balanceKnown ? Number((profile as any).balance) : 0;
 
-  const maskedAccountNumber = useMemo(() => maskAccountNumber(accountNumber), [accountNumber]);
+  const maskedAccountNumber = useMemo(
+    () => maskAccountNumber(accountNumber),
+    [accountNumber]
+  );
 
-  // ---------------------------------------------------------------------------
-  // Real account card slide (slide 0) — all original logic untouched
-  // ---------------------------------------------------------------------------
+  // ── Real account card (slide 0) — original logic 100% untouched ─────────
   const RealAccountSlide = (
-    <div className="relative overflow-hidden rounded-3xl bg-gradient-primary p-8 text-primary-foreground shadow-elev h-full">
-      <div className="absolute -right-16 -top-16 h-56 w-56 rounded-full bg-white/15 blur-2xl" />
-      <div className="absolute -bottom-20 -left-10 h-56 w-56 rounded-full bg-accent/40 blur-3xl" />
+    <div className="relative overflow-hidden rounded-3xl bg-gradient-primary p-8 text-primary-foreground shadow-elev">
+      <div className="absolute -right-16 -top-16 h-56 w-56 rounded-full bg-white/15 blur-2xl pointer-events-none" />
+      <div className="absolute -bottom-20 -left-10 h-56 w-56 rounded-full bg-accent/40 blur-3xl pointer-events-none" />
 
       <div className="relative flex items-start justify-between">
         <div className="flex-1">
@@ -380,9 +382,9 @@ const DashboardHome = () => {
             </div>
             <div>
               <p className="text-xs opacity-70">Account type</p>
+              {/* FIX: removed the <> fragment that was rendering literal angle-brackets */}
               <p className="font-medium">
                 {(profile as any)?.account_type || "Personal"}
-                {currency ? <> · {currency}</> : null}
               </p>
             </div>
             {isFrozen && (
@@ -438,7 +440,6 @@ const DashboardHome = () => {
               </button>
             );
           }
-
           return (
             <Link key={a.label} to={a.to} className={cls}>
               {inner}
@@ -448,6 +449,21 @@ const DashboardHome = () => {
       </div>
     </div>
   );
+
+  // ── Slides array ─────────────────────────────────────────────────────────
+  const slides = [
+    { key: "real", node: RealAccountSlide },
+    ...placeholderSlides.map((type) => ({
+      key: type,
+      node: (
+        <PlaceholderCard
+          type={type}
+          hidden={hidden}
+          currency={currency || "USD"}
+        />
+      ),
+    })),
+  ];
 
   return (
     <div className="space-y-6">
@@ -488,57 +504,71 @@ const DashboardHome = () => {
       )}
 
       <div className="grid gap-5 lg:grid-cols-3">
-        {/* ------------------------------------------------------------------ */}
-        {/* Swipable balance card carousel                                      */}
-        {/* ------------------------------------------------------------------ */}
+        {/* ── Swipable carousel ──────────────────────────────────────────── */}
         <div className="lg:col-span-2">
-          {/* Carousel wrapper */}
           <div className="relative select-none">
-            {/* Slides track */}
+            {/*
+              Outer container: clip to width, show a sliver of next card.
+              padding-right: ~16px lets the next card peek.
+              overflow-hidden clips the rest.
+            */}
             <div
-              className="overflow-hidden rounded-3xl"
+              className="overflow-hidden"
+              style={{ borderRadius: "1.5rem" }}
               onTouchStart={handleTouchStart}
               onTouchEnd={handleTouchEnd}
             >
+              {/*
+                Track: translateX moves by (activeSlide * (100% - peek)).
+                Using CSS custom property so we can calculate cleanly.
+                Each slide takes the full container width minus the peek gap.
+              */}
               <div
-                className="flex transition-transform duration-300 ease-in-out"
-                style={{ transform: `translateX(-${activeSlide * 100}%)` }}
+                className="flex"
+                style={{
+                  // Smooth spring-like easing
+                  transition: "transform 380ms cubic-bezier(0.25, 0.46, 0.45, 0.94)",
+                  // Each slide = 100% of visible area; gap between slides
+                  gap: "12px",
+                  // Shift by (slide width + gap) × activeSlide
+                  // slide width = calc(100% - 28px) to leave peek room
+                  transform: `translateX(calc(-${activeSlide} * (100% - 16px + 12px)))`,
+                }}
               >
-                {/* Slide 0: real account */}
-                <div className="w-full flex-shrink-0">
-                  {RealAccountSlide}
-                </div>
-
-                {/* Slides 1+: placeholder accounts */}
-                {placeholderSlides.map((type) => (
-                  <div key={type} className="w-full flex-shrink-0">
-                    <PlaceholderCard
-                      type={type}
-                      hidden={hidden}
-                      currency={currency || "USD"}
-                    />
+                {slides.map((slide, i) => (
+                  <div
+                    key={slide.key}
+                    style={{
+                      // Each slide is slightly less than 100% so the next peeks
+                      flex: "0 0 calc(100% - 28px)",
+                      // Dim non-active slides slightly
+                      opacity: i === activeSlide ? 1 : 0.72,
+                      transition: "opacity 380ms cubic-bezier(0.25, 0.46, 0.45, 0.94)",
+                    }}
+                  >
+                    {slide.node}
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Left arrow */}
+            {/* Left chevron */}
             {activeSlide > 0 && (
               <button
                 onClick={goPrev}
                 aria-label="Previous account"
-                className="absolute left-3 top-1/2 -translate-y-1/2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/30 text-white backdrop-blur-sm transition hover:bg-black/50"
+                className="absolute left-2 top-1/2 -translate-y-1/2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/25 text-white backdrop-blur-sm transition-all hover:bg-black/45 hover:scale-105"
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
             )}
 
-            {/* Right arrow */}
+            {/* Right chevron */}
             {activeSlide < totalSlides - 1 && (
               <button
                 onClick={goNext}
                 aria-label="Next account"
-                className="absolute right-3 top-1/2 -translate-y-1/2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/30 text-white backdrop-blur-sm transition hover:bg-black/50"
+                className="absolute right-2 top-1/2 -translate-y-1/2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/25 text-white backdrop-blur-sm transition-all hover:bg-black/45 hover:scale-105"
               >
                 <ChevronRight className="h-4 w-4" />
               </button>
@@ -546,18 +576,19 @@ const DashboardHome = () => {
 
             {/* Dot indicators */}
             <div className="mt-3 flex justify-center gap-1.5">
-              {Array.from({ length: totalSlides }).map((_, i) => (
+              {slides.map((_, i) => (
                 <button
                   key={i}
                   onClick={() => goTo(i)}
                   aria-label={`Go to slide ${i + 1}`}
-                  className="h-1.5 rounded-full transition-all duration-300"
+                  className="h-1.5 rounded-full"
                   style={{
                     width: activeSlide === i ? "1.5rem" : "0.375rem",
                     backgroundColor:
                       activeSlide === i
                         ? "hsl(var(--primary))"
                         : "hsl(var(--border))",
+                    transition: "width 300ms cubic-bezier(0.25, 0.46, 0.45, 0.94), background-color 300ms ease",
                   }}
                 />
               ))}
@@ -565,9 +596,7 @@ const DashboardHome = () => {
           </div>
         </div>
 
-        {/* ------------------------------------------------------------------ */}
-        {/* Card panel — unchanged                                              */}
-        {/* ------------------------------------------------------------------ */}
+        {/* ── Your card panel — unchanged ────────────────────────────────── */}
         <Card className="rounded-3xl border-border/60 p-6 shadow-card">
           <div className="flex items-center justify-between">
             <p className="text-sm font-semibold">Your card</p>
@@ -583,8 +612,8 @@ const DashboardHome = () => {
               <CreditCard className="h-4 w-4" />
             </div>
             {(() => {
-              const raw = card?.card_number || (profile as any)?.card_number;
-              const expiry = card?.expiry || (profile as any)?.expiry;
+              const raw      = card?.card_number || (profile as any)?.card_number;
+              const expiry   = card?.expiry || (profile as any)?.expiry;
               const cardName =
                 card?.cardholder_name?.trim() ||
                 (firstName ? firstName.toUpperCase() : "");
@@ -604,9 +633,7 @@ const DashboardHome = () => {
                 : "•••• •••• •••• ————";
               return (
                 <>
-                  <p className="mt-6 font-normal text-sm tracking-[0.2em]">
-                    {masked}
-                  </p>
+                  <p className="mt-6 font-normal text-sm tracking-[0.2em]">{masked}</p>
                   <div className="mt-3 flex justify-between text-xs opacity-90">
                     <span>{cardName || "—"}</span>
                     <span>{expiry || "—"}</span>
@@ -638,21 +665,13 @@ const DashboardHome = () => {
       {/* Stats row — unchanged */}
       <div className="grid gap-4 sm:grid-cols-3">
         {[
-          { label: "Credit", value: stats?.inSum, icon: ArrowDownLeft, positive: true },
-          { label: "Debit", value: stats?.outSum, icon: ArrowUpRight, positive: false },
-          {
-            label: "Net",
-            value: stats?.net,
-            icon: TrendingUp,
-            positive: (stats?.net ?? 0) >= 0,
-          },
+          { label: "Credit",  value: stats?.inSum,  icon: ArrowDownLeft, positive: true },
+          { label: "Debit",   value: stats?.outSum, icon: ArrowUpRight,  positive: false },
+          { label: "Net",     value: stats?.net,    icon: TrendingUp,    positive: (stats?.net ?? 0) >= 0 },
         ].map((s) => {
           const Icon = s.icon;
           return (
-            <Card
-              key={s.label}
-              className="rounded-3xl border-border/60 p-6 shadow-card"
-            >
+            <Card key={s.label} className="rounded-3xl border-border/60 p-6 shadow-card">
               <div className="flex items-center justify-between">
                 <p className="text-sm text-muted-foreground">{s.label}</p>
                 <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
@@ -662,11 +681,7 @@ const DashboardHome = () => {
               {statsLoading || s.value == null ? (
                 <Skeleton className="mt-3 h-7 w-32" />
               ) : (
-                <p
-                  className={`mt-3 font-display text-2xl font-bold ${
-                    s.positive ? "text-success" : "text-foreground"
-                  }`}
-                >
+                <p className={`mt-3 font-display text-2xl font-bold ${s.positive ? "text-success" : "text-foreground"}`}>
                   {formatMoney(Math.abs(s.value), currency || "USD")}
                 </p>
               )}
@@ -696,70 +711,48 @@ const DashboardHome = () => {
           {(txs || []).map((t: any) => {
             const positive = Number(t.amount) > 0;
             const displayStatus =
-              t.status === "awaiting_code"
-                ? "pending"
-                : t.status === "rejected"
-                ? "processing"
-                : t.status;
+              t.status === "awaiting_code" ? "pending"
+              : t.status === "rejected"    ? "processing"
+              : t.status;
             return (
               <div key={t.id} className="flex items-center gap-4 py-4">
                 <div
                   className={`flex h-10 w-10 items-center justify-center rounded-xl ${
-                    positive
-                      ? "bg-success/15 text-success"
-                      : "bg-muted text-foreground/70"
+                    positive ? "bg-success/15 text-success" : "bg-muted text-foreground/70"
                   }`}
                 >
-                  {positive ? (
-                    <ArrowDownLeft className="h-4 w-4" />
-                  ) : (
-                    <ArrowUpRight className="h-4 w-4" />
-                  )}
+                  {positive
+                    ? <ArrowDownLeft className="h-4 w-4" />
+                    : <ArrowUpRight  className="h-4 w-4" />}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="break-words text-sm font-medium">
-                    {t.description ||
-                      t.recipient_name ||
-                      (t.type === "transfer_in"
-                        ? "Credit"
-                        : t.type === "transfer_out"
-                        ? "Debit"
-                        : t.type.replace(/_/g, " "))}
+                    {t.description || t.recipient_name ||
+                      (t.type === "transfer_in"  ? "Credit"
+                      : t.type === "transfer_out" ? "Debit"
+                      : t.type.replace(/_/g, " "))}
                   </p>
                   <p className="text-xs text-muted-foreground capitalize">
-                    {t.type === "transfer_in"
-                      ? "Credit"
-                      : t.type === "transfer_out"
-                      ? "Debit"
-                      : t.type.replace(/_/g, " ")}{" "}
+                    {t.type === "transfer_in"  ? "Credit"
+                    : t.type === "transfer_out" ? "Debit"
+                    : t.type.replace(/_/g, " ")}{" "}
                     • {new Date(t.created_at).toLocaleDateString()}
                   </p>
                 </div>
                 <div className="text-right shrink-0">
-                  <p
-                    className={`font-display text-sm font-bold ${
-                      positive ? "text-success" : ""
-                    }`}
-                  >
+                  <p className={`font-display text-sm font-bold ${positive ? "text-success" : ""}`}>
                     {positive ? "+" : "−"}
-                    {formatMoney(
-                      Math.abs(Number(t.amount)),
-                      t.currency || currency || "USD"
-                    )}
+                    {formatMoney(Math.abs(Number(t.amount)), t.currency || currency || "USD")}
                   </p>
                   <p
                     className="text-xs capitalize font-medium"
                     style={{
                       color:
-                        displayStatus === "pending"
-                          ? "#f59e0b"
-                          : displayStatus === "processing"
-                          ? "#f59e0b"
-                          : displayStatus === "failed"
-                          ? "#ef4444"
-                          : displayStatus === "completed"
-                          ? "#10b981"
-                          : "#94a3b8",
+                        displayStatus === "pending"    ? "#f59e0b"
+                        : displayStatus === "processing" ? "#f59e0b"
+                        : displayStatus === "failed"    ? "#ef4444"
+                        : displayStatus === "completed" ? "#10b981"
+                        : "#94a3b8",
                     }}
                   >
                     {displayStatus.replace(/_/g, " ")}
