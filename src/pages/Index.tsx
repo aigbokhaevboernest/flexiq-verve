@@ -9,7 +9,7 @@ import { Link } from "react-router-dom";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useRef, useState, useEffect } from "react";
 import dwollaLogo from "@/assets/dwolla.svg";
-import marqetaLogo from "@/assets/marqeta-logo.jpg";
+import marqetaLogo from "@/assets/marqeta-logo.jpeg";
 import {
   ArrowRight,
   Banknote,
