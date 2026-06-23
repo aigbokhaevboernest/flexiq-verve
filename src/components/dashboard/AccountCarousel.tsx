@@ -24,7 +24,6 @@ const PLACEHOLDER_META: Record<
   },
 };
 
-/** A placeholder slide for an account type the user hasn't opened yet. */
 const PlaceholderCard = ({ type }: { type: "checking" | "savings" }) => {
   const meta = PLACEHOLDER_META[type];
   return (
@@ -67,9 +66,6 @@ const AccountCarousel = ({ primarySlide, secondaryTypes }: AccountCarouselProps)
     ...secondaryTypes.map((t) => ({ key: t, node: <PlaceholderCard type={t} /> })),
   ];
 
-  // Measure the primary card's rendered height so every secondary slide
-  // matches it EXACTLY. This is what prevents the carousel from stretching
-  // or collapsing on iOS/Android — height is explicit, not inherited via flex.
   useEffect(() => {
     const el = primaryWrapperRef.current;
     if (!el) return;
@@ -90,7 +86,6 @@ const AccountCarousel = ({ primarySlide, secondaryTypes }: AccountCarouselProps)
     };
   }, []);
 
-  // Track which slide is active based on scroll position (for the dots).
   const handleScroll = () => {
     const el = scrollerRef.current;
     if (!el) return;
@@ -106,33 +101,31 @@ const AccountCarousel = ({ primarySlide, secondaryTypes }: AccountCarouselProps)
   };
 
   return (
-    <div className="w-full">
-      {/*
-        Outer wrapper: explicit height once measured, so the scroll
-        container never stretches its children. Before height is known
-        we render naturally (primary slide's own height drives layout).
-      */}
+    // min-w-0 + w-full + overflow-hidden here is the actual fix:
+    // without min-w-0, a flex/grid child refuses to shrink below its
+    // content's natural width, which lets the scroll row push the whole
+    // PAGE wider than the viewport (the bug in your screenshot — the
+    // entire layout pans right because an ancestor never clipped).
+    <div className="w-full min-w-0 overflow-hidden">
       <div
         style={slideHeight ? { height: `${slideHeight}px` } : undefined}
-        className="relative w-full"
+        className="relative w-full min-w-0 overflow-hidden"
       >
         <div
           ref={scrollerRef}
           onScroll={handleScroll}
-          className="flex h-full w-full snap-x snap-mandatory overflow-x-auto overflow-y-hidden scroll-smooth [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="flex h-full w-full min-w-0 snap-x snap-mandatory overflow-x-auto overflow-y-hidden scroll-smooth [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           style={{ WebkitOverflowScrolling: "touch" }}
         >
           {slides.map((slide, i) => (
             <div
               key={slide.key}
-              // shrink-0 + explicit basis stops flexbox from stretching/squashing
-              // slide width on iOS Safari and Android Chrome alike.
-              className="h-full w-full shrink-0 basis-full snap-start snap-always"
+              // min-w-0 again: prevents this slide itself from forcing
+              // the flex row wider than 100% of the scroller.
+              className="h-full w-full min-w-0 shrink-0 basis-full snap-start snap-always"
               ref={i === 0 ? primaryWrapperRef : undefined}
             >
-              {/* h-full here only works because the parent now has an explicit
-                  pixel height (set above) — not because of flex:1 anywhere. */}
-              <div className="h-full w-full">{slide.node}</div>
+              <div className="h-full w-full min-w-0 overflow-hidden">{slide.node}</div>
             </div>
           ))}
         </div>
