@@ -247,7 +247,7 @@ const DashboardHome = () => {
       )}
 
       <div className="grid gap-5 lg:grid-cols-3">
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-2 min-w-0">
           <AccountCarousel
             secondaryTypes={secondaryAccountTypes}
             primarySlide={
