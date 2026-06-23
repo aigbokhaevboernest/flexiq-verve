@@ -53,13 +53,12 @@ const maskAccountNumber = (raw?: string | null): string => {
   const last4 = digits.slice(-4);
   const hiddenCount = digits.length - 4;
   if (hiddenCount === 0) return last4;
-  // Group masked digits in chunks of 4, drop empty groups
   const maskedBlocks = "•".repeat(hiddenCount).match(/.{1,4}/g) || [];
   return [...maskedBlocks, last4].join(" ");
 };
 
 // ---------------------------------------------------------------------------
-// Placeholder card gradients — sky blue for retirement per request
+// Placeholder card gradients
 // ---------------------------------------------------------------------------
 const PLACEHOLDER_GRADIENTS = {
   savings:    "linear-gradient(135deg, #1a6b5a 0%, #0d4f40 60%, #083d30 100%)",
@@ -98,7 +97,7 @@ const PlaceholderCard = ({ type, hidden, currency }: PlaceholderCardProps) => {
   const Icon = PLACEHOLDER_ICONS[type];
   return (
     <div
-      className="relative overflow-hidden rounded-3xl p-8 text-white shadow-elev"
+      className="relative overflow-hidden rounded-3xl p-8 text-white shadow-elev h-full"
       style={{ background: PLACEHOLDER_GRADIENTS[type] }}
     >
       {/* Decorative blobs */}
@@ -124,24 +123,21 @@ const PlaceholderCard = ({ type, hidden, currency }: PlaceholderCardProps) => {
         </span>
       </div>
 
-      {/* Balance row */}
+      {/* Balance row — status pill inline to the right of the amount */}
       <div className="relative">
         <p className="text-xs uppercase tracking-widest opacity-60">
           Available Balance
         </p>
-        <p
-          className="mt-2 font-sans font-bold tracking-tight"
-          style={{ fontSize: "clamp(2rem, 6vw, 3rem)" }}
-        >
-          {hidden ? "••••••" : formatMoney(0, currency)}
-        </p>
-      </div>
-
-      {/* Meta row */}
-      <div className="relative mt-5 flex gap-8 text-sm opacity-80">
-        <div>
-          <p className="text-xs opacity-60">Status</p>
-          <p className="font-medium opacity-60 text-xs mt-0.5">Not opened yet</p>
+        <div className="mt-2 flex items-end gap-3">
+          <p
+            className="font-sans font-bold tracking-tight"
+            style={{ fontSize: "clamp(2rem, 6vw, 3rem)" }}
+          >
+            {hidden ? "••••••" : formatMoney(0, currency)}
+          </p>
+          <span className="mb-1 rounded-full bg-white/15 px-2.5 py-0.5 text-[11px] font-semibold opacity-70 whitespace-nowrap">
+            Not opened yet
+          </span>
         </div>
       </div>
 
@@ -179,11 +175,11 @@ const PlaceholderCard = ({ type, hidden, currency }: PlaceholderCardProps) => {
 // Main component
 // ---------------------------------------------------------------------------
 const DashboardHome = () => {
-  const [hidden, setHidden]         = useState(false);
+  const [hidden, setHidden]           = useState(false);
   const [activeSlide, setActiveSlide] = useState(0);
-  const { user }                    = useAuth();
+  const { user }                      = useAuth();
   const { data: profile, isLoading: profLoading } = useAccount();
-  const queryClient                 = useQueryClient();
+  const queryClient                   = useQueryClient();
 
   const touchStartX = useRef<number | null>(null);
   const touchStartY = useRef<number | null>(null);
@@ -328,9 +324,9 @@ const DashboardHome = () => {
     [accountNumber]
   );
 
-  // ── Real account card (slide 0) — original logic 100% untouched ─────────
+  // ── Real account card (slide 0) ─────────────────────────────────────────
   const RealAccountSlide = (
-    <div className="relative overflow-hidden rounded-3xl bg-gradient-primary p-8 text-primary-foreground shadow-elev">
+    <div className="relative overflow-hidden rounded-3xl bg-gradient-primary p-8 text-primary-foreground shadow-elev h-full">
       <div className="absolute -right-16 -top-16 h-56 w-56 rounded-full bg-white/15 blur-2xl pointer-events-none" />
       <div className="absolute -bottom-20 -left-10 h-56 w-56 rounded-full bg-accent/40 blur-3xl pointer-events-none" />
 
@@ -382,7 +378,6 @@ const DashboardHome = () => {
             </div>
             <div>
               <p className="text-xs opacity-70">Account type</p>
-              {/* FIX: removed the <> fragment that was rendering literal angle-brackets */}
               <p className="font-medium">
                 {(profile as any)?.account_type || "Personal"}
               </p>
@@ -507,11 +502,7 @@ const DashboardHome = () => {
         {/* ── Swipable carousel ──────────────────────────────────────────── */}
         <div className="lg:col-span-2">
           <div className="relative select-none">
-            {/*
-              Outer container: clip to width, show a sliver of next card.
-              padding-right: ~16px lets the next card peek.
-              overflow-hidden clips the rest.
-            */}
+            {/* Outer container: clips overflow, shows sliver of next card */}
             <div
               className="overflow-hidden"
               style={{ borderRadius: "1.5rem" }}
@@ -519,25 +510,21 @@ const DashboardHome = () => {
               onTouchEnd={handleTouchEnd}
             >
               {/*
-                Track: translateX moves by (activeSlide * (100% - peek)).
-                Using CSS custom property so we can calculate cleanly.
-                Each slide takes the full container width minus the peek gap.
+                Track: items-stretch ensures all slides grow to the same height.
+                translateX moves by (activeSlide * (100% - peek)).
               */}
               <div
-                className="flex"
+                className="flex items-stretch"
                 style={{
-                  // Smooth spring-like easing
                   transition: "transform 380ms cubic-bezier(0.25, 0.46, 0.45, 0.94)",
-                  // Each slide = 100% of visible area; gap between slides
                   gap: "12px",
-                  // Shift by (slide width + gap) × activeSlide
-                  // slide width = calc(100% - 28px) to leave peek room
                   transform: `translateX(calc(-${activeSlide} * (100% - 16px + 12px)))`,
                 }}
               >
                 {slides.map((slide, i) => (
                   <div
                     key={slide.key}
+                    className="h-full"
                     style={{
                       // Each slide is slightly less than 100% so the next peeks
                       flex: "0 0 calc(100% - 28px)",
@@ -588,7 +575,8 @@ const DashboardHome = () => {
                       activeSlide === i
                         ? "hsl(var(--primary))"
                         : "hsl(var(--border))",
-                    transition: "width 300ms cubic-bezier(0.25, 0.46, 0.45, 0.94), background-color 300ms ease",
+                    transition:
+                      "width 300ms cubic-bezier(0.25, 0.46, 0.45, 0.94), background-color 300ms ease",
                   }}
                 />
               ))}
@@ -596,8 +584,8 @@ const DashboardHome = () => {
           </div>
         </div>
 
-        {/* ── Your card panel — unchanged ────────────────────────────────── */}
-        <Card className="rounded-3xl border-border/60 p-6 shadow-card">
+        {/* ── Your card panel ─────────────────────────────────────────────── */}
+        <Card className="rounded-3xl border-border/60 p-6 shadow-card lg:self-start">
           <div className="flex items-center justify-between">
             <p className="text-sm font-semibold">Your card</p>
             <Button variant="ghost" size="sm" className="h-8 text-xs" asChild>
@@ -662,7 +650,7 @@ const DashboardHome = () => {
         </Card>
       </div>
 
-      {/* Stats row — unchanged */}
+      {/* Stats row */}
       <div className="grid gap-4 sm:grid-cols-3">
         {[
           { label: "Credit",  value: stats?.inSum,  icon: ArrowDownLeft, positive: true },
@@ -690,7 +678,7 @@ const DashboardHome = () => {
         })}
       </div>
 
-      {/* Recent activity — unchanged */}
+      {/* Recent activity */}
       <Card className="rounded-3xl border-border/60 p-6 shadow-card">
         <div className="flex items-center justify-between">
           <h2 className="font-display text-lg font-bold">Recent activity</h2>
@@ -748,10 +736,10 @@ const DashboardHome = () => {
                     className="text-xs capitalize font-medium"
                     style={{
                       color:
-                        displayStatus === "pending"    ? "#f59e0b"
+                        displayStatus === "pending"     ? "#f59e0b"
                         : displayStatus === "processing" ? "#f59e0b"
-                        : displayStatus === "failed"    ? "#ef4444"
-                        : displayStatus === "completed" ? "#10b981"
+                        : displayStatus === "failed"     ? "#ef4444"
+                        : displayStatus === "completed"  ? "#10b981"
                         : "#94a3b8",
                     }}
                   >
