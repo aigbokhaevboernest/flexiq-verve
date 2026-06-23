@@ -42,28 +42,58 @@ const cols: { title: string; items: { label: string; to: string }[] }[] = [
 
 export const Footer = () => (
   <footer className="bg-navy text-on-dark">
-    <div className="container grid gap-10 py-14 md:grid-cols-5">
-      <div className="md:col-span-1 space-y-3">
+    <div className="container py-14">
+      {/* Brand blurb — full width on mobile, 1 col on md */}
+      <div className="mb-8 md:hidden">
         <Link to="/" className="flex items-center">
-          <BrandLogo className="h-9 w-auto object-contain sm:h-10" />
+          <BrandLogo className="h-9 w-auto object-contain" />
         </Link>
-        <p className="max-w-xs text-sm text-on-dark-muted">
+        <p className="mt-3 max-w-xs text-sm text-on-dark-muted">
           Banking reimagined. Save, grow and manage — all from one place.
         </p>
       </div>
-      {cols.map((col) => (
-        <div key={col.title}>
-          <h4 className="mb-3 font-display font-semibold text-white">{col.title}</h4>
-          <ul className="space-y-2 text-sm text-on-dark-muted">
-            {col.items.map((i) => (
-              <li key={i.label}>
-                <Link to={i.to} className="transition-smooth hover:text-white">{i.label}</Link>
-              </li>
-            ))}
-          </ul>
+
+      {/* Desktop: 5-col grid | Mobile: 2×2 grid for nav cols */}
+      <div className="hidden md:grid md:grid-cols-5 md:gap-10">
+        <div className="md:col-span-1 space-y-3">
+          <Link to="/" className="flex items-center">
+            <BrandLogo className="h-9 w-auto object-contain sm:h-10" />
+          </Link>
+          <p className="max-w-xs text-sm text-on-dark-muted">
+            Banking reimagined. Save, grow and manage — all from one place.
+          </p>
         </div>
-      ))}
+        {cols.map((col) => (
+          <div key={col.title}>
+            <h4 className="mb-3 font-display font-semibold text-white">{col.title}</h4>
+            <ul className="space-y-2 text-sm text-on-dark-muted">
+              {col.items.map((i) => (
+                <li key={i.label}>
+                  <Link to={i.to} className="transition-smooth hover:text-white">{i.label}</Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+
+      {/* Mobile-only: 2×2 grid */}
+      <div className="grid grid-cols-2 gap-x-8 gap-y-8 md:hidden">
+        {cols.map((col) => (
+          <div key={col.title}>
+            <h4 className="mb-3 font-display font-semibold text-white">{col.title}</h4>
+            <ul className="space-y-2 text-sm text-on-dark-muted">
+              {col.items.map((i) => (
+                <li key={i.label}>
+                  <Link to={i.to} className="transition-smooth hover:text-white">{i.label}</Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
     </div>
+
     <div className="border-t border-white/10 py-6">
       <div className="container flex flex-col items-center justify-between gap-3 text-xs text-on-dark-muted md:flex-row">
         <p>© {new Date().getFullYear()} Flexiq Verve. All rights reserved.</p>
