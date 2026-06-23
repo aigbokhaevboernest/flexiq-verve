@@ -10,6 +10,135 @@
    <link rel="preconnect" href="https://fonts.googleapis.com" />
    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+
+   <!-- Cookie Banner Styles -->
+   <style>
+     #flexiq-cookie-banner {
+       position: fixed;
+       bottom: 24px;
+       left: 50%;
+       transform: translateX(-50%);
+       z-index: 99999;
+       background: #0f172a;
+       color: #f1f5f9;
+       border: 1px solid #1e293b;
+       border-radius: 16px;
+       padding: 16px 20px;
+       display: flex;
+       align-items: center;
+       gap: 16px;
+       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+       max-width: 560px;
+       width: calc(100% - 48px);
+       font-family: 'Inter', sans-serif;
+       font-size: 14px;
+       animation: slideUp 0.4s ease;
+       transition: opacity 0.4s ease, transform 0.4s ease;
+     }
+
+     #flexiq-cookie-banner.hide {
+       opacity: 0;
+       transform: translateX(-50%) translateY(20px);
+       pointer-events: none;
+     }
+
+     @keyframes slideUp {
+       from { opacity: 0; transform: translateX(-50%) translateY(30px); }
+       to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+     }
+
+     #flexiq-cookie-banner .cookie-icon {
+       font-size: 22px;
+       flex-shrink: 0;
+     }
+
+     #flexiq-cookie-banner .cookie-text {
+       flex: 1;
+       color: #cbd5e1;
+       line-height: 1.5;
+     }
+
+     #flexiq-cookie-banner .cookie-text a {
+       color: #60a5fa;
+       text-decoration: underline;
+     }
+
+     #flexiq-cookie-banner .cookie-timer {
+       font-size: 11px;
+       color: #64748b;
+       margin-top: 2px;
+     }
+
+     #flexiq-cookie-banner .cookie-actions {
+       display: flex;
+       align-items: center;
+       gap: 10px;
+       flex-shrink: 0;
+     }
+
+     #flexiq-cookie-accept {
+       background: #3b82f6;
+       color: #fff;
+       border: none;
+       border-radius: 8px;
+       padding: 8px 18px;
+       font-size: 13px;
+       font-weight: 600;
+       cursor: pointer;
+       transition: background 0.2s;
+       white-space: nowrap;
+     }
+
+     #flexiq-cookie-accept:hover {
+       background: #2563eb;
+     }
+
+     #flexiq-cookie-dismiss {
+       background: transparent;
+       border: none;
+       color: #94a3b8;
+       font-size: 20px;
+       cursor: pointer;
+       line-height: 1;
+       padding: 4px 6px;
+       border-radius: 6px;
+       transition: color 0.2s, background 0.2s;
+     }
+
+     #flexiq-cookie-dismiss:hover {
+       color: #f1f5f9;
+       background: #1e293b;
+     }
+
+     /* Progress bar */
+     #flexiq-cookie-progress {
+       position: absolute;
+       bottom: 0;
+       left: 0;
+       height: 3px;
+       background: #3b82f6;
+       border-radius: 0 0 16px 16px;
+       width: 100%;
+       transform-origin: left;
+       animation: shrink 7s linear forwards;
+     }
+
+     @keyframes shrink {
+       from { transform: scaleX(1); }
+       to   { transform: scaleX(0); }
+     }
+
+     @media (max-width: 480px) {
+       #flexiq-cookie-banner {
+         flex-wrap: wrap;
+         bottom: 16px;
+       }
+       #flexiq-cookie-banner .cookie-actions {
+         width: 100%;
+         justify-content: flex-start;
+       }
+     }
+   </style>
  </head>
 
  <body>
@@ -66,6 +195,67 @@
        }, 500);
      });
    </script>
+
+   <!-- ── Cookie Consent Banner ── -->
+   <div id="flexiq-cookie-banner" role="dialog" aria-label="Cookie consent" style="display:none;">
+     <span class="cookie-icon">🍪</span>
+     <div class="cookie-text">
+       We use cookies to keep your session secure and improve your experience.
+       <br/>
+       <span class="cookie-timer" id="flexiq-cookie-countdown">Auto-dismissing in 7s…</span>
+     </div>
+     <div class="cookie-actions">
+       <button id="flexiq-cookie-accept">Accept</button>
+       <button id="flexiq-cookie-dismiss" aria-label="Dismiss">✕</button>
+     </div>
+     <div id="flexiq-cookie-progress"></div>
+   </div>
+
+   <script>
+     (function () {
+       const STORAGE_KEY = 'flexiq_cookie_consent';
+
+       // Don't show again if already responded
+       if (localStorage.getItem(STORAGE_KEY)) return;
+
+       const banner   = document.getElementById('flexiq-cookie-banner');
+       const acceptBtn = document.getElementById('flexiq-cookie-accept');
+       const dismissBtn = document.getElementById('flexiq-cookie-dismiss');
+       const countdown = document.getElementById('flexiq-cookie-countdown');
+
+       function hideBanner() {
+         banner.classList.add('hide');
+         setTimeout(function () { banner.style.display = 'none'; }, 400);
+       }
+
+       acceptBtn.addEventListener('click', function () {
+         localStorage.setItem(STORAGE_KEY, 'accepted');
+         hideBanner();
+       });
+
+       dismissBtn.addEventListener('click', function () {
+         localStorage.setItem(STORAGE_KEY, 'dismissed');
+         hideBanner();
+       });
+
+       // Show banner on load
+       banner.style.display = 'flex';
+
+       // Countdown timer
+       var seconds = 7;
+       var timer = setInterval(function () {
+         seconds--;
+         if (seconds <= 0) {
+           clearInterval(timer);
+           localStorage.setItem(STORAGE_KEY, 'dismissed');
+           hideBanner();
+         } else {
+           countdown.textContent = 'Auto-dismissing in ' + seconds + 's\u2026';
+         }
+       }, 1000);
+     })();
+   </script>
+   <!-- ── End Cookie Banner ── -->
 
    <!-- Start of LiveChat (www.livechat.com) code -->
    <script>
