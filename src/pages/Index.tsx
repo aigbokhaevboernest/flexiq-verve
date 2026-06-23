@@ -6,6 +6,7 @@ import { HeroCard } from "@/components/HeroCard";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import {
   ArrowRight,
   Banknote,
@@ -14,10 +15,11 @@ import {
   CreditCard,
   Globe2,
   Lock,
+  PiggyBank,
   Send,
   ShieldCheck,
   Smartphone,
-  Sparkles,
+  Star,
   TrendingUp,
   Wallet,
   Zap,
@@ -53,12 +55,62 @@ const stats = [
   { value: "99.99%", label: "Uptime" },
 ];
 
+const testimonials = [
+  {
+    name: "Sarah M.",
+    role: "Small Business Owner",
+    avatar: "SM",
+    rating: 5,
+    text: "Flexiq Verve completely changed how I manage my business finances. The instant transfers and real-time tracking are game-changers.",
+  },
+  {
+    name: "James T.",
+    role: "Freelance Designer",
+    avatar: "JT",
+    rating: 5,
+    text: "I had opened an account 5 years ago. I feel safe keeping my funds here. Their deposit schemes and savings APY are really helpful.",
+  },
+  {
+    name: "Aisha K.",
+    role: "Graduate Student",
+    avatar: "AK",
+    rating: 5,
+    text: "No fees, no hassle. I send money internationally for near-zero cost. The app is beautiful and incredibly easy to use.",
+  },
+  {
+    name: "Marcus R.",
+    role: "Software Engineer",
+    avatar: "MR",
+    rating: 5,
+    text: "The fraud detection caught a suspicious charge before I even noticed. That kind of proactive security is exactly what I need from a bank.",
+  },
+];
+
+const partners = [
+  { name: "Visa", abbr: "VISA" },
+  { name: "Mastercard", abbr: "MC" },
+  { name: "Stripe", abbr: "STRIPE" },
+  { name: "Plaid", abbr: "PLAID" },
+  { name: "Dwolla", abbr: "DWOLLA" },
+  { name: "Marqeta", abbr: "MARQETA" },
+];
+
+const faqs = [
+  { q: "How do I open an account?", a: "Click 'Open Account' and complete the 2-minute signup. You'll need basic personal info and a valid email." },
+  { q: "Is Flexiq Verve safe?", a: "Yes. We use 256-bit encryption, biometric authentication, and accounts are FDIC-insured up to $250,000." },
+  { q: "Are there monthly fees?", a: "No monthly fees on personal accounts. See our pricing page for business and premium plans." },
+  { q: "How fast are transfers?", a: "Local transfers are instant. International transfers typically settle within 1–2 business days." },
+  { q: "Can I get a loan?", a: "Yes, qualified members can apply for personal and business loans directly from the dashboard." },
+  { q: "What currencies are supported?", a: "We support 150+ global currencies for FX transfers and multi-currency accounts." },
+  { q: "Is customer support 24/7?", a: "Yes — chat and email support are available around the clock." },
+];
+
 const Index = () => {
   return (
     <div className="page-enter min-h-screen bg-navy">
       <Navbar />
 
-      {/* HERO */}
+      {/* ── HERO ── */}
       <section className="relative overflow-hidden">
         <img
           src={heroBanking}
@@ -67,21 +119,24 @@ const Index = () => {
           height={1080}
           className="absolute inset-0 h-full w-full object-cover object-center"
         />
-        {/* Dark overlay for readability */}
         <div className="absolute inset-0 bg-black/60" />
         <div className="absolute inset-0 bg-gradient-to-b from-[hsl(var(--navy))]/40 via-transparent to-[hsl(var(--navy))]" />
-        {/* Floating glow orbs */}
         <div className="pointer-events-none absolute -top-24 -left-24 h-80 w-80 rounded-full bg-[hsl(var(--mediumblue))]/30 blur-3xl animate-float" />
         <div className="pointer-events-none absolute -bottom-32 right-0 h-96 w-96 rounded-full bg-[hsl(var(--mediumblue))]/20 blur-3xl animate-float [animation-delay:2s]" />
         <div className="pointer-events-none absolute top-1/3 right-1/4 h-40 w-40 rounded-full bg-primary-glow/30 blur-2xl animate-float [animation-delay:4s] hidden md:block" />
-        {/* Subtle grid pattern */}
         <div className="pointer-events-none absolute inset-0 opacity-[0.05] [background-image:linear-gradient(white_1px,transparent_1px),linear-gradient(90deg,white_1px,transparent_1px)] [background-size:48px_48px]" />
+
         <div className="container relative grid gap-14 py-16 md:grid-cols-2 md:py-24 lg:py-32">
           <div className="flex flex-col justify-center text-on-dark">
-            <motion.div {...fade(0)} className="inline-flex w-fit items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-xs font-medium text-on-dark backdrop-blur">
-              <Sparkles className="h-3.5 w-3.5 text-[hsl(var(--mediumblue))]" />
+            {/* ── Badge: Sparkles → PiggyBank ── */}
+            <motion.div
+              {...fade(0)}
+              className="inline-flex w-fit items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-xs font-medium text-on-dark backdrop-blur"
+            >
+              <PiggyBank className="h-3.5 w-3.5 text-[hsl(var(--mediumblue))]" />
               Now offering 4.5% APY on savings
             </motion.div>
+
             <motion.h1 {...fade(0.05)} className="mt-6 font-display text-4xl font-bold leading-[1.05] tracking-tight sm:text-5xl lg:text-6xl">
               Bank Smarter,{" "}
               <RotatingWord />{" "}
@@ -112,7 +167,7 @@ const Index = () => {
         </div>
       </section>
 
-      {/* CORE FEATURES — navy */}
+      {/* ── CORE FEATURES ── */}
       <section id="features" className="bg-navy-2 py-20 sm:py-28">
         <div className="container">
           <motion.div {...fade()} className="mx-auto max-w-2xl text-center text-on-dark">
@@ -129,7 +184,14 @@ const Index = () => {
                 f.tone === "coral" ? "bg-gradient-coral" :
                 "bg-gradient-primary";
               return (
-                <motion.div key={f.title} {...fade(idx * 0.08)} className="group relative overflow-hidden rounded-3xl border border-white/10 bg-white p-6 shadow-card transition-smooth hover:-translate-y-1 hover:shadow-elev">
+                <motion.div
+                  key={f.title}
+                  initial={{ opacity: 0, y: 24 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: "-60px" }}
+                  transition={{ duration: 0.5, delay: idx * 0.1, ease: "easeOut" }}
+                  className="group relative overflow-hidden rounded-3xl border border-white/10 bg-white p-6 shadow-card hover:-translate-y-1 hover:shadow-elev transition-transform duration-300"
+                >
                   <div className={`mb-5 flex h-12 w-12 items-center justify-center rounded-2xl ${tone} text-white shadow-md`}>
                     <Icon className="h-6 w-6" />
                   </div>
@@ -142,7 +204,7 @@ const Index = () => {
         </div>
       </section>
 
-      {/* QUICK FEATURES — medium blue */}
+      {/* ── QUICK FEATURES ── */}
       <section className="bg-blue-gradient py-16">
         <div className="container">
           <motion.div {...fade()} className="rounded-3xl bg-white/10 p-8 backdrop-blur sm:p-12">
@@ -163,14 +225,13 @@ const Index = () => {
         </div>
       </section>
 
-      {/* STATS — navy */}
+      {/* ── STATS ── */}
       <section id="stats" className="bg-navy py-20 sm:py-28">
         <div className="container">
           <motion.div {...fade()} className="mx-auto max-w-2xl text-center text-on-dark">
             <p className="text-sm font-semibold uppercase tracking-widest text-[hsl(var(--mediumblue))]">Live numbers</p>
             <h2 className="mt-3 font-display text-3xl font-bold sm:text-4xl">A growing community of smart spenders</h2>
           </motion.div>
-
           <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {stats.map((s, i) => (
               <motion.div key={s.label} {...fade(i * 0.08)} className="rounded-3xl border border-white/10 bg-white p-8 text-center shadow-card">
@@ -182,7 +243,7 @@ const Index = () => {
         </div>
       </section>
 
-      {/* SECURITY — navy mesh */}
+      {/* ── SECURITY ── */}
       <section id="security" className="bg-navy-blue-mesh py-20 sm:py-28">
         <div className="container">
           <div className="grid items-center gap-12 lg:grid-cols-2">
@@ -193,17 +254,16 @@ const Index = () => {
                 Bank-grade encryption, fraud monitoring, and biometric authentication keep your account safer than your wallet.
               </p>
               <ul className="mt-6 space-y-3 text-sm">
-                {["Real-time fraud detection", "FDIC-insured accounts up to $250K", "Biometric & PIN protection", "End-to-end encryption"].map((i) => (
-                  <li key={i} className="flex items-center gap-3">
+                {["Real-time fraud detection", "FDIC-insured accounts up to $250K", "Biometric & PIN protection", "End-to-end encryption"].map((item) => (
+                  <li key={item} className="flex items-center gap-3">
                     <span className="flex h-6 w-6 items-center justify-center rounded-full bg-success/20 text-success">
                       <ShieldCheck className="h-3.5 w-3.5" />
                     </span>
-                    {i}
+                    {item}
                   </li>
                 ))}
               </ul>
             </motion.div>
-
             <motion.div {...fade(0.15)} className="relative">
               <div className="rounded-3xl bg-gradient-primary p-1 shadow-elev">
                 <div className="rounded-[calc(theme(borderRadius.3xl)-4px)] bg-white p-8">
@@ -235,7 +295,104 @@ const Index = () => {
         </div>
       </section>
 
-      {/* CTA — medium blue */}
+      {/* ── TESTIMONIALS ── */}
+      <section id="testimonials" className="bg-navy-2 py-20 sm:py-28">
+        <div className="container">
+          <motion.div {...fade()} className="mx-auto max-w-2xl text-center text-on-dark">
+            <p className="text-sm font-semibold uppercase tracking-widest text-[hsl(var(--mediumblue))]">What customers say</p>
+            <h2 className="mt-3 font-display text-3xl font-bold sm:text-4xl">Loved by people who value their money</h2>
+          </motion.div>
+
+          <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {testimonials.map((t, i) => (
+              <motion.div
+                key={t.name}
+                initial={{ opacity: 0, y: 24 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-60px" }}
+                transition={{ duration: 0.5, delay: i * 0.1, ease: "easeOut" }}
+                className="flex flex-col gap-4 rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur"
+              >
+                {/* Stars */}
+                <div className="flex gap-0.5">
+                  {Array.from({ length: t.rating }).map((_, s) => (
+                    <Star key={s} className="h-4 w-4 fill-[hsl(var(--mediumblue))] text-[hsl(var(--mediumblue))]" />
+                  ))}
+                </div>
+                <p className="flex-1 text-sm leading-relaxed text-on-dark-muted">"{t.text}"</p>
+                <div className="flex items-center gap-3 pt-2 border-t border-white/10">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[hsl(var(--mediumblue))]/20 text-xs font-bold text-[hsl(var(--mediumblue))]">
+                    {t.avatar}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-on-dark">{t.name}</p>
+                    <p className="text-xs text-on-dark-muted">{t.role}</p>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── PARTNERS ── */}
+      <section className="bg-navy py-16 sm:py-20">
+        <div className="container">
+          <motion.div {...fade()} className="mx-auto max-w-2xl text-center text-on-dark">
+            <p className="text-sm font-semibold uppercase tracking-widest text-[hsl(var(--mediumblue))]">Our partners</p>
+            <h2 className="mt-3 font-display text-2xl font-bold sm:text-3xl">Backed by the best in banking</h2>
+            <p className="mt-3 text-on-dark-muted text-sm">We work with trusted global financial infrastructure partners to keep your money moving safely.</p>
+          </motion.div>
+
+          <motion.div {...fade(0.1)} className="mt-10 flex flex-wrap items-center justify-center gap-4 sm:gap-6">
+            {partners.map((p, i) => (
+              <motion.div
+                key={p.name}
+                initial={{ opacity: 0, scale: 0.9 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.4, delay: i * 0.07, ease: "easeOut" }}
+                className="flex items-center justify-center rounded-2xl border border-white/10 bg-white/5 px-6 py-4 backdrop-blur min-w-[110px] hover:bg-white/10 transition-colors duration-200"
+              >
+                <span className="font-display text-sm font-bold tracking-widest text-on-dark-muted">
+                  {p.abbr}
+                </span>
+              </motion.div>
+            ))}
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ── FAQ ── */}
+      <section id="faq" className="bg-navy-2 py-20 sm:py-28">
+        <div className="container">
+          <motion.div {...fade()} className="mx-auto max-w-2xl text-center text-on-dark mb-12">
+            <p className="text-sm font-semibold uppercase tracking-widest text-[hsl(var(--mediumblue))]">Help Center</p>
+            <h2 className="mt-3 font-display text-3xl font-bold sm:text-4xl">Frequently asked questions</h2>
+            <p className="mt-4 text-on-dark-muted">Everything you need to know about Flexiq Verve.</p>
+          </motion.div>
+
+          <motion.div {...fade(0.1)} className="mx-auto max-w-3xl">
+            <Accordion type="single" collapsible className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur divide-y divide-white/10">
+              {faqs.map((f, i) => (
+                <AccordionItem key={i} value={`item-${i}`} className="border-0 px-6">
+                  <AccordionTrigger className="text-left font-medium text-on-dark hover:no-underline hover:text-white">
+                    {f.q}
+                  </AccordionTrigger>
+                  <AccordionContent className="text-on-dark-muted">{f.a}</AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+            <motion.div {...fade(0.2)} className="mt-6 text-center">
+              <Link to="/faq" className="text-sm text-[hsl(var(--mediumblue))] hover:underline">
+                View all FAQs →
+              </Link>
+            </motion.div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ── CTA ── */}
       <section className="bg-navy pb-24 pt-4">
         <div className="container">
           <motion.div {...fade()} className="relative overflow-hidden rounded-3xl bg-blue-gradient p-10 text-center text-white shadow-elev sm:p-16">
