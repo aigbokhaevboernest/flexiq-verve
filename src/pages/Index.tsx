@@ -8,6 +8,8 @@ import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useRef, useState, useEffect } from "react";
+import dwollaLogo from "@/assets/dwolla.svg";
+import marqetaLogo from "@/assets/marqeta-logo.jpg";
 import {
   ArrowRight,
   Banknote,
@@ -88,56 +90,132 @@ const testimonials = [
 ];
 
 /**
- * Real, official logo files — hotlinked from Wikimedia Commons via the
- * Special:FilePath redirect, which resolves by filename alone (more robust
- * than guessing the hash-prefixed folder path). These mirror the exact SVG
- * assets each company publishes in their own brand/press kit — nothing here
- * is redrawn or approximated.
+ * Partner logos. Sources:
+ * - Visa, Mastercard, PayPal, Stripe, Apple Pay, Google Pay, Zelle, Cash App,
+ *   Plaid: official SVGs at the Wikimedia Commons URLs supplied directly by you.
+ * - Dwolla: the official SVG you uploaded, now a local project asset.
+ * - Marqeta: the official wordmark image you uploaded, now a local project asset.
+ * - ACH, Fedwire: rendered as styled text (no single canonical "ACH Network" or
+ *   "Fedwire" logo mark exists the way the others do — ACH is a payment rail
+ *   run by Nacha, Fedwire is a Federal Reserve wire service, not branded products).
  *
- * HONEST CAVEAT: my sandbox has no outbound network access, so I cannot
- * fetch and verify these resolve before handing them to you. Each logo below
- * has a built-in text fallback (see PartnerLogo component) — if one is wrong,
- * it shows the partner name as text instead of breaking the layout. Tell me
- * which name renders as text and I'll find a corrected filename.
+ * Each card links out to the partner's real official site (target="_blank").
  */
 const partners = [
-  { name: "Visa", src: "https://upload.wikimedia.org/wikipedia/commons/special/filepath/Visa_2021.svg" },
-  { name: "Mastercard", src: "https://upload.wikimedia.org/wikipedia/commons/special/filepath/Mastercard-logo.svg" },
-  { name: "PayPal", src: "https://upload.wikimedia.org/wikipedia/commons/special/filepath/PayPal.svg" },
-  { name: "Stripe", src: "https://upload.wikimedia.org/wikipedia/commons/special/filepath/Stripe_Logo,_revised_2016.svg" },
-  { name: "Apple Pay", src: "https://upload.wikimedia.org/wikipedia/commons/special/filepath/Apple_Pay_logo.svg" },
-  { name: "Google Pay", src: "https://upload.wikimedia.org/wikipedia/commons/special/filepath/Google_Pay_Logo.svg" },
-  { name: "Zelle", src: "https://upload.wikimedia.org/wikipedia/commons/special/filepath/Zelle_logo.svg" },
-  { name: "Cash App", src: "https://upload.wikimedia.org/wikipedia/commons/special/filepath/Cash_App_logo.svg" },
-  { name: "Plaid", src: "https://upload.wikimedia.org/wikipedia/commons/special/filepath/Plaid_logo.svg" },
-  { name: "Dwolla", src: "https://upload.wikimedia.org/wikipedia/commons/special/filepath/Dwolla_logo.svg" },
-  { name: "Marqeta", src: "https://upload.wikimedia.org/wikipedia/commons/special/filepath/Marqeta_logo.svg" },
-  { name: "ACH", src: "https://upload.wikimedia.org/wikipedia/commons/special/filepath/Nacha_logo.svg" },
-  { name: "Fedwire", src: "https://upload.wikimedia.org/wikipedia/commons/special/filepath/Federal_Reserve_System_logo.svg" },
+  {
+    name: "Visa",
+    href: "https://www.visa.com",
+    type: "image" as const,
+    src: "https://www.svgrepo.com/show/452128/visa.svg",
+  },
+  {
+    name: "Mastercard",
+    href: "https://www.mastercard.com",
+    type: "image" as const,
+    src: "https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg",
+  },
+  {
+    name: "PayPal",
+    href: "https://www.paypal.com",
+    type: "image" as const,
+    src: "https://upload.wikimedia.org/wikipedia/commons/b/b5/PayPal.svg",
+  },
+  {
+    name: "Stripe",
+    href: "https://stripe.com",
+    type: "image" as const,
+    src: "https://upload.wikimedia.org/wikipedia/commons/b/ba/Stripe_Logo%2C_revised_2016.svg",
+  },
+  {
+    name: "Apple Pay",
+    href: "https://www.apple.com/apple-pay/",
+    type: "image" as const,
+    src: "https://upload.wikimedia.org/wikipedia/commons/b/b0/Apple_Pay_logo.svg",
+  },
+  {
+    name: "Google Pay",
+    href: "https://pay.google.com",
+    type: "image" as const,
+    src: "https://upload.wikimedia.org/wikipedia/commons/f/f2/Google_Pay_Logo.svg",
+  },
+  {
+    name: "Zelle",
+    href: "https://www.zellepay.com",
+    type: "image" as const,
+    src: "https://upload.wikimedia.org/wikipedia/commons/4/4c/Zelle_logo.svg",
+  },
+  {
+    name: "Cash App",
+    href: "https://cash.app",
+    type: "image" as const,
+    src: "https://upload.wikimedia.org/wikipedia/commons/c/c5/Square_Cash_app_logo.svg",
+  },
+  {
+    name: "Plaid",
+    href: "https://plaid.com",
+    type: "image" as const,
+    src: "https://upload.wikimedia.org/wikipedia/commons/c/c0/Plaid_logo.svg",
+  },
+  {
+    name: "Dwolla",
+    href: "https://www.dwolla.com",
+    type: "image" as const,
+    src: dwollaLogo,
+  },
+  {
+    name: "Marqeta",
+    href: "https://www.marqeta.com",
+    type: "image" as const,
+    src: marqetaLogo,
+  },
+  {
+    name: "ACH",
+    href: "https://www.nacha.org",
+    type: "text" as const,
+  },
+  {
+    name: "Fedwire",
+    href: "https://www.frbservices.org/financial-services/wires",
+    type: "text" as const,
+  },
 ];
 
-// One clean duplicate — the rAF loop math below relies on exactly 2 copies.
-const ticker = [...partners, ...partners];
+// Two sets are rendered directly in JSX (each followed by a "+ more" card);
+// trackWidth below is measured as half the rendered track for the loop point.
 
-const PartnerLogo = ({ name, src }: { name: string; src: string }) => {
+const PartnerLogo = ({ partner }: { partner: (typeof partners)[number] }) => {
   const [failed, setFailed] = useState(false);
+  const showText = partner.type === "text" || failed;
+
   return (
-    <div className="flex h-20 w-[150px] flex-shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white px-6 py-4">
-      {failed ? (
-        <span className="text-xs font-semibold uppercase tracking-wide text-gray-400 text-center">
-          {name}
+    <a
+      href={partner.href}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label={`Visit ${partner.name}'s official website`}
+      className="flex h-20 w-[150px] flex-shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white px-6 py-4 transition-transform hover:-translate-y-0.5 hover:shadow-md"
+    >
+      {showText ? (
+        <span
+          className={
+            partner.name === "Fedwire"
+              ? "text-sm font-bold tracking-wide text-[#1a3a6b]"
+              : "text-xs font-semibold uppercase tracking-wide text-gray-500"
+          }
+        >
+          {partner.name}
         </span>
       ) : (
         <img
-          src={src}
-          alt={name}
+          src={partner.src}
+          alt={partner.name}
           draggable={false}
           loading="lazy"
           onError={() => setFailed(true)}
           className="h-7 max-h-7 w-auto max-w-[110px] object-contain"
         />
       )}
-    </div>
+    </a>
   );
 };
 
@@ -204,16 +282,20 @@ const Index = () => {
     while (partnerOffsetRef.current > 0) partnerOffsetRef.current -= partnerTrackWidth;
   };
 
+  const partnerDragDistance = useRef(0);
+
   const onPartnerPointerDown = (e: React.PointerEvent) => {
     setIsPartnerDragging(true);
     partnerDragStartX.current = e.clientX;
     partnerDragStartOffset.current = partnerOffsetRef.current;
+    partnerDragDistance.current = 0;
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
   };
 
   const onPartnerPointerMove = (e: React.PointerEvent) => {
     if (!isPartnerDragging) return;
     const dx = e.clientX - partnerDragStartX.current;
+    partnerDragDistance.current = Math.abs(dx);
     partnerOffsetRef.current = partnerDragStartOffset.current + dx;
   };
 
@@ -221,6 +303,15 @@ const Index = () => {
     if (!isPartnerDragging) return;
     setIsPartnerDragging(false);
     normalizePartnerOffset();
+  };
+
+  // If the pointer moved more than a few px, treat it as a drag and swallow
+  // the resulting click so dragging the ticker doesn't also open a logo link.
+  const onPartnerTrackClickCapture = (e: React.MouseEvent) => {
+    if (partnerDragDistance.current > 5) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
   };
 
   return (
@@ -448,12 +539,25 @@ const Index = () => {
             onPointerUp={endPartnerDrag}
             onPointerLeave={endPartnerDrag}
             onPointerCancel={endPartnerDrag}
+            onClickCapture={onPartnerTrackClickCapture}
             style={{ touchAction: "pan-y" }}
           >
             {/* Moving track — position controlled entirely by the rAF loop above */}
             <div ref={partnerTrackRef} className="flex w-max gap-4" style={{ willChange: "transform" }}>
-              {ticker.map((p, i) => (
-                <PartnerLogo key={`${p.name}-${i}`} name={p.name} src={p.src} />
+              {[0, 1].map((setIndex) => (
+                <div key={`set-${setIndex}`} className="flex gap-4">
+                  {partners.map((p) => (
+                    <PartnerLogo key={`${p.name}-${setIndex}`} partner={p} />
+                  ))}
+                  <div className="flex h-20 w-[150px] flex-shrink-0 flex-col items-center justify-center gap-1 rounded-2xl border-2 border-dashed border-white/15 bg-transparent">
+                    <p className="text-xl font-bold text-white/30">···</p>
+                    <p className="text-[11px] font-semibold tracking-wider text-on-dark-muted uppercase text-center leading-tight">
+                      150+ more
+                      <br />
+                      supported
+                    </p>
+                  </div>
+                </div>
               ))}
             </div>
           </div>
