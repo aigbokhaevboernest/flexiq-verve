@@ -219,10 +219,10 @@ Flexiq Verve Support Team`,
                <Label>Account type</Label>
                <select required className={nativeSelectClass} value={form.account_type} onChange={(e) => update("account_type")(e.target.value)}>
                  <option value="">Choose account</option>
-                 <option value="personal">Personal</option>
-                 <option value="business">Business</option>
-                 <option value="checking">Checking</option>
-                 <option value="savings">Savings</option>
+                 <option value="checking">Checking Account</option>
+                 <option value="savings">Savings Account</option>
+                 <option value="retirement">Retirement Account</option>
+                 <option value="business">Business Account</option>
                </select>
              </div>
              <div>
