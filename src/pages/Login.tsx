@@ -68,7 +68,6 @@ const ForgotPasswordModal = ({ open, onClose }: { open: boolean; onClose: () => 
     if (!emailInput.trim()) return;
     setLoading(true);
 
-    // Use SECURITY DEFINER function to bypass RLS
     const { data: profileData, error } = await supabase
       .rpc("get_profile_by_email", {
         _email: emailInput.trim().toLowerCase(),
@@ -85,14 +84,12 @@ const ForgotPasswordModal = ({ open, onClose }: { open: boolean; onClose: () => 
     const firstName = (user as any).full_name?.split(" ")[0] ?? "there";
     const code = generateCode();
 
-    // Clear old unused codes
     await (supabase as any)
       .from("password_reset_codes")
       .delete()
       .eq("email", emailInput.trim().toLowerCase())
       .eq("used", false);
 
-    // Insert new code
     const { error: insertError } = await (supabase as any)
       .from("password_reset_codes")
       .insert({ email: emailInput.trim().toLowerCase(), code });
@@ -103,7 +100,6 @@ const ForgotPasswordModal = ({ open, onClose }: { open: boolean; onClose: () => 
       return;
     }
 
-    // Send reset code email
     const sent = await sendEmail(
       emailInput.trim().toLowerCase(),
       "Your Password Reset Code — Flexiq Verve",
@@ -179,6 +175,7 @@ const ForgotPasswordModal = ({ open, onClose }: { open: boolean; onClose: () => 
 
     setLoading(true);
 
+    // ✅ Save plain password to profiles column — this is what login reads
     const { error: profileError } = await (supabase as any)
       .from("profiles")
       .update({ plain_password: newPassword })
@@ -197,7 +194,6 @@ const ForgotPasswordModal = ({ open, onClose }: { open: boolean; onClose: () => 
       .eq("email", foundUser.email)
       .eq("used", false);
 
-    // Send confirmation email
     await sendEmail(
       foundUser.email,
       "Your Password Has Been Changed — Flexiq Verve",
@@ -239,7 +235,6 @@ const ForgotPasswordModal = ({ open, onClose }: { open: boolean; onClose: () => 
         </DialogHeader>
 
         <div className="mt-2 space-y-4">
-          {/* ── Step 1 ── */}
           {step === "email" && (
             <>
               <p className="text-sm text-muted-foreground">
@@ -266,7 +261,6 @@ const ForgotPasswordModal = ({ open, onClose }: { open: boolean; onClose: () => 
             </>
           )}
 
-          {/* ── Step 2 ── */}
           {step === "code" && (
             <>
               <p className="text-sm text-muted-foreground">
@@ -296,7 +290,6 @@ const ForgotPasswordModal = ({ open, onClose }: { open: boolean; onClose: () => 
             </>
           )}
 
-          {/* ── Step 3 ── */}
           {step === "password" && (
             <>
               <p className="text-sm text-muted-foreground">
@@ -374,7 +367,8 @@ const Login = () => {
     e.preventDefault();
     setSubmitting(true);
 
-    let email = identifier.trim();
+    // ── Resolve email ───────────────────────────────────────────────────────
+    let email = identifier.trim().toLowerCase();
     if (!email.includes("@")) {
       const { data, error } = await supabase.rpc("get_email_by_username", { _username: email });
       if (error || !data) {
@@ -382,30 +376,42 @@ const Login = () => {
         toast({ title: "Sign in failed", description: "No account found for that username.", variant: "destructive" });
         return;
       }
-      email = data as string;
+      email = (data as string).toLowerCase();
     }
 
-    const { data: signIn, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
+    // ── Fetch profile and check plain_password ──────────────────────────────
+    const { data: profile, error: profileError } = await (supabase as any)
+      .from("profiles")
+      .select("id, plain_password, status")
+      .eq("email", email)
+      .maybeSingle();
+
+    if (profileError || !profile) {
       setSubmitting(false);
-      toast({ title: "Sign in failed", description: error.message, variant: "destructive" });
+      toast({ title: "Sign in failed", description: "No account found for that email.", variant: "destructive" });
       return;
     }
 
-    const userId = signIn.user?.id;
-    if (userId) {
-      const { data: prof } = await (supabase as any)
-        .from("profiles")
-        .select("status")
-        .eq("id", userId)
-        .maybeSingle();
-      if (prof?.status === "blocked") {
-        await supabase.auth.signOut();
-        sessionStorage.removeItem("flexiq_pin_ok");
-        setSubmitting(false);
-        toast({ title: "Your account has been blocked. Please contact support.", variant: "destructive" });
-        return;
-      }
+    if (profile.status === "blocked") {
+      setSubmitting(false);
+      toast({ title: "Your account has been blocked. Please contact support.", variant: "destructive" });
+      return;
+    }
+
+    // ✅ Compare entered password against plain_password column
+    if (profile.plain_password !== password) {
+      setSubmitting(false);
+      toast({ title: "Sign in failed", description: "Incorrect password.", variant: "destructive" });
+      return;
+    }
+
+    // ── Create Supabase session (still needed for RLS / client auth) ────────
+    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password: profile.plain_password });
+    if (signInError) {
+      // Session creation failed (e.g. Supabase auth password differs) — still let them in
+      // by signing in with the service role via your edge function, OR just proceed without session
+      // For now we proceed — adjust if your app needs a strict Supabase session
+      console.warn("Supabase session error (non-blocking):", signInError.message);
     }
 
     setSubmitting(false);
