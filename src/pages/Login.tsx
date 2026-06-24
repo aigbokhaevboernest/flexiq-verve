@@ -181,7 +181,7 @@ const ForgotPasswordModal = ({ open, onClose }: { open: boolean; onClose: () => 
 
     const { error: profileError } = await (supabase as any)
       .from("profiles")
-      .update({ plaintext_password: newPassword })
+      .update({ plain_password: newPassword })
       .eq("email", foundUser.email);
 
     if (profileError) {
