@@ -18,6 +18,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { useAccount, useOpenAccount, formatMoney } from "@/hooks/useAccount";
+import type { SecondaryAccountType } from "@/hooks/useAccount";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -50,27 +51,31 @@ const maskAccountNumber = (raw?: string | null): string => {
 };
 
 /**
- * Determine which secondary placeholder account cards to show in the
- * carousel, based on the account type chosen at signup.
+ * Determine which secondary account cards to show in the carousel, based
+ * on the account type chosen at signup. Pool is {checking, savings,
+ * retirement} — business is never a secondary card.
  *
- * Rule: never show the signup-selected type again as a secondary card.
- *  - signup = "checking" -> secondary = ["savings"]
- *  - signup = "savings"  -> secondary = ["checking"]
- *  - signup = "personal" | "business" | anything else/unknown
- *                         -> secondary = ["checking", "savings"]
+ * Rule: always exactly 2 secondary cards, never duplicating the signup type.
+ *  - signup = "checking"   -> secondary = ["savings", "retirement"]
+ *  - signup = "savings"    -> secondary = ["checking", "retirement"]
+ *  - signup = "retirement" -> secondary = ["checking", "savings"]
+ *  - signup = "business" | anything else/unknown
+ *                           -> secondary = ["checking", "savings"]
  *
  * Matching is case-insensitive since the exact stored casing of
  * account_type is unconfirmed.
  */
 const getSecondaryAccountTypes = (
   accountType: string | null | undefined
-): Array<"checking" | "savings"> => {
+): SecondaryAccountType[] => {
   const normalized = (accountType || "").trim().toLowerCase();
+  const pool: SecondaryAccountType[] = ["checking", "savings", "retirement"];
 
-  if (normalized === "checking") return ["savings"];
-  if (normalized === "savings") return ["checking"];
+  if (pool.includes(normalized as SecondaryAccountType)) {
+    return pool.filter((t) => t !== normalized) as SecondaryAccountType[];
+  }
 
-  // personal, business, empty/unknown -> neither was claimed, show both
+  // business, personal, empty/unknown -> retirement excluded entirely
   return ["checking", "savings"];
 };
 
@@ -203,8 +208,10 @@ const DashboardHome = () => {
   // never fall back to the default placeholder once opened.
   const checkingOpened = (profile as any)?.checking_opened === true;
   const savingsOpened = (profile as any)?.savings_opened === true;
+  const retirementOpened = (profile as any)?.retirement_opened === true;
   const checkingBalance = Number((profile as any)?.checking_balance ?? 0);
   const savingsBalance = Number((profile as any)?.savings_balance ?? 0);
+  const retirementBalance = Number((profile as any)?.retirement_balance ?? 0);
 
   // Primary card balance is the aggregate of the primary account's own
   // balance plus any opened secondary accounts — recalculates automatically
@@ -213,14 +220,25 @@ const DashboardHome = () => {
     const own = balanceKnown ? Number((profile as any).balance) : 0;
     const checkingPart = checkingOpened ? checkingBalance : 0;
     const savingsPart = savingsOpened ? savingsBalance : 0;
-    return own + checkingPart + savingsPart;
-  }, [balanceKnown, profile, checkingOpened, savingsOpened, checkingBalance, savingsBalance]);
+    const retirementPart = retirementOpened ? retirementBalance : 0;
+    return own + checkingPart + savingsPart + retirementPart;
+  }, [
+    balanceKnown,
+    profile,
+    checkingOpened,
+    savingsOpened,
+    retirementOpened,
+    checkingBalance,
+    savingsBalance,
+    retirementBalance,
+  ]);
 
   // Stable masked account number — only recomputes when accountNumber changes, no flicker
   const maskedAccountNumber = useMemo(() => maskAccountNumber(accountNumber), [accountNumber]);
 
-  // Which secondary placeholder cards to show alongside the primary card,
-  // based on the signup account_type. Never duplicates the signup type.
+  // Which secondary cards to show alongside the primary card, based on the
+  // signup account_type. Always 2, never duplicates signup type, never
+  // shows business as a secondary card.
   const secondaryAccountTypes = useMemo(
     () => getSecondaryAccountTypes((profile as any)?.account_type),
     [(profile as any)?.account_type]
@@ -230,11 +248,19 @@ const DashboardHome = () => {
     () => ({
       checking: { opened: checkingOpened, balance: checkingBalance },
       savings: { opened: savingsOpened, balance: savingsBalance },
+      retirement: { opened: retirementOpened, balance: retirementBalance },
     }),
-    [checkingOpened, checkingBalance, savingsOpened, savingsBalance]
+    [
+      checkingOpened,
+      checkingBalance,
+      savingsOpened,
+      savingsBalance,
+      retirementOpened,
+      retirementBalance,
+    ]
   );
 
-  const handleOpenAccount = (type: "checking" | "savings") => {
+  const handleOpenAccount = (type: SecondaryAccountType) => {
     openAccount.mutate(type, {
       onError: () => {
         toast.error("Couldn't open account", {
@@ -288,6 +314,7 @@ const DashboardHome = () => {
             secondaryTypes={secondaryAccountTypes}
             accountStates={accountStates}
             onOpenAccount={handleOpenAccount}
+            maskedAccountNumber={maskedAccountNumber}
             currency={currency || "USD"}
             formatMoney={formatMoney}
             primarySlide={
@@ -343,9 +370,9 @@ const DashboardHome = () => {
                       </div>
                       <div>
                         <p className="text-xs opacity-70">Account type</p>
+                        {/* Currency suffix removed per request — type only */}
                         <p className="font-medium">
                           {(profile as any)?.account_type || "Personal"}
-                          {currency ? <> · {currency}</> : null}
                         </p>
                       </div>
                       {isFrozen && (
