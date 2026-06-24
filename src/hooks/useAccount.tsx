@@ -1,11 +1,12 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 
 /**
  * useAccount — single source of truth for account-like fields.
  * Reads from `profiles` per canonical schema (balance, account_number,
- * currency, frozen, status, kyc_status, card_number, expiry, cvv, ...).
+ * currency, frozen, status, kyc_status, card_number, expiry, cvv,
+ * checking_opened, checking_balance, savings_opened, savings_balance, ...).
  *
  * localStorage cache is cleared on any realtime update to prevent
  * stale data from overwriting live freeze/block changes.
@@ -53,6 +54,45 @@ export const useAccount = () => {
 
 /** Same data as useAccount — kept as alias for old call sites. */
 export const useProfile = useAccount;
+
+/**
+ * useOpenAccount — marks a secondary account (checking/savings) as opened
+ * by writing `{type}_opened = true` to the user's profile row in Supabase.
+ * This is the single source of truth for opened-state, so it survives
+ * refresh and stays consistent everywhere the profile is read.
+ */
+export const useOpenAccount = () => {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const cacheKey = user ? `profileCache:${user.id}` : null;
+
+  return useMutation({
+    mutationFn: async (type: "checking" | "savings") => {
+      if (!user) throw new Error("Not authenticated");
+      const column = type === "checking" ? "checking_opened" : "savings_opened";
+      const { data, error } = await (supabase as any)
+        .from("profiles")
+        .update({ [column]: true })
+        .eq("id", user.id)
+        .select()
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      if (!user) return;
+      if (cacheKey) {
+        try { localStorage.removeItem(cacheKey); } catch {}
+      }
+      // Optimistically seed the cache with the fresh row so the UI
+      // updates immediately without waiting on a refetch.
+      if (data) {
+        queryClient.setQueryData(["profile", user.id], data);
+      }
+      queryClient.invalidateQueries({ queryKey: ["profile", user.id] });
+    },
+  });
+};
 
 export const useIsAdmin = () => {
   const { user } = useAuth();
