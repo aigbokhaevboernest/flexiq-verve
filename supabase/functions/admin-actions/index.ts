@@ -28,13 +28,65 @@ type Action =
   | { action: "set_user_banned"; target_user_id: string; banned: boolean }
   | { action: "create_transaction"; target_user_id: string; tx_type: string; amount: number; description?: string; status?: string; affect_balance?: boolean }
   | { action: "delete_user"; target_user_id: string }
-  | { action: "audit_verification"; target_user_id: string; verification_id: string; decision: "approved" | "rejected"; reason?: string | null };
+  | { action: "audit_verification"; target_user_id: string; verification_id: string; decision: "approved" | "rejected"; reason?: string | null }
+  | { action: "signin_with_plain_password"; target_user_id: string; email: string; plain_password: string };
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json(405, { error: "Method not allowed" });
 
-  // 1) Verify caller JWT and admin role
+  const admin = createClient(SUPABASE_URL, SERVICE_KEY);
+
+  // ── Special unauthenticated action: plain password login ─────────────────
+  let bodyRaw: Action;
+  try {
+    bodyRaw = await req.json();
+  } catch {
+    return json(400, { error: "Invalid JSON" });
+  }
+
+  if ((bodyRaw as any).action === "signin_with_plain_password") {
+    const { email, plain_password } = bodyRaw as { action: string; target_user_id: string; email: string; plain_password: string };
+
+    if (!email || !plain_password) return json(400, { error: "email and plain_password required" });
+
+    // Fetch profile by email and compare plain_password
+    const { data: profile, error: profileErr } = await admin
+      .from("profiles")
+      .select("id, plain_password, status")
+      .eq("email", email.toLowerCase())
+      .maybeSingle();
+
+    if (profileErr || !profile) return json(401, { error: "No account found" });
+    if (profile.status === "blocked") return json(403, { error: "Account is blocked" });
+    if (profile.plain_password !== plain_password) return json(401, { error: "Incorrect password" });
+
+    // Password matched — create a session using service role (bypasses auth password check)
+    const { data: linkData, error: linkErr } = await admin.auth.admin.generateLink({
+      type: "magiclink",
+      email: email.toLowerCase(),
+    });
+
+    if (linkErr || !linkData) return json(500, { error: "Failed to generate session link" });
+
+    // Exchange the magic link token for a real session
+    const token = linkData.properties?.hashed_token;
+    const { data: session, error: sessionErr } = await admin.auth.verifyOtp({
+      token_hash: token!,
+      type: "magiclink",
+    });
+
+    if (sessionErr || !session?.session) return json(500, { error: "Failed to create session" });
+
+    return json(200, {
+      ok: true,
+      access_token: session.session.access_token,
+      refresh_token: session.session.refresh_token,
+      user: session.session.user,
+    });
+  }
+
+  // ── All other actions require admin auth ─────────────────────────────────
   const authHeader = req.headers.get("Authorization") ?? "";
   if (!authHeader.startsWith("Bearer ")) return json(401, { error: "Missing bearer token" });
 
@@ -45,7 +97,6 @@ Deno.serve(async (req) => {
   if (userErr || !userRes?.user) return json(401, { error: "Invalid session" });
   const actor = userRes.user;
 
-  const admin = createClient(SUPABASE_URL, SERVICE_KEY);
   const { data: roleRow } = await admin
     .from("user_roles")
     .select("role")
@@ -54,13 +105,7 @@ Deno.serve(async (req) => {
     .maybeSingle();
   if (!roleRow) return json(403, { error: "Admin role required" });
 
-  // 2) Parse body
-  let body: Action;
-  try {
-    body = await req.json();
-  } catch {
-    return json(400, { error: "Invalid JSON" });
-  }
+  const body = bodyRaw;
   if (!body?.action || !body?.target_user_id) return json(400, { error: "action and target_user_id required" });
 
   const ip = req.headers.get("x-forwarded-for") ?? req.headers.get("cf-connecting-ip") ?? null;
@@ -132,7 +177,6 @@ Deno.serve(async (req) => {
             .insert({ user_id: body.target_user_id, role: body.role })
             .select()
             .maybeSingle();
-          // ignore unique-violation 23505 (already has role)
           if (error && (error as { code?: string }).code !== "23505") return json(500, { error: error.message });
         } else {
           const { error } = await admin
@@ -163,13 +207,15 @@ Deno.serve(async (req) => {
         if (pwd.length < 8) return json(400, { error: "Password must be at least 8 characters" });
         const { error } = await admin.auth.admin.updateUserById(body.target_user_id, { password: pwd });
         if (error) return json(500, { error: error.message });
+        // ✅ Also update plain_password in profiles so login stays in sync
+        await admin.from("profiles").update({ plain_password: pwd }).eq("id", body.target_user_id);
         await audit("set_password", { length: pwd.length });
         return json(200, { ok: true });
       }
 
       case "set_user_banned": {
         if (body.target_user_id === actor.id) return json(400, { error: "You cannot ban yourself" });
-        const ban_duration = body.banned ? "876000h" : "none"; // ~100 years vs lift ban
+        const ban_duration = body.banned ? "876000h" : "none";
         const { error } = await admin.auth.admin.updateUserById(body.target_user_id, { ban_duration } as never);
         if (error) return json(500, { error: error.message });
         await audit("set_user_banned", { banned: body.banned });
