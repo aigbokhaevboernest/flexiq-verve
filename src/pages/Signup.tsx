@@ -190,23 +190,23 @@ Flexiq Verve Support Team`,
            <div className="grid gap-4 sm:grid-cols-2">
              <div>
                <Label>First name</Label>
-               <Input required className="mt-1" placeholder="First name" value={form.first_name} onChange={(e) => update("first_name")(e.target.value)} />
+               <Input required className="mt-1" placeholder="John" value={form.first_name} onChange={(e) => update("first_name")(e.target.value)} />
              </div>
              <div>
                <Label>Last name</Label>
-               <Input required className="mt-1" placeholder="Last name" value={form.last_name} onChange={(e) => update("last_name")(e.target.value)} />
+               <Input required className="mt-1" placeholder="Doe" value={form.last_name} onChange={(e) => update("last_name")(e.target.value)} />
              </div>
              <div>
                <Label>User ID</Label>
-               <Input required className="mt-1" placeholder="User ID" value={form.username} onChange={(e) => update("username")(e.target.value.replace(/\s+/g, ""))} />
+               <Input required className="mt-1" placeholder="Johndoe" value={form.username} onChange={(e) => update("username")(e.target.value.replace(/\s+/g, ""))} />
              </div>
              <div>
                <Label>Email</Label>
-               <Input type="email" required className="mt-1" placeholder="email address" value={form.email} onChange={(e) => update("email")(e.target.value)} />
+               <Input type="email" required className="mt-1" placeholder="john@example.com" value={form.email} onChange={(e) => update("email")(e.target.value)} />
              </div>
              <div>
                <Label>Phone</Label>
-               <Input type="tel" required className="mt-1" placeholder="Phone number" value={form.phone} onChange={(e) => update("phone")(e.target.value)} />
+               <Input type="tel" required className="mt-1" placeholder="+__ ___ ___ ____ ____" value={form.phone} onChange={(e) => update("phone")(e.target.value)} />
              </div>
              <div>
                <Label>Country</Label>
@@ -226,7 +226,7 @@ Flexiq Verve Support Team`,
                </select>
              </div>
              <div>
-               <Label>Preferred currency</Label>
+               <Label>Currency</Label>
                <select required className={nativeSelectClass} value={form.currency} onChange={(e) => update("currency")(e.target.value)}>
                  <option value="">Currency</option>
                  {currencies.map((c) => <option key={c.code} value={c.code}>{c.code} — {c.name}</option>)}
@@ -234,7 +234,7 @@ Flexiq Verve Support Team`,
              </div>
              <div>
                <Label>City</Label>
-               <Input required className="mt-1" placeholder="City" value={form.city} onChange={(e) => update("city")(e.target.value)} />
+               <Input required className="mt-1" placeholder="London" value={form.city} onChange={(e) => update("city")(e.target.value)} />
              </div>
              <div>
   <div className="flex items-center gap-2">
@@ -267,7 +267,7 @@ Flexiq Verve Support Team`,
 
              <div className="sm:col-span-2">
                <Label>Address</Label>
-               <Input required className="mt-1" placeholder="Street address" value={form.address} onChange={(e) => update("address")(e.target.value)} />
+               <Input required className="mt-1" placeholder="123 Main Street" value={form.address} onChange={(e) => update("address")(e.target.value)} />
              </div>
              <div>
                <Label>Password</Label>
