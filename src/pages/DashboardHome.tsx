@@ -17,7 +17,7 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
-import { useAccount, formatMoney } from "@/hooks/useAccount";
+import { useAccount, useOpenAccount, formatMoney } from "@/hooks/useAccount";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -78,6 +78,7 @@ const DashboardHome = () => {
   const [hidden, setHidden] = useState(false);
   const { user } = useAuth();
   const { data: profile, isLoading: profLoading } = useAccount();
+  const openAccount = useOpenAccount();
   const queryClient = useQueryClient();
 
   const isFrozen = profile?.frozen === true;
@@ -196,7 +197,24 @@ const DashboardHome = () => {
   const currency = (profile as any)?.currency || null;
   const accountNumber = (profile as any)?.account_number || null;
   const balanceKnown = profile && (profile as any).balance != null;
-  const balanceValue = balanceKnown ? Number((profile as any).balance) : 0;
+
+  // Per-account persisted state, sourced straight from the profile row —
+  // this is what makes "opened" and each balance survive a refresh, and
+  // never fall back to the default placeholder once opened.
+  const checkingOpened = (profile as any)?.checking_opened === true;
+  const savingsOpened = (profile as any)?.savings_opened === true;
+  const checkingBalance = Number((profile as any)?.checking_balance ?? 0);
+  const savingsBalance = Number((profile as any)?.savings_balance ?? 0);
+
+  // Primary card balance is the aggregate of the primary account's own
+  // balance plus any opened secondary accounts — recalculates automatically
+  // whenever any of these change (e.g. an admin funds a secondary account).
+  const balanceValue = useMemo(() => {
+    const own = balanceKnown ? Number((profile as any).balance) : 0;
+    const checkingPart = checkingOpened ? checkingBalance : 0;
+    const savingsPart = savingsOpened ? savingsBalance : 0;
+    return own + checkingPart + savingsPart;
+  }, [balanceKnown, profile, checkingOpened, savingsOpened, checkingBalance, savingsBalance]);
 
   // Stable masked account number — only recomputes when accountNumber changes, no flicker
   const maskedAccountNumber = useMemo(() => maskAccountNumber(accountNumber), [accountNumber]);
@@ -207,6 +225,24 @@ const DashboardHome = () => {
     () => getSecondaryAccountTypes((profile as any)?.account_type),
     [(profile as any)?.account_type]
   );
+
+  const accountStates = useMemo(
+    () => ({
+      checking: { opened: checkingOpened, balance: checkingBalance },
+      savings: { opened: savingsOpened, balance: savingsBalance },
+    }),
+    [checkingOpened, checkingBalance, savingsOpened, savingsBalance]
+  );
+
+  const handleOpenAccount = (type: "checking" | "savings") => {
+    openAccount.mutate(type, {
+      onError: () => {
+        toast.error("Couldn't open account", {
+          description: "Please try again in a moment.",
+        });
+      },
+    });
+  };
 
   return (
     <div className="space-y-6">
@@ -250,6 +286,10 @@ const DashboardHome = () => {
         <div className="lg:col-span-2 min-w-0">
           <AccountCarousel
             secondaryTypes={secondaryAccountTypes}
+            accountStates={accountStates}
+            onOpenAccount={handleOpenAccount}
+            currency={currency || "USD"}
+            formatMoney={formatMoney}
             primarySlide={
               <div className="relative h-full overflow-hidden rounded-3xl bg-gradient-primary p-8 text-primary-foreground shadow-elev">
                 <div className="absolute -right-16 -top-16 h-56 w-56 rounded-full bg-white/15 blur-2xl" />
