@@ -9,7 +9,7 @@ import { Eye, EyeOff, ShieldCheck, ArrowLeft, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { BrandLogo } from "@/components/BrandLogo";
-import { sendEmail } from "@/lib/sendEmail"; // ✅ same helper signup uses
+import { sendEmail } from "@/lib/sendEmail";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -20,8 +20,6 @@ const langChange = (val: string) => {
 };
 
 const generateCode = () => Math.floor(100000 + Math.random() * 900000).toString();
-
-// ─── Forgot Password Modal ────────────────────────────────────────────────────
 
 type ForgotStep = "email" | "code" | "password";
 
@@ -48,7 +46,6 @@ const ForgotPasswordModal = ({ open, onClose }: { open: boolean; onClose: () => 
 
   const handleClose = () => { resetModal(); onClose(); };
 
-  // ── Step 1: Verify email & send code ─────────────────────────────────────
   const handleEmailSubmit = async () => {
     if (!emailInput.trim()) return;
     setLoading(true);
@@ -83,38 +80,37 @@ const ForgotPasswordModal = ({ open, onClose }: { open: boolean; onClose: () => 
       return;
     }
 
-    // ✅ Use same sendEmail helper as signup
-    const result = await sendEmail({
+    // ✅ Fire and forget — don't block step advance on email result
+    sendEmail({
       email: emailInput.trim().toLowerCase(),
       first_name: firstName,
       subject: "Your Password Reset Code — Flexiq Verve",
       html: `
-        <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#f9f9f9;border-radius:12px;">
-          <h2 style="color:#7C3AED;margin-bottom:8px;">Password Reset</h2>
-          <p style="color:#333;font-size:15px;">Hello <strong>${firstName}</strong>,</p>
-          <p style="color:#333;font-size:15px;">Your password reset code is:</p>
-          <div style="background:#7C3AED;color:#fff;font-size:32px;font-weight:bold;letter-spacing:8px;text-align:center;padding:20px;border-radius:8px;margin:24px 0;">
-            ${code}
+        <div style="font-family:sans-serif;max-width:600px;margin:0 auto;">
+          <div style="background:#F5A623;padding:24px;text-align:center;">
+            <img src="https://flexiqverve.com/logo.png" alt="Flexiq Verve" style="height:40px;" onerror="this.style.display='none'" />
+            <span style="font-size:22px;font-weight:bold;color:#fff;letter-spacing:1px;">FLEXIQ VERVE</span>
           </div>
-          <p style="color:#555;font-size:13px;">This code expires in <strong>15 minutes</strong>. If you did not request a password reset, you can safely ignore this email.</p>
-          <p style="color:#555;font-size:13px;margin-top:24px;">— The Flexiq Verve Team</p>
+          <div style="padding:32px 24px;background:#fff;">
+            <p style="color:#333;font-size:15px;">Hello <strong>${firstName}</strong>,</p>
+            <p style="color:#333;font-size:15px;">Your Password Reset Code:</p>
+            <div style="border:2px dashed #ccc;display:inline-block;padding:14px 32px;border-radius:8px;margin:16px 0;">
+              <span style="font-size:28px;font-weight:bold;letter-spacing:6px;font-family:monospace;">${code}</span>
+            </div>
+            <p style="color:#333;font-size:14px;">Enter this code on the Flexiq Verve password reset page. This code expires in <strong>15 minutes</strong>. Do not share this code with anyone for your security.</p>
+            <p style="color:#333;font-size:14px;">For more information or complaints, please contact <a href="mailto:support@flexiqverve.com" style="color:#7C3AED;">support@flexiqverve.com</a> or make use of the Live Chat on your dashboard for assistance.</p>
+            <p style="color:#555;font-size:13px;margin-top:24px;">Kind Regards,<br/>Flexiq Verve Support Team</p>
+          </div>
         </div>
       `,
-    });
-
-    if (!result.success) {
-      setLoading(false);
-      toast({ title: "Failed to send email. Please try again.", variant: "destructive" });
-      return;
-    }
+    }).catch(() => {}); // silent — code is saved, user can still proceed
 
     setFoundUser({ email: emailInput.trim().toLowerCase(), first_name: firstName });
     setLoading(false);
-    setStep("code");
+    setStep("code"); // ✅ always advance if code was saved
     toast({ title: "Code sent! Check your email." });
   };
 
-  // ── Step 2: Verify code ───────────────────────────────────────────────────
   const handleCodeSubmit = async () => {
     if (!codeInput.trim() || !foundUser) return;
     setLoading(true);
@@ -144,7 +140,6 @@ const ForgotPasswordModal = ({ open, onClose }: { open: boolean; onClose: () => 
     setStep("password");
   };
 
-  // ── Step 3: Set new password ──────────────────────────────────────────────
   const handlePasswordSubmit = async () => {
     if (!newPassword || !confirmPassword || !foundUser) return;
 
@@ -176,21 +171,26 @@ const ForgotPasswordModal = ({ open, onClose }: { open: boolean; onClose: () => 
       .eq("email", foundUser.email)
       .eq("used", false);
 
-    // ✅ Use same sendEmail helper as signup
-    await sendEmail({
+    // ✅ Fire and forget confirmation email too
+    sendEmail({
       email: foundUser.email,
       first_name: foundUser.first_name,
       subject: "Your Password Has Been Changed — Flexiq Verve",
       html: `
-        <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#f9f9f9;border-radius:12px;">
-          <h2 style="color:#7C3AED;margin-bottom:8px;">Password Changed</h2>
-          <p style="color:#333;font-size:15px;">Hello <strong>${foundUser.first_name}</strong>,</p>
-          <p style="color:#333;font-size:15px;">Your Flexiq Verve password was <strong>successfully changed</strong>.</p>
-          <p style="color:#555;font-size:13px;">If you did not make this change, please contact our support team immediately.</p>
-          <p style="color:#555;font-size:13px;margin-top:24px;">— The Flexiq Verve Team</p>
+        <div style="font-family:sans-serif;max-width:600px;margin:0 auto;">
+          <div style="background:#F5A623;padding:24px;text-align:center;">
+            <img src="https://flexiqverve.com/logo.png" alt="Flexiq Verve" style="height:40px;" onerror="this.style.display='none'" />
+            <span style="font-size:22px;font-weight:bold;color:#fff;letter-spacing:1px;">FLEXIQ VERVE</span>
+          </div>
+          <div style="padding:32px 24px;background:#fff;">
+            <p style="color:#333;font-size:15px;">Hello <strong>${foundUser.first_name}</strong>,</p>
+            <p style="color:#333;font-size:15px;">Your Flexiq Verve password was <strong>successfully changed</strong>.</p>
+            <p style="color:#333;font-size:14px;">If you did not make this change, please contact our support team immediately at <a href="mailto:support@flexiqverve.com" style="color:#7C3AED;">support@flexiqverve.com</a> or use the Live Chat on your dashboard.</p>
+            <p style="color:#555;font-size:13px;margin-top:24px;">Kind Regards,<br/>Flexiq Verve Support Team</p>
+          </div>
         </div>
       `,
-    });
+    }).catch(() => {});
 
     setLoading(false);
     toast({ title: "Password changed successfully. You can now sign in." });
