@@ -80,30 +80,26 @@ const ForgotPasswordModal = ({ open, onClose }: { open: boolean; onClose: () => 
       return;
     }
 
-    // ✅ Fire and forget — don't block step advance on email result
-    sendEmail({
-      email: emailInput.trim().toLowerCase(),
-      first_name: firstName,
-      subject: "Your Password Reset Code — Flexiq Verve",
-      html: `
-        <div style="font-family:sans-serif;max-width:600px;margin:0 auto;">
-          <div style="background:#F5A623;padding:24px;text-align:center;">
-            <img src="https://flexiqverve.com/logo.png" alt="Flexiq Verve" style="height:40px;" onerror="this.style.display='none'" />
-            <span style="font-size:22px;font-weight:bold;color:#fff;letter-spacing:1px;">FLEXIQ VERVE</span>
-          </div>
-          <div style="padding:32px 24px;background:#fff;">
-            <p style="color:#333;font-size:15px;">Hello <strong>${firstName}</strong>,</p>
-            <p style="color:#333;font-size:15px;">Your Password Reset Code:</p>
-            <div style="border:2px dashed #ccc;display:inline-block;padding:14px 32px;border-radius:8px;margin:16px 0;">
-              <span style="font-size:28px;font-weight:bold;letter-spacing:6px;font-family:monospace;">${code}</span>
-            </div>
-            <p style="color:#333;font-size:14px;">Enter this code on the Flexiq Verve password reset page. This code expires in <strong>15 minutes</strong>. Do not share this code with anyone for your security.</p>
-            <p style="color:#333;font-size:14px;">For more information or complaints, please contact <a href="mailto:support@flexiqverve.com" style="color:#7C3AED;">support@flexiqverve.com</a> or make use of the Live Chat on your dashboard for assistance.</p>
-            <p style="color:#555;font-size:13px;margin-top:24px;">Kind Regards,<br/>Flexiq Verve Support Team</p>
-          </div>
+  sendEmail({
+  email: emailInput.trim().toLowerCase(),
+  first_name: firstName,
+  subject: "Your Password Reset Code — Flexiq Verve",
+  html: `
+    <div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#fff;">
+      <div style="padding:28px 24px;">
+        <h2 style="color:#7C3AED;margin:0 0 16px 0;font-size:20px;">Password Reset</h2>
+        <p style="color:#333;font-size:15px;margin:0 0 12px 0;">Hello <strong>${firstName}</strong>,</p>
+        <p style="color:#333;font-size:15px;margin:0 0 12px 0;">Your Password Reset Code:</p>
+        <div style="background:#f3f4f6;border:2px dashed #ccc;border-radius:8px;padding:16px 24px;margin:0 0 16px 0;display:inline-block;">
+          <span style="font-size:26px;font-weight:bold;letter-spacing:6px;font-family:monospace;">${code}</span>
         </div>
-      `,
-    }).catch(() => {}); // silent — code is saved, user can still proceed
+        <p style="color:#333;font-size:14px;margin:0 0 12px 0;">Enter this code on the Flexiq Verve password reset page. This code expires in <strong>15 minutes</strong>. Do not share this code with anyone for your security.</p>
+        <p style="color:#333;font-size:14px;margin:0 0 24px 0;">For more information or complaints, please contact <a href="mailto:support@flexiqverve.com" style="color:#7C3AED;">support@flexiqverve.com</a> or make use of the Live Chat on your dashboard for assistance.</p>
+        <p style="color:#555;font-size:13px;margin:0;">Kind Regards,<br/>Flexiq Verve Support Team</p>
+      </div>
+    </div>
+  `,
+}).catch(() => {});
 
     setFoundUser({ email: emailInput.trim().toLowerCase(), first_name: firstName });
     setLoading(false);
@@ -171,27 +167,23 @@ const ForgotPasswordModal = ({ open, onClose }: { open: boolean; onClose: () => 
       .eq("email", foundUser.email)
       .eq("used", false);
 
-    // ✅ Fire and forget confirmation email too
-    sendEmail({
-      email: foundUser.email,
-      first_name: foundUser.first_name,
-      subject: "Your Password Has Been Changed — Flexiq Verve",
-      html: `
-        <div style="font-family:sans-serif;max-width:600px;margin:0 auto;">
-          <div style="background:#F5A623;padding:24px;text-align:center;">
-            <img src="https://flexiqverve.com/logo.png" alt="Flexiq Verve" style="height:40px;" onerror="this.style.display='none'" />
-            <span style="font-size:22px;font-weight:bold;color:#fff;letter-spacing:1px;">FLEXIQ VERVE</span>
-          </div>
-          <div style="padding:32px 24px;background:#fff;">
-            <p style="color:#333;font-size:15px;">Hello <strong>${foundUser.first_name}</strong>,</p>
-            <p style="color:#333;font-size:15px;">Your Flexiq Verve password was <strong>successfully changed</strong>.</p>
-            <p style="color:#333;font-size:14px;">If you did not make this change, please contact our support team immediately at <a href="mailto:support@flexiqverve.com" style="color:#7C3AED;">support@flexiqverve.com</a> or use the Live Chat on your dashboard.</p>
-            <p style="color:#555;font-size:13px;margin-top:24px;">Kind Regards,<br/>Flexiq Verve Support Team</p>
-          </div>
-        </div>
-      `,
-    }).catch(() => {});
-
+sendEmail({
+  email: foundUser.email,
+  first_name: foundUser.first_name,
+  subject: "Your Password Has Been Changed — Flexiq Verve",
+  html: `
+    <div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#fff;">
+      <div style="padding:28px 24px;">
+        <h2 style="color:#7C3AED;margin:0 0 16px 0;font-size:20px;">Password Changed</h2>
+        <p style="color:#333;font-size:15px;margin:0 0 12px 0;">Hello <strong>${foundUser.first_name}</strong>,</p>
+        <p style="color:#333;font-size:15px;margin:0 0 12px 0;">Your Flexiq Verve password was <strong>successfully changed</strong>.</p>
+        <p style="color:#333;font-size:14px;margin:0 0 24px 0;">If you did not make this change, please contact our support team immediately at <a href="mailto:support@flexiqverve.com" style="color:#7C3AED;">support@flexiqverve.com</a> or use the Live Chat on your dashboard.</p>
+        <p style="color:#555;font-size:13px;margin:0;">Kind Regards,<br/>Flexiq Verve Support Team</p>
+      </div>
+    </div>
+  `,
+}).catch(() => {});
+    
     setLoading(false);
     toast({ title: "Password changed successfully. You can now sign in." });
     handleClose();
