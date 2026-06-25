@@ -80,34 +80,33 @@ const ForgotPasswordModal = ({ open, onClose }: { open: boolean; onClose: () => 
       return;
     }
 
-  await sendEmail({
-  email: emailInput.trim().toLowerCase(),
-  first_name: firstName,
-  subject: "Your Password Reset Code — Flexiq Verve",
-  message: `
-<p style="color:#374151; font-size:15px; margin:0 0 8px 0;">
-  Your Password Reset Code:
+    // Restyled to match the loan-authorization email: left-aligned body,
+    // bold lead-in line, medium-width (not full-bleed) code box, blue
+    // support link, and tighter paragraph spacing throughout.
+    await sendEmail({
+      email: emailInput.trim().toLowerCase(),
+      first_name: firstName,
+      subject: "Your Password Reset Code — Flexiq Verve",
+      message: `
+<p style="color:#374151; font-size:15px; margin:0 0 12px 0;">
+  <strong>Your Password Reset Code:</strong>
 </p>
 
-<div style="background:#f8fafc; border:2px dashed #e2e8f0; border-radius:12px; padding:24px; margin:20px 0; text-align:center; max-width:320px;">
-  <span style="font-size:34px; font-weight:700; letter-spacing:12px; font-family:monospace; color:#111827;">${code}</span>
+<div style="background:#f8fafc; border:2px dashed #e2e8f0; border-radius:10px; padding:18px 24px; margin:0 0 20px 0; text-align:left; display:inline-block;">
+  <span style="font-size:26px; font-weight:700; letter-spacing:6px; font-family:monospace; color:#111827;">${code}</span>
 </div>
 
-<p style="color:#374151; font-size:15px; line-height:1.65; margin:0 0 20px 0;">
-  Enter this code on the Flexiq Verve password reset page. 
-  This code expires in <strong>15 minutes</strong>. 
-  Do not share this code with anyone for your security.
+<p style="color:#374151; font-size:15px; line-height:1.6; margin:0 0 12px 0;">
+  Enter this code on the Flexiq Verve password reset page. Do not share this code with anyone for your security.
 </p>
 
-<p style="color:#374151; font-size:15px; line-height:1.65; margin:0 0 28px 0;">
-  For more information or complaints, please contact 
-  <a href="mailto:support@flexiqverve.com" style="color:#7C3AED;">support@flexiqverve.com</a> 
-  or make use of the Live Chat on your dashboard for assistance.
+<p style="color:#374151; font-size:15px; line-height:1.6; margin:0 0 12px 0;">
+  For more information or complaints, please contact <a href="mailto:support@flexiqverve.com" style="color:#2563eb;">support@flexiqverve.com</a> or make use of the Live Chat on your dashboard for assistance.
 </p>
 
 <p style="color:#6B7280; font-size:13.5px; margin:0;">Kind Regards,<br/>Flexiq Verve Support Team</p>
-  `.trim(),
-});
+      `.trim(),
+    });
 
     setFoundUser({ email: emailInput.trim().toLowerCase(), first_name: firstName });
     setLoading(false);
@@ -175,25 +174,25 @@ const ForgotPasswordModal = ({ open, onClose }: { open: boolean; onClose: () => 
       .eq("email", foundUser.email)
       .eq("used", false);
 
-await sendEmail({
-  email: foundUser.email,
-  first_name: foundUser.first_name,
-  subject: "Your Password Has Been Changed — Flexiq Verve",
-  message: `
+    await sendEmail({
+      email: foundUser.email,
+      first_name: foundUser.first_name,
+      subject: "Your Password Has Been Changed — Flexiq Verve",
+      message: `
 <p style="color:#374151; font-size:15px; margin:0 0 16px 0;">
   Your Flexiq Verve password was <strong>successfully changed</strong>.
 </p>
 
 <p style="color:#374151; font-size:15px; line-height:1.65; margin:0 0 24px 0;">
   If you did not make this change, please contact our support team immediately at 
-  <a href="mailto:support@flexiqverve.com" style="color:#7C3AED;">support@flexiqverve.com</a> 
+  <a href="mailto:support@flexiqverve.com" style="color:#2563eb;">support@flexiqverve.com</a> 
   or use the Live Chat on your dashboard.
 </p>
 
 <p style="color:#6B7280; font-size:13.5px; margin:0;">Kind Regards,<br/>Flexiq Verve Support Team</p>
-  `.trim(),
-});
-    
+      `.trim(),
+    });
+
     setLoading(false);
     toast({ title: "Password changed successfully. You can now sign in." });
     handleClose();
