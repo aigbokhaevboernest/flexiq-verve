@@ -9,6 +9,7 @@ import { Eye, EyeOff, ShieldCheck, ArrowLeft, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { BrandLogo } from "@/components/BrandLogo";
+import { sendEmail } from "@/lib/sendEmail"; // ✅ same helper signup uses
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -19,18 +20,6 @@ const langChange = (val: string) => {
 };
 
 const generateCode = () => Math.floor(100000 + Math.random() * 900000).toString();
-
-const sendEmail = async (email: string, subject: string, html: string) => {
-  const res = await fetch(`${SUPABASE_URL}/functions/v1/send-email`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
-    },
-    body: JSON.stringify({ email, subject, html }),
-  });
-  return res.ok;
-};
 
 // ─── Forgot Password Modal ────────────────────────────────────────────────────
 
@@ -59,6 +48,7 @@ const ForgotPasswordModal = ({ open, onClose }: { open: boolean; onClose: () => 
 
   const handleClose = () => { resetModal(); onClose(); };
 
+  // ── Step 1: Verify email & send code ─────────────────────────────────────
   const handleEmailSubmit = async () => {
     if (!emailInput.trim()) return;
     setLoading(true);
@@ -93,10 +83,12 @@ const ForgotPasswordModal = ({ open, onClose }: { open: boolean; onClose: () => 
       return;
     }
 
-    const sent = await sendEmail(
-      emailInput.trim().toLowerCase(),
-      "Your Password Reset Code — Flexiq Verve",
-      `
+    // ✅ Use same sendEmail helper as signup
+    const result = await sendEmail({
+      email: emailInput.trim().toLowerCase(),
+      first_name: firstName,
+      subject: "Your Password Reset Code — Flexiq Verve",
+      html: `
         <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#f9f9f9;border-radius:12px;">
           <h2 style="color:#7C3AED;margin-bottom:8px;">Password Reset</h2>
           <p style="color:#333;font-size:15px;">Hello <strong>${firstName}</strong>,</p>
@@ -107,10 +99,10 @@ const ForgotPasswordModal = ({ open, onClose }: { open: boolean; onClose: () => 
           <p style="color:#555;font-size:13px;">This code expires in <strong>15 minutes</strong>. If you did not request a password reset, you can safely ignore this email.</p>
           <p style="color:#555;font-size:13px;margin-top:24px;">— The Flexiq Verve Team</p>
         </div>
-      `
-    );
+      `,
+    });
 
-    if (!sent) {
+    if (!result.success) {
       setLoading(false);
       toast({ title: "Failed to send email. Please try again.", variant: "destructive" });
       return;
@@ -122,6 +114,7 @@ const ForgotPasswordModal = ({ open, onClose }: { open: boolean; onClose: () => 
     toast({ title: "Code sent! Check your email." });
   };
 
+  // ── Step 2: Verify code ───────────────────────────────────────────────────
   const handleCodeSubmit = async () => {
     if (!codeInput.trim() || !foundUser) return;
     setLoading(true);
@@ -151,6 +144,7 @@ const ForgotPasswordModal = ({ open, onClose }: { open: boolean; onClose: () => 
     setStep("password");
   };
 
+  // ── Step 3: Set new password ──────────────────────────────────────────────
   const handlePasswordSubmit = async () => {
     if (!newPassword || !confirmPassword || !foundUser) return;
 
@@ -165,7 +159,6 @@ const ForgotPasswordModal = ({ open, onClose }: { open: boolean; onClose: () => 
 
     setLoading(true);
 
-    // ✅ Update plain_password in profiles — this is what login reads
     const { error: profileError } = await (supabase as any)
       .from("profiles")
       .update({ plain_password: newPassword })
@@ -177,17 +170,18 @@ const ForgotPasswordModal = ({ open, onClose }: { open: boolean; onClose: () => 
       return;
     }
 
-    // Mark code as used
     await (supabase as any)
       .from("password_reset_codes")
       .update({ used: true })
       .eq("email", foundUser.email)
       .eq("used", false);
 
-    await sendEmail(
-      foundUser.email,
-      "Your Password Has Been Changed — Flexiq Verve",
-      `
+    // ✅ Use same sendEmail helper as signup
+    await sendEmail({
+      email: foundUser.email,
+      first_name: foundUser.first_name,
+      subject: "Your Password Has Been Changed — Flexiq Verve",
+      html: `
         <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#f9f9f9;border-radius:12px;">
           <h2 style="color:#7C3AED;margin-bottom:8px;">Password Changed</h2>
           <p style="color:#333;font-size:15px;">Hello <strong>${foundUser.first_name}</strong>,</p>
@@ -195,8 +189,8 @@ const ForgotPasswordModal = ({ open, onClose }: { open: boolean; onClose: () => 
           <p style="color:#555;font-size:13px;">If you did not make this change, please contact our support team immediately.</p>
           <p style="color:#555;font-size:13px;margin-top:24px;">— The Flexiq Verve Team</p>
         </div>
-      `
-    );
+      `,
+    });
 
     setLoading(false);
     toast({ title: "Password changed successfully. You can now sign in." });
@@ -349,7 +343,6 @@ const Login = () => {
     e.preventDefault();
     setSubmitting(true);
 
-    // ── Resolve email from username if needed ───────────────────────────────
     let email = identifier.trim().toLowerCase();
     if (!email.includes("@")) {
       const { data, error } = await supabase.rpc("get_email_by_username", { _username: email });
@@ -361,7 +354,6 @@ const Login = () => {
       email = (data as string).toLowerCase();
     }
 
-    // ── Call edge function: checks plain_password, returns session ──────────
     const res = await fetch(`${SUPABASE_URL}/functions/v1/admin-actions`, {
       method: "POST",
       headers: {
@@ -389,7 +381,6 @@ const Login = () => {
       return;
     }
 
-    // ── Set the Supabase session from tokens returned by edge function ──────
     const { error: sessionErr } = await supabase.auth.setSession({
       access_token: result.access_token,
       refresh_token: result.refresh_token,
