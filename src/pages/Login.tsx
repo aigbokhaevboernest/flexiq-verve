@@ -345,11 +345,8 @@ const Login = () => {
       setCheckingBiometric(false);
       return;
     }
-    const { data } = await supabase
-      .from("webauthn_credentials")
-      .select("credential_id")
-      .eq("email", email)
-      .maybeSingle();
+    const { data } = await supabase.rpc("get_webauthn_credential", { _email: email });
+
     setBiometricEmail(data ? email : null);
     setCheckingBiometric(false);
   };
@@ -405,11 +402,8 @@ const Login = () => {
 
     // Offer to enable biometric sign-in for next time, if not already set up.
     try {
-      const { data: existingCred } = await supabase
-        .from("webauthn_credentials")
-        .select("credential_id")
-        .eq("email", email)
-        .maybeSingle();
+      const { data } = await supabase.rpc("get_webauthn_credential", { _email: email });
+
 
       if (!existingCred && (await isPlatformAuthenticatorAvailable())) {
         const label = getBiometricLabel();
@@ -445,11 +439,8 @@ const Login = () => {
         return;
       }
 
-      const { data, error } = await supabase
-        .from("webauthn_credentials")
-        .select("credential_id")
-        .eq("email", biometricEmail)
-        .maybeSingle();
+      const { data } = await supabase.rpc("get_webauthn_credential", { _email: email });
+
 
       if (error || !data) {
         toast({ title: "No biometric credential on file for this account.", variant: "destructive" });
