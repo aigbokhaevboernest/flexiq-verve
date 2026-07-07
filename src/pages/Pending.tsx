@@ -3,15 +3,14 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { BrandLogo } from "@/components/BrandLogo";
-import { sendEmail } from "@/lib/sendEmail";
-import { Clock, RefreshCw, ArrowLeft } from "lucide-react";
+import { Clock, RefreshCw, LogOut } from "lucide-react";
 
 const Pending = () => {
   const navigate = useNavigate();
   const [checking, setChecking] = useState(false);
   const [status, setStatus] = useState<string>("pending");
 
-  const checkStatus = async (notifyIfPending: boolean = false) => {
+  const checkStatus = async () => {
     setChecking(true);
     const { data: userData } = await supabase.auth.getUser();
     if (!userData.user) {
@@ -22,62 +21,34 @@ const Pending = () => {
 
     const { data } = await (supabase as any)
       .from("profiles")
-      .select("status,application_status,first_name,email")
+      .select("status,application_status")
       .eq("id", userData.user.id)
       .maybeSingle();
 
+    setChecking(false);
+
     if (data?.status === "blocked") {
-      setChecking(false);
       await supabase.auth.signOut();
       navigate("/login");
       return;
     }
 
     if (data?.application_status === "approved") {
-      setChecking(false);
       navigate("/dashboard");
-      return;
-    }
-
-    if (data?.application_status === "rejected") {
+    } else if (data?.application_status === "rejected") {
       setStatus("rejected");
-      setChecking(false);
-      return;
+    } else {
+      setStatus("pending");
     }
-
-    // Still pending
-    setStatus("pending");
-
-    if (notifyIfPending) {
-      const em = data?.email || userData.user.email || "";
-      const fn = data?.first_name || "";
-      if (em) {
-        try {
-          await sendEmail({
-            email: em,
-            first_name: fn,
-            subject: "Your Flexiq Verve Application Is Still Pending",
-            message:
-`We're writing to let you know your Flexiq Verve account application is still under review. Our team is verifying your details — this usually takes less than 24 hours. You'll be able to sign in as soon as it's approved.
-
-If you have any questions, feel free to reach out to us at support@flexiqverve.com.
-
-Kind Regards,
-Flexiq Verve Support Team`,
-          });
-        } catch {}
-      }
-    }
-
-    setChecking(false);
   };
 
   useEffect(() => {
-    checkStatus(false);
+    checkStatus();
   }, []);
 
-  const handleGoBack = () => {
-    navigate(-1);
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    navigate("/login");
   };
 
   return (
@@ -133,7 +104,7 @@ Flexiq Verve Support Team`,
 
             <div className="mt-8 space-y-3">
               <Button
-                onClick={() => checkStatus(true)}
+                onClick={checkStatus}
                 disabled={checking}
                 size="lg"
                 className="w-full bg-gradient-primary text-primary-foreground shadow-md hover:opacity-95 flex items-center justify-center gap-2"
@@ -143,13 +114,13 @@ Flexiq Verve Support Team`,
               </Button>
 
               <Button
-                onClick={handleGoBack}
+                onClick={handleSignOut}
                 variant="outline"
                 size="lg"
                 className="w-full flex items-center justify-center gap-2"
               >
-                <ArrowLeft className="h-4 w-4" />
-                Go back
+                <LogOut className="h-4 w-4" />
+                Sign out
               </Button>
             </div>
           </div>
