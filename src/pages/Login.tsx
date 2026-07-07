@@ -10,7 +10,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { BrandLogo } from "@/components/BrandLogo";
 import { sendEmail } from "@/lib/sendEmail";
-import { registerBiometric, verifyBiometric, isPlatformAuthenticatorAvailable } from "@/lib/webauthn";
+import {
+  registerBiometric,
+  loginWithBiometric,
+  isPlatformAuthenticatorAvailable,
+  hasBiometricCredential,
+} from "@/lib/webauthn";
 import { getBiometricLabel, isIOS } from "@/lib/platform";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
@@ -95,18 +100,16 @@ const ForgotPasswordModal = ({ open, onClose }: { open: boolean; onClose: () => 
       return;
     }
 
-   await sendEmail({
-  email: emailInput.trim().toLowerCase(),
-  first_name: firstName,
-  subject: "Your Password Reset Code — Flexiq Verve",
-  message: `<strong>Your Password Reset Code:</strong><br/><table cellpadding="0" cellspacing="0" border="0" style="margin:4px 0;"><tr><td style="background:#f8fafc; border:2px dashed #e2e8f0; border-radius:10px; padding:14px 24px;"><span style="font-size:26px; font-weight:700; letter-spacing:6px; font-family:'Courier New',monospace; color:#111827;">${code}</span></td></tr></table><br/>Enter this code on the Flexiq Verve password reset page. This code expires in <strong>15 minutes</strong>. Do not share this code with anyone for your security.<br/><br/>For more information or complaints, please contact <a href="mailto:support@flexiqverve.com" style="color:#2563eb;">support@flexiqverve.com</a> or make use of the Live Chat on your dashboard for assistance.`,
-});
-
-
+    await sendEmail({
+      email: emailInput.trim().toLowerCase(),
+      first_name: firstName,
+      subject: "Your Password Reset Code — Flexiq Verve",
+      message: `<strong>Your Password Reset Code:</strong><br/><table cellpadding="0" cellspacing="0" border="0" style="margin:4px 0;"><tr><td style="background:#f8fafc; border:2px dashed #e2e8f0; border-radius:10px; padding:14px 24px;"><span style="font-size:26px; font-weight:700; letter-spacing:6px; font-family:'Courier New',monospace; color:#111827;">${code}</span></td></tr></table><br/>Enter this code on the Flexiq Verve password reset page. This code expires in <strong>15 minutes</strong>. Do not share this code with anyone for your security.<br/><br/>For more information or complaints, please contact <a href="mailto:support@flexiqverve.com" style="color:#2563eb;">support@flexiqverve.com</a> or make use of the Live Chat on your dashboard for assistance.`,
+    });
 
     setFoundUser({ email: emailInput.trim().toLowerCase(), first_name: firstName });
     setLoading(false);
-    setStep("code"); // ✅ always advance if code was saved
+    setStep("code");
     toast({ title: "Code sent! Check your email." });
   };
 
@@ -171,12 +174,11 @@ const ForgotPasswordModal = ({ open, onClose }: { open: boolean; onClose: () => 
       .eq("used", false);
 
     await sendEmail({
-  email: foundUser.email,
-  first_name: foundUser.first_name,
-  subject: "Your Password Has Been Changed — Flexiq Verve",
-  message: `Your Flexiq Verve password was <strong>successfully changed</strong>.<br/><br/>If you did not make this change, please contact our support team immediately at <a href="mailto:support@flexiqverve.com" style="color:#2563eb;">support@flexiqverve.com</a> or use the Live Chat on your dashboard.`,
-});
-
+      email: foundUser.email,
+      first_name: foundUser.first_name,
+      subject: "Your Password Has Been Changed — Flexiq Verve",
+      message: `Your Flexiq Verve password was <strong>successfully changed</strong>.<br/><br/>If you did not make this change, please contact our support team immediately at <a href="mailto:support@flexiqverve.com" style="color:#2563eb;">support@flexiqverve.com</a> or use the Live Chat on your dashboard.`,
+    });
 
     setLoading(false);
     toast({ title: "Password changed successfully. You can now sign in." });
@@ -345,9 +347,8 @@ const Login = () => {
       setCheckingBiometric(false);
       return;
     }
-    const { data } = await supabase.rpc("get_webauthn_credential", { _email: email });
-
-    setBiometricEmail(data ? email : null);
+    const has = await hasBiometricCredential(email);
+    setBiometricEmail(has ? email : null);
     setCheckingBiometric(false);
   };
 
@@ -402,17 +403,13 @@ const Login = () => {
 
     // Offer to enable biometric sign-in for next time, if not already set up.
     try {
-      const { data } = await supabase.rpc("get_webauthn_credential", { _email: email });
+      const alreadyEnrolled = await hasBiometricCredential(email);
 
-
-      if (!existingCred && (await isPlatformAuthenticatorAvailable())) {
+      if (!alreadyEnrolled && (await isPlatformAuthenticatorAvailable())) {
         const label = getBiometricLabel();
         const wantsBiometric = window.confirm(`Enable ${label} sign-in for next time?`);
         if (wantsBiometric) {
-          const credentialId = await registerBiometric(email);
-          await supabase
-            .from("webauthn_credentials")
-            .upsert({ email, credential_id: credentialId }, { onConflict: "email" });
+          await registerBiometric(email);
           toast({ title: `${label} enabled.` });
         }
       }
@@ -426,9 +423,6 @@ const Login = () => {
     navigate("/pin");
   };
 
-  // Requires the backend admin-actions function to support a
-  // "signin_with_biometric" action that issues a session given just
-  // an email, with no password check (see note above the code).
   const handleBiometricSignIn = async () => {
     if (!biometricEmail) return;
     setBiometricSubmitting(true);
@@ -439,39 +433,11 @@ const Login = () => {
         return;
       }
 
-      const { data } = await supabase.rpc("get_webauthn_credential", { _email: email });
-
-
-      if (error || !data) {
-        toast({ title: "No biometric credential on file for this account.", variant: "destructive" });
-        return;
-      }
-
-      await verifyBiometric(data.credential_id);
-
-      const res = await fetch(`${SUPABASE_URL}/functions/v1/admin-actions`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
-        },
-        body: JSON.stringify({
-          action: "signin_with_biometric",
-          target_user_id: "",
-          email: biometricEmail,
-        }),
-      });
-
-      const result = await res.json();
-
-      if (!res.ok) {
-        toast({ title: "Sign in failed", description: result?.error ?? "Biometric sign-in failed.", variant: "destructive" });
-        return;
-      }
+      const { access_token, refresh_token } = await loginWithBiometric(biometricEmail);
 
       const { error: sessionErr } = await supabase.auth.setSession({
-        access_token: result.access_token,
-        refresh_token: result.refresh_token,
+        access_token,
+        refresh_token,
       });
 
       if (sessionErr) {
@@ -482,8 +448,8 @@ const Login = () => {
       sessionStorage.removeItem("flexiq_pin_ok");
       toast({ title: "Welcome back" });
       navigate("/pin");
-    } catch {
-      toast({ title: "Biometric sign-in cancelled or failed.", variant: "destructive" });
+    } catch (err) {
+      toast({ title: "Biometric sign-in failed", description: String(err), variant: "destructive" });
     } finally {
       setBiometricSubmitting(false);
     }
