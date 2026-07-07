@@ -5,11 +5,13 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
-import { Eye, EyeOff, ShieldCheck, ArrowLeft, Loader2 } from "lucide-react";
+import { Eye, EyeOff, ShieldCheck, ArrowLeft, Loader2, Fingerprint, ScanFace } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { BrandLogo } from "@/components/BrandLogo";
 import { sendEmail } from "@/lib/sendEmail";
+import { registerBiometric, verifyBiometric, isPlatformAuthenticatorAvailable } from "@/lib/webauthn";
+import { getBiometricLabel, isIOS } from "@/lib/platform";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -20,6 +22,19 @@ const langChange = (val: string) => {
 };
 
 const generateCode = () => Math.floor(100000 + Math.random() * 900000).toString();
+
+// Resolves a typed identifier (email or username) down to a real email.
+// Shared by password sign-in and biometric sign-in so both use the same logic.
+const resolveEmail = async (raw: string): Promise<string | null> => {
+  let email = raw.trim().toLowerCase();
+  if (!email) return null;
+  if (!email.includes("@")) {
+    const { data, error } = await supabase.rpc("get_email_by_username", { _username: email });
+    if (error || !data) return null;
+    email = (data as string).toLowerCase();
+  }
+  return email;
+};
 
 type ForgotStep = "email" | "code" | "password";
 
@@ -306,23 +321,48 @@ const Login = () => {
   const [submitting, setSubmitting] = useState(false);
   const [forgotOpen, setForgotOpen] = useState(false);
 
+  // Biometric sign-in state
+  const [biometricEmail, setBiometricEmail] = useState<string | null>(null);
+  const [checkingBiometric, setCheckingBiometric] = useState(false);
+  const [biometricSubmitting, setBiometricSubmitting] = useState(false);
+
   if (typeof window !== "undefined" && sessionStorage.getItem("flexiq_blocked") === "1") {
     sessionStorage.removeItem("flexiq_blocked");
   }
+
+  // Called when the identifier field loses focus — checks whether this
+  // account has a biometric credential on file, so we know whether to
+  // show the "Sign in with Face ID / fingerprint" button.
+  const handleIdentifierBlur = async () => {
+    if (!identifier.trim()) {
+      setBiometricEmail(null);
+      return;
+    }
+    setCheckingBiometric(true);
+    const email = await resolveEmail(identifier);
+    if (!email) {
+      setBiometricEmail(null);
+      setCheckingBiometric(false);
+      return;
+    }
+    const { data } = await supabase
+      .from("webauthn_credentials")
+      .select("credential_id")
+      .eq("email", email)
+      .maybeSingle();
+    setBiometricEmail(data ? email : null);
+    setCheckingBiometric(false);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
 
-    let email = identifier.trim().toLowerCase();
-    if (!email.includes("@")) {
-      const { data, error } = await supabase.rpc("get_email_by_username", { _username: email });
-      if (error || !data) {
-        setSubmitting(false);
-        toast({ title: "Sign in failed", description: "No account found for that username.", variant: "destructive" });
-        return;
-      }
-      email = (data as string).toLowerCase();
+    const email = await resolveEmail(identifier);
+    if (!email) {
+      setSubmitting(false);
+      toast({ title: "Sign in failed", description: "No account found for that username.", variant: "destructive" });
+      return;
     }
 
     const res = await fetch(`${SUPABASE_URL}/functions/v1/admin-actions`, {
@@ -363,11 +403,102 @@ const Login = () => {
       return;
     }
 
+    // Offer to enable biometric sign-in for next time, if not already set up.
+    try {
+      const { data: existingCred } = await supabase
+        .from("webauthn_credentials")
+        .select("credential_id")
+        .eq("email", email)
+        .maybeSingle();
+
+      if (!existingCred && (await isPlatformAuthenticatorAvailable())) {
+        const label = getBiometricLabel();
+        const wantsBiometric = window.confirm(`Enable ${label} sign-in for next time?`);
+        if (wantsBiometric) {
+          const credentialId = await registerBiometric(email);
+          await supabase
+            .from("webauthn_credentials")
+            .upsert({ email, credential_id: credentialId }, { onConflict: "email" });
+          toast({ title: `${label} enabled.` });
+        }
+      }
+    } catch {
+      // Non-fatal — biometric enrollment failing shouldn't block sign-in.
+    }
+
     setSubmitting(false);
     sessionStorage.removeItem("flexiq_pin_ok");
     toast({ title: "Welcome back" });
     navigate("/pin");
   };
+
+  // Requires the backend admin-actions function to support a
+  // "signin_with_biometric" action that issues a session given just
+  // an email, with no password check (see note above the code).
+  const handleBiometricSignIn = async () => {
+    if (!biometricEmail) return;
+    setBiometricSubmitting(true);
+    try {
+      const available = await isPlatformAuthenticatorAvailable();
+      if (!available) {
+        toast({ title: "No Face ID / fingerprint hardware detected on this device.", variant: "destructive" });
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("webauthn_credentials")
+        .select("credential_id")
+        .eq("email", biometricEmail)
+        .maybeSingle();
+
+      if (error || !data) {
+        toast({ title: "No biometric credential on file for this account.", variant: "destructive" });
+        return;
+      }
+
+      await verifyBiometric(data.credential_id);
+
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/admin-actions`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({
+          action: "signin_with_biometric",
+          target_user_id: "",
+          email: biometricEmail,
+        }),
+      });
+
+      const result = await res.json();
+
+      if (!res.ok) {
+        toast({ title: "Sign in failed", description: result?.error ?? "Biometric sign-in failed.", variant: "destructive" });
+        return;
+      }
+
+      const { error: sessionErr } = await supabase.auth.setSession({
+        access_token: result.access_token,
+        refresh_token: result.refresh_token,
+      });
+
+      if (sessionErr) {
+        toast({ title: "Sign in failed", description: "Could not establish session.", variant: "destructive" });
+        return;
+      }
+
+      sessionStorage.removeItem("flexiq_pin_ok");
+      toast({ title: "Welcome back" });
+      navigate("/pin");
+    } catch {
+      toast({ title: "Biometric sign-in cancelled or failed.", variant: "destructive" });
+    } finally {
+      setBiometricSubmitting(false);
+    }
+  };
+
+  const BiometricIcon = isIOS() ? ScanFace : Fingerprint;
 
   return (
     <div className="page-enter relative flex min-h-screen items-center justify-center bg-navy-blue-mesh px-4 py-10">
@@ -416,6 +547,7 @@ const Login = () => {
                   type="text"
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
+                  onBlur={handleIdentifierBlur}
                   placeholder=""
                   required
                   autoComplete="username"
@@ -467,6 +599,24 @@ const Login = () => {
               >
                 {submitting ? "Signing in…" : "Continue"}
               </Button>
+
+              {biometricEmail && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="lg"
+                  disabled={biometricSubmitting}
+                  onClick={handleBiometricSignIn}
+                  className="w-full flex items-center justify-center gap-2"
+                >
+                  {biometricSubmitting ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <BiometricIcon className="h-4 w-4" />
+                  )}
+                  Sign in with {getBiometricLabel()}
+                </Button>
+              )}
 
               <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
                 <ShieldCheck className="h-3.5 w-3.5 text-success" />
