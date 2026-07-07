@@ -39,6 +39,7 @@ import Contact from "./pages/Contact.tsx";
 import Security from "./pages/Security.tsx";
 import Compliance from "./pages/Compliance.tsx";
 import Pin from "./pages/Pin.tsx";
+import Pending from "./pages/Pending.tsx";
 import Success from "./pages/Success.tsx";
 import WireTransfer from "./pages/WireTransfer.tsx";
 import { SplashScreen } from "./components/SplashScreen";
@@ -81,6 +82,7 @@ const App = () => (
             <Route path="/security" element={<Security />} />
             <Route path="/compliance" element={<Compliance />} />
             <Route path="/pin" element={<Pin />} />
+            <Route path="/pending" element={<Pending />} />
 
             <Route element={<ProtectedRoute />}>
               <Route path="/dashboard" element={<DashboardLayout />}>
