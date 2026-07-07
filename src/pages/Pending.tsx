@@ -20,16 +20,22 @@ const Pending = () => {
     }
 
     const { data } = await (supabase as any)
-      .from("id_verifications")
-      .select("status")
-      .eq("user_id", userData.user.id)
+      .from("profiles")
+      .select("status,application_status")
+      .eq("id", userData.user.id)
       .maybeSingle();
 
     setChecking(false);
 
-    if (data?.status === "approved") {
-      navigate("/pin");
-    } else if (data?.status === "rejected") {
+    if (data?.status === "blocked") {
+      await supabase.auth.signOut();
+      navigate("/login");
+      return;
+    }
+
+    if (data?.application_status === "approved") {
+      navigate("/dashboard");
+    } else if (data?.application_status === "rejected") {
       setStatus("rejected");
     } else {
       setStatus("pending");
