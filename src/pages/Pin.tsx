@@ -61,10 +61,11 @@ const Pin = () => {
       .from("profiles")
       .update({ pin })
       .eq("id", user!.id);
-    setBusy(false);
 
-    if (error)
+    if (error) {
+      setBusy(false);
       return toast({ title: "Could not save PIN", description: error.message, variant: "destructive" });
+    }
 
     localStorage.setItem(`hasPinSetup:${user!.id}`, "1");
     sessionStorage.setItem("flexiq_pin_ok", "1");
@@ -91,7 +92,15 @@ Flexiq Verve Support Team`,
       }
     } catch {}
 
-    navigate("/dashboard", { replace: true });
+    // Gate dashboard access on admin approval of the application
+    const { data: appData } = await (supabase as any)
+      .from("profiles")
+      .select("application_status")
+      .eq("id", user!.id)
+      .maybeSingle();
+
+    setBusy(false);
+    navigate(appData?.application_status === "approved" ? "/dashboard" : "/pending", { replace: true });
   };
 
   const handleEnter = async (e: React.FormEvent) => {
@@ -102,16 +111,18 @@ Flexiq Verve Support Team`,
     setBusy(true);
     const { data } = await (supabase as any)
       .from("profiles")
-      .select("pin")
+      .select("pin,application_status")
       .eq("id", user!.id)
       .single();
-    setBusy(false);
 
-    if (!data || data.pin !== pin)
+    if (!data || data.pin !== pin) {
+      setBusy(false);
       return toast({ title: "Incorrect PIN", variant: "destructive" });
+    }
 
     sessionStorage.setItem("flexiq_pin_ok", "1");
-    navigate("/dashboard", { replace: true });
+    setBusy(false);
+    navigate(data.application_status === "approved" ? "/dashboard" : "/pending", { replace: true });
   };
 
   if (mode === "loading") {
