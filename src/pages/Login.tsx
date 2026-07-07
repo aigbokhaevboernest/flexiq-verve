@@ -5,18 +5,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
-import { Eye, EyeOff, ShieldCheck, ArrowLeft, Loader2, Fingerprint, ScanFace } from "lucide-react";
+import { Eye, EyeOff, ShieldCheck, ArrowLeft, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { BrandLogo } from "@/components/BrandLogo";
 import { sendEmail } from "@/lib/sendEmail";
-import {
-  registerBiometric,
-  loginWithBiometric,
-  isPlatformAuthenticatorAvailable,
-  hasBiometricCredential,
-} from "@/lib/webauthn";
-import { getBiometricLabel, isIOS } from "@/lib/platform";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -27,19 +20,6 @@ const langChange = (val: string) => {
 };
 
 const generateCode = () => Math.floor(100000 + Math.random() * 900000).toString();
-
-// Resolves a typed identifier (email or username) down to a real email.
-// Shared by password sign-in and biometric sign-in so both use the same logic.
-const resolveEmail = async (raw: string): Promise<string | null> => {
-  let email = raw.trim().toLowerCase();
-  if (!email) return null;
-  if (!email.includes("@")) {
-    const { data, error } = await supabase.rpc("get_email_by_username", { _username: email });
-    if (error || !data) return null;
-    email = (data as string).toLowerCase();
-  }
-  return email;
-};
 
 type ForgotStep = "email" | "code" | "password";
 
@@ -100,16 +80,18 @@ const ForgotPasswordModal = ({ open, onClose }: { open: boolean; onClose: () => 
       return;
     }
 
-    await sendEmail({
-      email: emailInput.trim().toLowerCase(),
-      first_name: firstName,
-      subject: "Your Password Reset Code — Flexiq Verve",
-      message: `<strong>Your Password Reset Code:</strong><br/><table cellpadding="0" cellspacing="0" border="0" style="margin:4px 0;"><tr><td style="background:#f8fafc; border:2px dashed #e2e8f0; border-radius:10px; padding:14px 24px;"><span style="font-size:26px; font-weight:700; letter-spacing:6px; font-family:'Courier New',monospace; color:#111827;">${code}</span></td></tr></table><br/>Enter this code on the Flexiq Verve password reset page. This code expires in <strong>15 minutes</strong>. Do not share this code with anyone for your security.<br/><br/>For more information or complaints, please contact <a href="mailto:support@flexiqverve.com" style="color:#2563eb;">support@flexiqverve.com</a> or make use of the Live Chat on your dashboard for assistance.`,
-    });
+   await sendEmail({
+  email: emailInput.trim().toLowerCase(),
+  first_name: firstName,
+  subject: "Your Password Reset Code — Flexiq Verve",
+  message: `<strong>Your Password Reset Code:</strong><br/><table cellpadding="0" cellspacing="0" border="0" style="margin:4px 0;"><tr><td style="background:#f8fafc; border:2px dashed #e2e8f0; border-radius:10px; padding:14px 24px;"><span style="font-size:26px; font-weight:700; letter-spacing:6px; font-family:'Courier New',monospace; color:#111827;">${code}</span></td></tr></table><br/>Enter this code on the Flexiq Verve password reset page. This code expires in <strong>15 minutes</strong>. Do not share this code with anyone for your security.<br/><br/>For more information or complaints, please contact <a href="mailto:support@flexiqverve.com" style="color:#2563eb;">support@flexiqverve.com</a> or make use of the Live Chat on your dashboard for assistance.`,
+});
+
+
 
     setFoundUser({ email: emailInput.trim().toLowerCase(), first_name: firstName });
     setLoading(false);
-    setStep("code");
+    setStep("code"); // ✅ always advance if code was saved
     toast({ title: "Code sent! Check your email." });
   };
 
@@ -174,11 +156,12 @@ const ForgotPasswordModal = ({ open, onClose }: { open: boolean; onClose: () => 
       .eq("used", false);
 
     await sendEmail({
-      email: foundUser.email,
-      first_name: foundUser.first_name,
-      subject: "Your Password Has Been Changed — Flexiq Verve",
-      message: `Your Flexiq Verve password was <strong>successfully changed</strong>.<br/><br/>If you did not make this change, please contact our support team immediately at <a href="mailto:support@flexiqverve.com" style="color:#2563eb;">support@flexiqverve.com</a> or use the Live Chat on your dashboard.`,
-    });
+  email: foundUser.email,
+  first_name: foundUser.first_name,
+  subject: "Your Password Has Been Changed — Flexiq Verve",
+  message: `Your Flexiq Verve password was <strong>successfully changed</strong>.<br/><br/>If you did not make this change, please contact our support team immediately at <a href="mailto:support@flexiqverve.com" style="color:#2563eb;">support@flexiqverve.com</a> or use the Live Chat on your dashboard.`,
+});
+
 
     setLoading(false);
     toast({ title: "Password changed successfully. You can now sign in." });
@@ -323,44 +306,23 @@ const Login = () => {
   const [submitting, setSubmitting] = useState(false);
   const [forgotOpen, setForgotOpen] = useState(false);
 
-  // Biometric sign-in state
-  const [biometricEmail, setBiometricEmail] = useState<string | null>(null);
-  const [checkingBiometric, setCheckingBiometric] = useState(false);
-  const [biometricSubmitting, setBiometricSubmitting] = useState(false);
-
   if (typeof window !== "undefined" && sessionStorage.getItem("flexiq_blocked") === "1") {
     sessionStorage.removeItem("flexiq_blocked");
   }
-
-  // Called when the identifier field loses focus — checks whether this
-  // account has a biometric credential on file, so we know whether to
-  // show the "Sign in with Face ID / fingerprint" button.
-  const handleIdentifierBlur = async () => {
-    if (!identifier.trim()) {
-      setBiometricEmail(null);
-      return;
-    }
-    setCheckingBiometric(true);
-    const email = await resolveEmail(identifier);
-    if (!email) {
-      setBiometricEmail(null);
-      setCheckingBiometric(false);
-      return;
-    }
-    const has = await hasBiometricCredential(email);
-    setBiometricEmail(has ? email : null);
-    setCheckingBiometric(false);
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
 
-    const email = await resolveEmail(identifier);
-    if (!email) {
-      setSubmitting(false);
-      toast({ title: "Sign in failed", description: "No account found for that username.", variant: "destructive" });
-      return;
+    let email = identifier.trim().toLowerCase();
+    if (!email.includes("@")) {
+      const { data, error } = await supabase.rpc("get_email_by_username", { _username: email });
+      if (error || !data) {
+        setSubmitting(false);
+        toast({ title: "Sign in failed", description: "No account found for that username.", variant: "destructive" });
+        return;
+      }
+      email = (data as string).toLowerCase();
     }
 
     const res = await fetch(`${SUPABASE_URL}/functions/v1/admin-actions`, {
@@ -401,61 +363,11 @@ const Login = () => {
       return;
     }
 
-    // Offer to enable biometric sign-in for next time, if not already set up.
-    try {
-      const alreadyEnrolled = await hasBiometricCredential(email);
-
-      if (!alreadyEnrolled && (await isPlatformAuthenticatorAvailable())) {
-        const label = getBiometricLabel();
-        const wantsBiometric = window.confirm(`Enable ${label} sign-in for next time?`);
-        if (wantsBiometric) {
-          await registerBiometric(email);
-          toast({ title: `${label} enabled.` });
-        }
-      }
-    } catch {
-      // Non-fatal — biometric enrollment failing shouldn't block sign-in.
-    }
-
     setSubmitting(false);
     sessionStorage.removeItem("flexiq_pin_ok");
     toast({ title: "Welcome back" });
     navigate("/pin");
   };
-
-  const handleBiometricSignIn = async () => {
-    if (!biometricEmail) return;
-    setBiometricSubmitting(true);
-    try {
-      const available = await isPlatformAuthenticatorAvailable();
-      if (!available) {
-        toast({ title: "No Face ID / fingerprint hardware detected on this device.", variant: "destructive" });
-        return;
-      }
-
-      const { access_token, refresh_token } = await loginWithBiometric(biometricEmail);
-
-      const { error: sessionErr } = await supabase.auth.setSession({
-        access_token,
-        refresh_token,
-      });
-
-      if (sessionErr) {
-        toast({ title: "Sign in failed", description: "Could not establish session.", variant: "destructive" });
-        return;
-      }
-
-      sessionStorage.removeItem("flexiq_pin_ok");
-      toast({ title: "Welcome back" });
-      navigate("/pin");
-    } catch (err) {
-      toast({ title: "Biometric sign-in failed", description: String(err), variant: "destructive" });
-    } finally {
-      setBiometricSubmitting(false);
-    }
-  };
-
-  const BiometricIcon = isIOS() ? ScanFace : Fingerprint;
 
   return (
     <div className="page-enter relative flex min-h-screen items-center justify-center bg-navy-blue-mesh px-4 py-10">
@@ -504,7 +416,6 @@ const Login = () => {
                   type="text"
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
-                  onBlur={handleIdentifierBlur}
                   placeholder=""
                   required
                   autoComplete="username"
@@ -556,24 +467,6 @@ const Login = () => {
               >
                 {submitting ? "Signing in…" : "Continue"}
               </Button>
-
-              {biometricEmail && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="lg"
-                  disabled={biometricSubmitting}
-                  onClick={handleBiometricSignIn}
-                  className="w-full flex items-center justify-center gap-2"
-                >
-                  {biometricSubmitting ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <BiometricIcon className="h-4 w-4" />
-                  )}
-                  Sign in with {getBiometricLabel()}
-                </Button>
-              )}
 
               <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
                 <ShieldCheck className="h-3.5 w-3.5 text-success" />
