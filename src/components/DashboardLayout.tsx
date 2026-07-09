@@ -156,7 +156,7 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
         >
           <FileText className="h-4 w-4" /> Bill Payment
         </button>
-        <NavLink to="/dashboard/bills/financial-services" onClick={handleFrozenNav} className={linkClass}>
+        <NavLink to="/dashboard/financial-services" onClick={handleFrozenNav} className={linkClass}>
           <Landmark className="h-4 w-4" /> Financial Services
         </NavLink>
         <NavLink to="/dashboard/settings" onClick={onNavigate} className={linkClass}>
