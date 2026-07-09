@@ -21,6 +21,7 @@ import LocalTransfer from "./pages/LocalTransfer.tsx";
 import Loans from "./pages/Loans.tsx";
 import ReceiveMoney from "./pages/ReceiveMoney.tsx";
 import Bills from "./pages/Bills.tsx";
+import FinancialServices from "./pages/FinancialServices.tsx";
 import Settings from "./pages/Settings.tsx";
 import Profile from "./pages/Profile.tsx";
 import Support from "./pages/Support.tsx";
@@ -98,6 +99,7 @@ const App = () => (
                 <Route path="fx" element={<FxTransfer />} />
                 <Route path="local" element={<LocalTransfer />} />
                 <Route path="bills" element={<Bills />} />
+                <Route path="financial-services" element={<FinancialServices />} />
                 <Route path="profile" element={<Profile />} />
                 <Route path="settings" element={<Settings />} />
                 <Route path="support" element={<Support />} />
