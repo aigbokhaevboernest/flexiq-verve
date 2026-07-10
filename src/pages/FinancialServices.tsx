@@ -1962,4 +1962,259 @@ function getFormConfig(country, providerName) {
   return FALLBACK_CONFIG;
 }
 
+// ============================================================
+// MAIN FINANCIAL SERVICES COMPONENT
+// ============================================================
+const FinancialServices = () => {
+  useFrozenGuard();
+
+  const [country, setCountry] = useState("US");
+  const [showAll, setShowAll] = useState(false);
+  const [activeTab, setActiveTab] = useState("providers");
+  const [recentlyViewed, setRecentlyViewed] = useState<{ category: string; program: string | null; at: string }[]>([]);
+  const [page, setPage] = useState<{ category: string; programs: any[]; selected: any; provider: any } | null>(null);
+  const [workflow, setWorkflow] = useState<{ provider: any; program: any; category: string } | null>(null);
+  const [userEmail] = useState("user@example.com");
+  const [applications, setApplications] = useState(() => {
+    const saved = localStorage.getItem("applications");
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const { identity, categories } = useMemo(() => {
+    const byCountry = DATA[country] || {};
+    const rest = CATEGORY_ORDER.filter(
+      (cat) => cat !== "Identity & Verification" && byCountry[cat]?.length
+    ).map((cat) => ({ category: cat, programs: byCountry[cat] }));
+    const idCat = byCountry["Identity & Verification"]?.length
+      ? { category: "Identity & Verification", programs: byCountry["Identity & Verification"] }
+      : null;
+    return { identity: idCat, categories: rest };
+  }, [country]);
+
+  const visible = showAll ? categories : categories.slice(0, 4);
+  const activeCountry = COUNTRIES.find((c) => c.code === country);
+
+  function autoProvider(program) {
+    return program && Array.isArray(program.providers) && program.providers.length === 1
+      ? program.providers[0]
+      : null;
+  }
+
+  function logView(category: string, program: any) {
+    setRecentlyViewed((prev) => {
+      const entry = {
+        category,
+        program: program?.name || null,
+        at: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      };
+      return [entry, ...prev].slice(0, 6);
+    });
+  }
+
+  function openWorkflow(provider: any, program: any, category: string) {
+    setWorkflow({ provider, program, category });
+  }
+
+  function openCategory(category: string, programs: any[]) {
+    const selected = programs.length === 1 ? programs[0] : null;
+    const provider = autoProvider(selected);
+    
+    if (selected && provider) {
+      openWorkflow(provider, selected, category);
+    } else if (selected && !provider) {
+      openWorkflow(selected, selected, category);
+    } else {
+      setPage({ category, programs, selected: null, provider: null });
+    }
+    logView(category, provider || selected);
+  }
+
+  function selectProgram(program: any) {
+    if (program && Array.isArray(program.providers) && program.providers.length === 1) {
+      const singleProvider = program.providers[0];
+      openWorkflow(singleProvider, program, page?.category || "");
+      setPage(null);
+    } else {
+      setPage((p) => (p ? { ...p, selected: program, provider: autoProvider(program) } : p));
+      if (program && page) logView(page.category, program);
+    }
+  }
+
+  function selectProvider(provider: any) {
+    if (provider && page?.selected) {
+      openWorkflow(provider, page.selected, page.category);
+      setPage(null);
+    } else {
+      setPage((p) => (p ? { ...p, provider } : p));
+      if (provider && page) logView(page.category, provider);
+    }
+  }
+
+  function handleManualWorkflow(provider: any, program: any, category: string) {
+    openWorkflow(provider, program, category);
+    setPage(null);
+  }
+
+  function saveApplication(appData: any) {
+    const updated = [appData, ...applications];
+    setApplications(updated);
+    localStorage.setItem("applications", JSON.stringify(updated));
+  }
+
+  function continueApplication(app: any) {
+    const provider = { name: app.provider };
+    openWorkflow(provider, null, "Retirement & Social Security");
+  }
+
+  function viewApplication(app: any) {
+    alert(`Application Details:\nProvider: ${app.provider}\nID: ${app.id}\nReference: ${app.reference}\nStatus: ${app.status}\nDate: ${new Date(app.date).toLocaleDateString()}`);
+  }
+
+  if (workflow) {
+    return (
+      <WorkflowContainer
+        provider={workflow.provider}
+        program={workflow.program}
+        category={workflow.category}
+        country={country}
+        onClose={() => setWorkflow(null)}
+        email={userEmail}
+        onSaveApplication={saveApplication}
+      />
+    );
+  }
+
+  if (page) {
+    return (
+      <StepsPage
+        category={page.category}
+        programs={page.programs}
+        selected={page.selected}
+        provider={page.provider}
+        onSelectProgram={selectProgram}
+        onSelectProvider={selectProvider}
+        onBack={() => setPage(null)}
+        onDone={() => setPage(null)}
+        onLaunchWorkflow={handleManualWorkflow}
+      />
+    );
+  }
+
+  return (
+    <div className="space-y-6 font-sans">
+      <div>
+        <h1 className="font-display text-2xl font-bold sm:text-3xl">Financial Services</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          A directory of official government and provider portals for retirement, tax, housing, and more.
+        </p>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex gap-2 border-b border-border/60 pb-2">
+        <button
+          onClick={() => setActiveTab("providers")}
+          className={`px-4 py-2 text-sm font-semibold rounded-t-xl transition-smooth ${
+            activeTab === "providers" 
+              ? "bg-primary text-white" 
+              : "text-muted-foreground hover:bg-muted"
+          }`}
+        >
+          <Globe className="h-4 w-4 inline mr-2" />
+          Providers
+        </button>
+        <button
+          onClick={() => setActiveTab("history")}
+          className={`px-4 py-2 text-sm font-semibold rounded-t-xl transition-smooth ${
+            activeTab === "history" 
+              ? "bg-primary text-white" 
+              : "text-muted-foreground hover:bg-muted"
+          }`}
+        >
+          <History className="h-4 w-4 inline mr-2" />
+          History
+          {applications.length > 0 && (
+            <span className="ml-1 bg-muted-foreground/20 px-2 py-0.5 rounded-full text-xs">
+              {applications.length}
+            </span>
+          )}
+        </button>
+      </div>
+
+      {activeTab === "history" ? (
+        <HistoryTab 
+          applications={applications}
+          onContinue={continueApplication}
+          onView={viewApplication}
+        />
+      ) : (
+        <>
+          <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {COUNTRIES.map((c) => (
+              <button
+                key={c.code}
+                type="button"
+                onClick={() => { setCountry(c.code); setShowAll(false); }}
+                className={`flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-2 text-sm font-semibold transition-smooth ${
+                  country === c.code
+                    ? "border-foreground bg-foreground text-background"
+                    : "border-border/60 bg-card text-muted-foreground hover:bg-muted"
+                }`}
+              >
+                <span>{c.flag}</span>{c.code}
+              </button>
+            ))}
+          </div>
+
+          {identity && <IdentityStrip programs={identity.programs} onOpen={openCategory} />}
+
+          <div className="flex items-center justify-between">
+            <h2 className="font-display text-lg font-bold">Programs & Services</h2>
+            {categories.length > 4 && (
+              <button
+                type="button"
+                onClick={() => setShowAll((v) => !v)}
+                className="flex items-center gap-1 text-sm font-bold text-primary"
+              >
+                {showAll ? "Show less" : "View All"}
+                {showAll ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+              </button>
+            )}
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            {visible.length === 0 && (
+              <Card className="col-span-full rounded-3xl border-border/60 p-8 text-center text-sm text-muted-foreground shadow-card">
+                No programs listed yet for {activeCountry?.name}.
+              </Card>
+            )}
+            {visible.map((c) => (
+              <CategoryCard key={c.category} category={c.category} programs={c.programs} onOpen={openCategory} />
+            ))}
+          </div>
+
+          {recentlyViewed.length > 0 && (
+            <Card className="rounded-2xl border-border/60 p-4 shadow-card">
+              <p className="mb-2.5 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                Recently viewed
+              </p>
+              <div className="divide-y divide-border/60">
+                {recentlyViewed.map((r, i) => (
+                  <div key={i} className="flex justify-between py-1.5 text-sm">
+                    <span>{r.program || r.category}</span>
+                    <span className="font-mono text-xs text-muted-foreground">{r.at}</span>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
+
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            Tapping a category opens a page listing the specific programs or services under it. Picking one launches a guided workflow to connect your account — no login form or personal details are ever collected in this app.
+          </p>
+        </>
+      )}
+    </div>
+  );
+};
+
 export default FinancialServices;
