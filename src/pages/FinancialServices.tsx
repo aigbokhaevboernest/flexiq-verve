@@ -1962,4 +1962,4 @@ function getFormConfig(country, providerName) {
   return FALLBACK_CONFIG;
 }
 
-// ... rest of the code remains the same until LoginFormStep ...
+export default FinancialServices;
