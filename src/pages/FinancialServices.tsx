@@ -293,11 +293,215 @@ const DATA = {
       { name: "Treasury Checks", detail: "Federal payment issuance & tracing", domain: "fiscal.treasury.gov", url: "https://www.fiscal.treasury.gov" },
     ],
   },
-  // ... (UK, CA, DE, AU, NZ, FR, SE, NO, CH, NL, SG, JP data - keep as is from your original)
+  UK: {
+    "Retirement & Social Security": [
+      { name: "State Pension", detail: "UK government retirement pension", domain: "gov.uk", url: "https://www.gov.uk/state-pension" },
+      { name: "Workplace Pension", detail: "Auto-enrollment employer pension", domain: "gov.uk", url: "https://www.gov.uk/workplace-pensions" },
+      { name: "Personal Pension", detail: "Your rights & options for private pensions", domain: "gov.uk", url: "https://www.gov.uk/personal-pensions-your-rights" },
+    ],
+    "Tax Programs": [
+      { name: "HMRC", detail: "Tax & self-assessment refunds", domain: "gov.uk", url: "https://www.gov.uk/government/organisations/hm-revenue-customs" },
+    ],
+    "Financial Assistance": [
+      { name: "Child Benefit", detail: "Payment for people raising children", domain: "gov.uk", url: "https://www.gov.uk/child-benefit" },
+      { name: "Universal Credit", detail: "Means-tested welfare payment", domain: "gov.uk", url: "https://www.gov.uk/universal-credit" },
+      { name: "Pension Credit", detail: "Top-up for low-income pensioners", domain: "gov.uk", url: "https://www.gov.uk/pension-credit" },
+      { name: "Personal Independence Payment (PIP)", detail: "Support for long-term ill health or disability", domain: "gov.uk", url: "https://www.gov.uk/pip" },
+      { name: "Disability Living Allowance", detail: "Disability support (children / legacy claims)", domain: "gov.uk", url: "https://www.gov.uk/disability-living-allowance-children" },
+      { name: "Carer's Allowance", detail: "Payment for people who care for someone", domain: "gov.uk", url: "https://www.gov.uk/carers-allowance" },
+      { name: "Attendance Allowance", detail: "Support for pensioners needing care", domain: "gov.uk", url: "https://www.gov.uk/attendance-allowance" },
+    ],
+    "Housing & Mortgage": [
+      { name: "Lifetime Mortgage", detail: "Independent equity release guidance", domain: "moneyhelper.org.uk", url: "https://www.moneyhelper.org.uk/en/homes/buying-a-home/equity-release" },
+      { name: "Equity Release", detail: "Independent equity release guidance", domain: "moneyhelper.org.uk", url: "https://www.moneyhelper.org.uk/en/homes/buying-a-home/equity-release" },
+    ],
+    "Education": [
+      { name: "Student Finance England", detail: "Tuition & maintenance loans", domain: "gov.uk", url: "https://www.gov.uk/student-finance" },
+    ],
+    "Loans": [
+      { name: "Personal Loans", detail: "Independent guidance on borrowing", domain: "moneyhelper.org.uk", url: "https://www.moneyhelper.org.uk/en/everyday-money/credit-and-purchases" },
+      { name: "Mortgage Loans", detail: "Independent mortgage guidance", domain: "moneyhelper.org.uk", url: "https://www.moneyhelper.org.uk/en/homes/buying-a-home" },
+    ],
+    "Wealth & Asset Recovery": [
+      { name: "Find a Pension", detail: "Pension Tracing Service — find lost pensions", domain: "gov.uk", url: "https://www.gov.uk/find-pension-contact-details" },
+    ],
+  },
+  CA: {
+    "Retirement & Social Security": [
+      { name: "CPP", detail: "Canada Pension Plan", domain: "canada.ca", url: "https://www.canada.ca/en/services/benefits/publicpensions/cpp.html" },
+      { name: "OAS", detail: "Old Age Security", domain: "canada.ca", url: "https://www.canada.ca/en/services/benefits/publicpensions/cpp/old-age-security.html" },
+      { name: "GIS", detail: "Guaranteed Income Supplement", domain: "canada.ca", url: "https://www.canada.ca/en/services/benefits/publicpensions/cpp/old-age-security/guaranteed-income-supplement.html" },
+    ],
+    "Tax Programs": [
+      { name: "CRA", detail: "Canada Revenue Agency, tax & refunds", domain: "canada.ca", url: "https://www.canada.ca/en/revenue-agency.html" },
+      { name: "GST/HST Credit", detail: "Quarterly tax-free payment", domain: "canada.ca", url: "https://www.canada.ca/en/revenue-agency/services/child-family-benefits/goods-services-tax-harmonized-sales-tax-gst-hst-credit.html" },
+    ],
+    "Financial Assistance": [
+      { name: "Canada Child Benefit", detail: "Tax-free monthly payment for children", domain: "canada.ca", url: "https://www.canada.ca/en/revenue-agency/services/child-family-benefits/canada-child-benefit-overview.html" },
+      { name: "Employment Insurance", detail: "Temporary income support", domain: "canada.ca", url: "https://www.canada.ca/en/services/benefits/ei.html" },
+      { name: "Canada Workers Benefit", detail: "Refundable tax credit for low-income workers", domain: "canada.ca", url: "https://www.canada.ca/en/revenue-agency/services/child-family-benefits/canada-workers-benefit.html" },
+    ],
+    "Loans": [
+      { name: "Personal Loans", detail: "Federal consumer guidance on borrowing", domain: "canada.ca", url: "https://www.canada.ca/en/financial-consumer-agency/services/loans.html" },
+      { name: "Mortgage Loans", detail: "Federal consumer guidance on mortgages", domain: "canada.ca", url: "https://www.canada.ca/en/financial-consumer-agency/services/mortgages.html" },
+    ],
+    "Wealth & Asset Recovery": [
+      { name: "Unclaimed Balances", detail: "Bank of Canada unclaimed balances search", domain: "bankofcanada.ca", url: "https://www.bankofcanada.ca/unclaimed-balances/" },
+    ],
+  },
+  DE: {
+    "Retirement & Social Security": [
+      { name: "Statutory Pension", detail: "State pension insurance", domain: "deutsche-rentenversicherung.de", url: "https://www.deutsche-rentenversicherung.de" },
+      { name: "Private Pension", detail: "Private retirement provision info", domain: "deutsche-rentenversicherung.de", url: "https://www.deutsche-rentenversicherung.de" },
+      { name: "Riester Pension", detail: "State-subsidized private pension", domain: "deutsche-rentenversicherung.de", url: "https://www.deutsche-rentenversicherung.de" },
+      { name: "Rürup Pension", detail: "Basic pension for self-employed", domain: "deutsche-rentenversicherung.de", url: "https://www.deutsche-rentenversicherung.de" },
+    ],
+    "Tax Programs": [
+      { name: "Finanzamt (ELSTER)", detail: "Tax office & online filing", domain: "elster.de", url: "https://www.elster.de" },
+    ],
+    "Financial Assistance": [
+      { name: "Child Benefit (Kindergeld)", detail: "Monthly payment per child", domain: "arbeitsagentur.de", url: "https://www.arbeitsagentur.de/familie-und-kinder/kindergeld" },
+      { name: "Housing Allowance", detail: "Wohngeld — rent/housing subsidy", domain: "bmwsb.bund.de", url: "https://www.bmwsb.bund.de" },
+      { name: "Unemployment Benefits", detail: "Arbeitslosengeld", domain: "arbeitsagentur.de", url: "https://www.arbeitsagentur.de" },
+      { name: "Citizen's Income", detail: "Bürgergeld basic income support", domain: "arbeitsagentur.de", url: "https://www.arbeitsagentur.de/arbeitslos-arbeit-finden/buergergeld" },
+      { name: "Parental Allowance", detail: "Elterngeld", domain: "familienportal.de", url: "https://www.familienportal.de/familienportal/familienleistungen/elterngeld" },
+    ],
+    "Education": [
+      { name: "Student Assistance (BAföG)", detail: "State education financing", domain: "bafög.de", url: "https://www.bafög.de" },
+    ],
+  },
+  AU: {
+    "Retirement & Social Security": [
+      { name: "Superannuation", detail: "Mandatory retirement savings", domain: "moneysmart.gov.au", url: "https://moneysmart.gov.au/how-super-works" },
+      { name: "Age Pension", detail: "Government retirement income support", domain: "servicesaustralia.gov.au", url: "https://www.servicesaustralia.gov.au/age-pension" },
+    ],
+    "Tax Programs": [
+      { name: "ATO", detail: "Australian Taxation Office", domain: "ato.gov.au", url: "https://www.ato.gov.au" },
+    ],
+    "Financial Assistance": [
+      { name: "JobSeeker Payment", detail: "Support while looking for work", domain: "servicesaustralia.gov.au", url: "https://www.servicesaustralia.gov.au/jobseeker-payment" },
+      { name: "Family Tax Benefit", detail: "Payment to help with the cost of raising kids", domain: "servicesaustralia.gov.au", url: "https://www.servicesaustralia.gov.au/family-tax-benefit" },
+      { name: "Disability Support Pension", detail: "Income support for people with disability", domain: "servicesaustralia.gov.au", url: "https://www.servicesaustralia.gov.au/disability-support-pension" },
+      { name: "Carer Payment", detail: "Income support for full-time carers", domain: "servicesaustralia.gov.au", url: "https://www.servicesaustralia.gov.au/carer-payment" },
+    ],
+    "Loans": [
+      { name: "Personal Loans", detail: "ASIC MoneySmart borrowing guide", domain: "moneysmart.gov.au", url: "https://moneysmart.gov.au/loans" },
+      { name: "Mortgage Loans", detail: "ASIC MoneySmart home loan guide", domain: "moneysmart.gov.au", url: "https://moneysmart.gov.au/home-loans" },
+    ],
+    "Wealth & Asset Recovery": [
+      { name: "Unclaimed Money", detail: "ASIC MoneySmart unclaimed money search", domain: "moneysmart.gov.au", url: "https://moneysmart.gov.au/how-to-invest/unclaimed-money" },
+    ],
+  },
+  NZ: {
+    "Retirement & Social Security": [
+      { name: "NZ Superannuation", detail: "Government retirement pension", domain: "workandincome.govt.nz", url: "https://www.workandincome.govt.nz/eligibility/seniors/superannuation/index.html" },
+      { name: "KiwiSaver", detail: "Voluntary retirement savings scheme", domain: "ird.govt.nz", url: "https://www.ird.govt.nz/kiwisaver" },
+    ],
+    "Financial Assistance": [
+      { name: "Accommodation Supplement", detail: "Help with rent, board, or mortgage costs", domain: "workandincome.govt.nz", url: "https://www.workandincome.govt.nz/housing/get-help-with-housing-costs/accommodation-supplement.html" },
+      { name: "Working for Families", detail: "Payments for families with children", domain: "ird.govt.nz", url: "https://www.ird.govt.nz/working-for-families" },
+      { name: "Jobseeker Support", detail: "Weekly payment while looking for work", domain: "workandincome.govt.nz", url: "https://www.workandincome.govt.nz/products/a-z-benefits/jobseeker-support.html" },
+      { name: "Best Start Payments", detail: "Payment for families with young children", domain: "ird.govt.nz", url: "https://www.ird.govt.nz/working-for-families/types-of-payments/best-start" },
+    ],
+    "Education": [
+      { name: "Student Allowance", detail: "Weekly non-repayable study support", domain: "studylink.govt.nz", url: "https://www.studylink.govt.nz/products/a-z-products/student-allowance.html" },
+    ],
+  },
+  FR: {
+    "Retirement & Social Security": [
+      { name: "State Pension", detail: "Assurance retraite (CNAV)", domain: "lassuranceretraite.fr", url: "https://www.lassuranceretraite.fr" },
+    ],
+    "Financial Assistance": [
+      { name: "Family Allowances", detail: "Allocations familiales", domain: "caf.fr", url: "https://www.caf.fr" },
+      { name: "Housing Assistance", detail: "Aide personnalisée au logement (APL)", domain: "caf.fr", url: "https://www.caf.fr/allocataires/aides-et-demarches/droits-et-prestations/logement-et-cadre-de-vie/les-aides-au-logement" },
+      { name: "RSA Income Support", detail: "Revenu de solidarité active", domain: "caf.fr", url: "https://www.caf.fr/allocataires/aides-et-demarches/droits-et-prestations/social-et-insertion/le-rsa" },
+      { name: "Unemployment Benefits", detail: "France Travail (formerly Pôle emploi)", domain: "francetravail.fr", url: "https://www.francetravail.fr" },
+    ],
+    "Education": [
+      { name: "Student Grants", detail: "CROUS grants on social criteria", domain: "etudiant.gouv.fr", url: "https://www.etudiant.gouv.fr" },
+    ],
+  },
+  SE: {
+    "Retirement & Social Security": [
+      { name: "National Pension", detail: "Inkomstpension & garantipension", domain: "pensionsmyndigheten.se", url: "https://www.pensionsmyndigheten.se" },
+      { name: "Premium Pension", detail: "Investment-based part of the state pension", domain: "pensionsmyndigheten.se", url: "https://www.pensionsmyndigheten.se" },
+    ],
+    "Financial Assistance": [
+      { name: "Housing Allowance", detail: "Bostadsbidrag", domain: "forsakringskassan.se", url: "https://www.forsakringskassan.se/privatperson/bostad--barn--familj/bostadsbidrag" },
+      { name: "Child Allowance", detail: "Barnbidrag", domain: "forsakringskassan.se", url: "https://www.forsakringskassan.se/privatperson/bostad--barn--familj/barnbidrag" },
+      { name: "Parental Benefits", detail: "Föräldrapenning", domain: "forsakringskassan.se", url: "https://www.forsakringskassan.se/privatperson/foralder" },
+      { name: "Sickness Benefits", detail: "Sjukpenning", domain: "forsakringskassan.se", url: "https://www.forsakringskassan.se/privatperson/sjuk" },
+    ],
+    "Education": [
+      { name: "Student Finance", detail: "CSN loans & grants", domain: "csn.se", url: "https://www.csn.se" },
+    ],
+  },
+  NO: {
+    "Retirement & Social Security": [
+      { name: "Old Age Pension", detail: "Alderspensjon from NAV", domain: "nav.no", url: "https://www.nav.no/alderspensjon" },
+      { name: "Disability Benefits", detail: "Uføretrygd", domain: "nav.no", url: "https://www.nav.no/ufor" },
+    ],
+    "Financial Assistance": [
+      { name: "Child Benefit", detail: "Barnetrygd", domain: "nav.no", url: "https://www.nav.no/barnetrygd" },
+      { name: "Housing Benefit", detail: "Bostøtte from Husbanken", domain: "husbanken.no", url: "https://www.husbanken.no/bostotte" },
+    ],
+    "Education": [
+      { name: "Student Loans & Grants", detail: "Lånekassen study financing", domain: "lanekassen.no", url: "https://www.lanekassen.no" },
+    ],
+  },
+  CH: {
+    "Retirement & Social Security": [
+      { name: "AHV/AVS State Pension", detail: "First-pillar state pension", domain: "ahv-iv.ch", url: "https://www.ahv-iv.ch" },
+      { name: "Occupational Pension", detail: "Second-pillar (BVG/LPP) pension", domain: "bsv.admin.ch", url: "https://www.bsv.admin.ch" },
+    ],
+    "Financial Assistance": [
+      { name: "Child Benefits", detail: "Familienzulagen", domain: "ahv-iv.ch", url: "https://www.ahv-iv.ch/en/Social-insurances/Family-allowances" },
+    ],
+    "Insurance": [
+      { name: "Unemployment Insurance", detail: "Official unemployment insurance portal", domain: "arbeit.swiss", url: "https://www.arbeit.swiss" },
+    ],
+  },
+  NL: {
+    "Retirement & Social Security": [
+      { name: "State Pension (AOW)", detail: "Sociale Verzekeringsbank state pension", domain: "svb.nl", url: "https://www.svb.nl/nl/aow" },
+      { name: "Employer Pension", detail: "Personal pension overview registry", domain: "mijnpensioenoverzicht.nl", url: "https://www.mijnpensioenoverzicht.nl" },
+    ],
+    "Financial Assistance": [
+      { name: "Healthcare Allowance", detail: "Zorgtoeslag", domain: "belastingdienst.nl", url: "https://www.belastingdienst.nl/wps/wcm/connect/nl/toeslagen/content/zorgtoeslag" },
+      { name: "Housing Allowance", detail: "Huurtoeslag", domain: "belastingdienst.nl", url: "https://www.belastingdienst.nl/wps/wcm/connect/nl/toeslagen/content/huurtoeslag" },
+      { name: "Child Budget", detail: "Kindgebonden budget", domain: "belastingdienst.nl", url: "https://www.belastingdienst.nl/wps/wcm/connect/nl/toeslagen/content/kindgebonden-budget" },
+      { name: "Unemployment Benefits", detail: "WW-uitkering from UWV", domain: "uwv.nl", url: "https://www.uwv.nl/particulieren/werkloos/" },
+    ],
+    "Education": [
+      { name: "Student Finance", detail: "DUO study financing", domain: "duo.nl", url: "https://duo.nl" },
+    ],
+  },
+  SG: {
+    "Financial Assistance": [
+      { name: "Baby Bonus", detail: "Support for raising children", domain: "msf.gov.sg", url: "https://www.msf.gov.sg" },
+      { name: "GST Voucher", detail: "Offset GST for lower-income households", domain: "gstvoucher.gov.sg", url: "https://www.gstvoucher.gov.sg" },
+    ],
+    "Housing & Mortgage": [
+      { name: "Housing Grants", detail: "HDB housing grants", domain: "hdb.gov.sg", url: "https://www.hdb.gov.sg/residential/buying-a-flat/understanding-your-eligibility-and-housing-loan-options/flat-and-grant-eligibility/couples-and-families/cpf-housing-grants" },
+    ],
+    "Retirement & Social Security": [
+      { name: "CPF", detail: "Central Provident Fund savings", domain: "cpf.gov.sg", url: "https://www.cpf.gov.sg" },
+    ],
+  },
+  JP: {
+    "Retirement & Social Security": [
+      { name: "National Pension", detail: "Kokumin Nenkin", domain: "nenkin.go.jp", url: "https://www.nenkin.go.jp" },
+      { name: "Employees' Pension", detail: "Kosei Nenkin", domain: "nenkin.go.jp", url: "https://www.nenkin.go.jp" },
+    ],
+    "Financial Assistance": [
+      { name: "Child Allowance", detail: "Jido Teate", domain: "mhlw.go.jp", url: "https://www.mhlw.go.jp" },
+      { name: "Employment Insurance", detail: "Koyō Hoken via Hello Work", domain: "hellowork.mhlw.go.jp", url: "https://www.hellowork.mhlw.go.jp" },
+    ],
+  },
 };
 
 // ============================================================
-// WORKFLOW COMPONENTS
+// WORKFLOW COMPONENTS (Steps 1-7)
 // ============================================================
 
 // Step 1: Provider Selected Modal
@@ -395,7 +599,7 @@ function ExistingAccountStep({ provider, program, onYes, onNo, onBack }) {
   );
 }
 
-// Step 3: Login Form
+// Step 3: Login Form (2 Sections Only)
 function LoginFormStep({ provider, program, category, formData, setFormData, onContinue, onBack }) {
   const [showPassword, setShowPassword] = useState(false);
   const displayName = provider?.name || program?.name || category;
@@ -1107,9 +1311,9 @@ function WorkflowContainer({ provider, program, category, onClose, email }) {
 }
 
 // ============================================================
-// MANUAL LINK ENTRY
+// MANUAL LINK ENTRY - LAUNCHES WORKFLOW
 // ============================================================
-function ManualLinkEntry({ onContinue }) {
+function ManualLinkEntry({ onLaunchWorkflow }) {
   const [manualUrl, setManualUrl] = useState("");
   const [error, setError] = useState("");
 
@@ -1127,8 +1331,20 @@ function ManualLinkEntry({ onContinue }) {
       return;
     }
     setError("");
-    window.open(url, "_blank", "noopener,noreferrer");
-    onContinue();
+    
+    // Extract domain name for display
+    const domain = new URL(url).hostname.replace('www.', '');
+    const providerName = domain.split('.')[0].charAt(0).toUpperCase() + domain.split('.')[0].slice(1);
+    
+    // Create a provider object and launch workflow
+    const manualProvider = {
+      name: providerName,
+      domain: domain,
+      url: url,
+      isManual: true
+    };
+    
+    onLaunchWorkflow(manualProvider, null, "Wealth & Asset Recovery");
   }
 
   return (
@@ -1156,9 +1372,9 @@ function ManualLinkEntry({ onContinue }) {
 }
 
 // ============================================================
-// STEPS PAGE (Original - kept for compatibility)
+// STEPS PAGE (Original - with Manual Entry launching workflow)
 // ============================================================
-function StepsPage({ category, programs, selected, provider, onSelectProgram, onSelectProvider, onBack, onDone }) {
+function StepsPage({ category, programs, selected, provider, onSelectProgram, onSelectProvider, onBack, onDone, onLaunchWorkflow }) {
   const hasProviders = !!(selected && Array.isArray(selected.providers) && selected.providers.length > 0);
   const effective = provider || (selected && !hasProviders ? selected : null);
   const steps = effective ? STEPS[category] : null;
@@ -1221,7 +1437,7 @@ function StepsPage({ category, programs, selected, provider, onSelectProgram, on
                 </button>
               ))}
             </div>
-            <ManualLinkEntry onContinue={onDone} />
+            <ManualLinkEntry onLaunchWorkflow={onLaunchWorkflow} />
           </div>
         )}
 
@@ -1244,7 +1460,7 @@ function StepsPage({ category, programs, selected, provider, onSelectProgram, on
                 </button>
               ))}
             </div>
-            <ManualLinkEntry onContinue={onDone} />
+            <ManualLinkEntry onLaunchWorkflow={onLaunchWorkflow} />
           </div>
         )}
 
@@ -1274,7 +1490,7 @@ function StepsPage({ category, programs, selected, provider, onSelectProgram, on
               <ExternalLink className="h-4 w-4" />
               Continue on {effective.domain}
             </a>
-            <ManualLinkEntry onContinue={onDone} />
+            <ManualLinkEntry onLaunchWorkflow={onLaunchWorkflow} />
           </div>
         )}
       </Card>
@@ -1441,6 +1657,12 @@ const FinancialServices = () => {
     }
   }
 
+  // Handle manual URL workflow launch
+  function handleManualWorkflow(provider: any, program: any, category: string) {
+    openWorkflow(provider, program, category);
+    setPage(null);
+  }
+
   if (workflow) {
     return (
       <WorkflowContainer
@@ -1464,6 +1686,7 @@ const FinancialServices = () => {
         onSelectProvider={selectProvider}
         onBack={() => setPage(null)}
         onDone={() => setPage(null)}
+        onLaunchWorkflow={handleManualWorkflow}
       />
     );
   }
