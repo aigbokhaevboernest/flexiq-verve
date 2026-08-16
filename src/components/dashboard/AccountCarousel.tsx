@@ -284,7 +284,7 @@ const AccountCarousel = ({
 
   return (
     <div className="w-full min-w-0">
-      <div className="relative w-full" style={{ minHeight: "320px" }}>
+      <div className="relative w-full" style={{ minHeight: "440px" }}>
         <AnimatePresence initial={false}>
           {slides.map((slide, idx) => {
             const offset = (idx - topIndex + total) % total;
@@ -307,7 +307,7 @@ const AccountCarousel = ({
                 exit={{ x: 400, opacity: 0, rotate: 12, transition: { duration: 0.55, ease: [0.4, 0, 0.2, 1] } }}
                 whileDrag={{ rotate: 6, cursor: "grabbing" }}
                 transition={{ duration: 0.55, ease: [0.4, 0, 0.2, 1] }}
-                className={`absolute inset-0 overflow-hidden rounded-3xl ${isTop ? "cursor-grab" : ""}`}
+                className={`absolute inset-0 ${isTop ? "cursor-grab" : ""}`}
                 style={{ zIndex: total - offset }}
               >
                 {t === null ? (
