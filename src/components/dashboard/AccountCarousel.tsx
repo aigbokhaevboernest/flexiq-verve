@@ -284,7 +284,7 @@ const AccountCarousel = ({
 
   return (
     <div className="w-full min-w-0">
-      <div className="relative mx-auto w-full max-w-[440px]" style={{ aspectRatio: "1.586 / 1" }}>
+      <div className="relative w-full" style={{ minHeight: "320px" }}>
         <AnimatePresence initial={false}>
           {slides.map((slide, idx) => {
             const offset = (idx - topIndex + total) % total;
@@ -347,7 +347,7 @@ const AccountCarousel = ({
       </div>
       {total > 1 && (
         <p className="mt-2 text-center text-xs text-muted-foreground">
-          Swipe card or tap a dot · {topIndex + 1} of {total}
+          Swipe or tap a dot to switch accounts
         </p>
       )}
 
