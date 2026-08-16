@@ -284,7 +284,7 @@ const AccountCarousel = ({
 
   return (
     <div className="w-full min-w-0">
-      <div className="relative w-full" style={{ minHeight: "440px" }}>
+      <div className="relative w-full" style={{ minHeight: "390px" }}>
         <AnimatePresence initial={false}>
           {slides.map((slide, idx) => {
             const offset = (idx - topIndex + total) % total;
