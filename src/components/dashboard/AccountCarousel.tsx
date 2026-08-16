@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Lock,
@@ -39,7 +39,6 @@ const PLACEHOLDER_META: Record<
     title: string;
     subtitle: string;
     gradient: string;
-    solidColor: string; // solid bottom color matching gradient end
     dotColor: string;
     icon: typeof PiggyBank;
     shortName: string;
@@ -50,7 +49,6 @@ const PLACEHOLDER_META: Record<
     shortName: "Checking",
     subtitle: "Open a checking account to spend, send, and pay bills.",
     gradient: "linear-gradient(135deg, #1e3a5f 0%, #2c5282 100%)",
-    solidColor: "#2c5282",
     dotColor: "#2c5282",
     icon: Landmark,
   },
@@ -59,7 +57,6 @@ const PLACEHOLDER_META: Record<
     shortName: "Savings",
     subtitle: "Open a savings account to start earning and growing your balance.",
     gradient: "linear-gradient(135deg, #14532d 0%, #1f7a3f 100%)",
-    solidColor: "#1f7a3f",
     dotColor: "#1f7a3f",
     icon: PiggyBank,
   },
@@ -68,18 +65,13 @@ const PLACEHOLDER_META: Record<
     shortName: "Retirement",
     subtitle: "Open a retirement account to track your 401(k), IRA, and long-term savings.",
     gradient: "linear-gradient(135deg, #4c1d95 0%, #7c3aed 100%)",
-    solidColor: "#7c3aed",
     dotColor: "#7c3aed",
     icon: LineChart,
   },
 };
 
-// Peek strip height in px — just enough to show card name
-const PEEK_HEIGHT = 36;
-// Gap between peek strips
-const PEEK_GAP = 10;
-
 const PRIMARY_DOT_COLOR = "hsl(var(--primary))";
+const PRIMARY_GRADIENT = "linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary) / 0.7) 100%)";
 
 const calcOverdraft = (balance: number) => Math.min(balance * 0.15, 5000);
 const SAVINGS_APR = 0.0275;
@@ -88,30 +80,45 @@ const RETIREMENT_TOTAL_RETURN_RATE = 0.1245;
 const RETIREMENT_YTD_RETURN_RATE = 0.062;
 
 const StatItem = ({
-  icon: Icon, label, value, valueClassName,
+  icon: Icon,
+  label,
+  value,
+  valueClassName,
 }: {
-  icon: typeof Clock; label: string; value: string; valueClassName?: string;
+  icon: typeof Clock;
+  label: string;
+  value: string;
+  valueClassName?: string;
 }) => (
   <div>
     <div className="flex items-center gap-1.5 text-xs opacity-80">
-      <Icon className="h-3.5 w-3.5" /><span>{label}</span>
+      <Icon className="h-3.5 w-3.5" />
+      <span>{label}</span>
     </div>
     <p className={`mt-1 text-sm font-semibold ${valueClassName || ""}`}>{value}</p>
   </div>
 );
 
 const OpenedAccountCard = ({
-  type, balance, currency, formatMoney, maskedAccountNumber, onViewDetails,
+  type,
+  balance,
+  currency,
+  formatMoney,
+  maskedAccountNumber,
+  onViewDetails,
 }: {
-  type: SecondaryType; balance: number; currency: string;
+  type: SecondaryType;
+  balance: number;
+  currency: string;
   formatMoney: (amount: number, currency?: string) => string;
-  maskedAccountNumber: string; onViewDetails: () => void;
+  maskedAccountNumber: string;
+  onViewDetails: () => void;
 }) => {
   const meta = PLACEHOLDER_META[type];
   const Icon = meta.icon;
   return (
     <div
-      className="relative flex w-full flex-col overflow-hidden rounded-3xl text-white shadow-elev"
+      className="relative flex h-full w-full flex-col overflow-hidden rounded-3xl text-white shadow-elev"
       style={{ background: meta.gradient }}
     >
       <div className="absolute -right-16 -top-16 h-56 w-56 rounded-full bg-white/10 blur-2xl" />
@@ -178,8 +185,8 @@ const PlaceholderCard = ({ type, onOpen }: { type: SecondaryType; onOpen: () => 
   const meta = PLACEHOLDER_META[type];
   return (
     <div
-      className="relative flex w-full flex-col justify-between overflow-hidden rounded-3xl p-8 text-white shadow-elev"
-      style={{ background: meta.gradient, minHeight: "260px" }}
+      className="relative flex h-full w-full flex-col justify-between overflow-hidden rounded-3xl p-8 text-white shadow-elev"
+      style={{ background: meta.gradient }}
     >
       <div className="absolute -right-16 -top-16 h-56 w-56 rounded-full bg-white/10 blur-2xl" />
       <div className="absolute -bottom-20 -left-10 h-56 w-56 rounded-full bg-white/10 blur-3xl" />
@@ -193,7 +200,7 @@ const PlaceholderCard = ({ type, onOpen }: { type: SecondaryType; onOpen: () => 
       <button
         type="button"
         onClick={onOpen}
-        className="relative mt-6 inline-flex w-fit items-center gap-2 rounded-2xl bg-white/15 px-4 py-2.5 text-sm font-semibold backdrop-blur hover:bg-white/25 transition-colors"
+        className="relative inline-flex w-fit items-center gap-2 rounded-2xl bg-white/15 px-4 py-2.5 text-sm font-semibold backdrop-blur hover:bg-white/25 transition-colors"
       >
         Open {meta.title}
       </button>
@@ -209,7 +216,7 @@ const ConnectRetirementModal = ({ onClose }: { onClose: () => void }) => (
         <button onClick={onClose} className="rounded-full p-1.5 hover:bg-muted"><X className="h-4 w-4" /></button>
       </div>
       <p className="mt-2 text-sm text-muted-foreground">
-        Link an external 401(k), IRA, or other retirement account.
+        Link an external 401(k), IRA, or other retirement account to track its balance and performance.
       </p>
       <div className="mt-5 space-y-2">
         {["401(k)", "Traditional IRA", "Roth IRA", "Other retirement plan"].map((label) => (
@@ -220,7 +227,7 @@ const ConnectRetirementModal = ({ onClose }: { onClose: () => void }) => (
           </button>
         ))}
       </div>
-      <p className="mt-4 text-xs text-muted-foreground">Coming soon.</p>
+      <p className="mt-4 text-xs text-muted-foreground">Connecting external accounts isn't available yet — coming soon.</p>
     </div>
   </div>
 );
@@ -236,30 +243,32 @@ const AccountCarousel = ({
 }: AccountCarouselProps) => {
   const [topIndex, setTopIndex] = useState(0);
   const [connectModalOpen, setConnectModalOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  // Slides: primary first then secondary
+  // Build slides array: primary first, then secondary cards.
+  // Each slide carries its own gradient so the peek strip always matches the real card color.
   const slides: Array<{
     key: string;
     node: React.ReactNode;
+    gradient: string;
     dotColor: string;
-    shortName: string;
-    solidColor: string;
+    label: string;
   }> = [
     {
       key: "primary",
       node: primarySlide,
+      gradient: PRIMARY_GRADIENT,
       dotColor: PRIMARY_DOT_COLOR,
-      shortName: "Primary",
-      solidColor: "hsl(var(--primary))",
+      label: "Primary",
     },
     ...secondaryTypes.map((t) => {
       const state = accountStates[t];
       const meta = PLACEHOLDER_META[t];
       return {
         key: t,
-        shortName: meta.shortName,
+        label: meta.shortName,
+        gradient: meta.gradient,
         dotColor: meta.dotColor,
-        solidColor: meta.solidColor,
         node: state.opened ? (
           <OpenedAccountCard
             type={t}
@@ -280,93 +289,98 @@ const AccountCarousel = ({
 
   const total = slides.length;
 
-  // How many peek strips to show (max 2)
+  const next = () => setTopIndex((i) => (i + 1) % total);
+
   const peekCount = Math.min(2, total - 1);
-
-  // Total bottom padding = sum of peek strips + gaps
-  const bottomPadding = peekCount * PEEK_HEIGHT + (peekCount - 1) * PEEK_GAP;
-
-  const advance = () => setTopIndex((i) => (i + 1) % total);
+  const PEEK_HEIGHT = 34; // short strip height for cards behind the top one
+  const PEEK_GAP = 10; // vertical gap between each peeking strip
 
   return (
     <div className="w-full min-w-0">
-      {/* Stack container */}
       <div
-        className="relative w-full min-w-0"
-        style={{ paddingBottom: peekCount > 0 ? `${bottomPadding}px` : 0 }}
+        ref={containerRef}
+        className="relative w-full"
+        style={{ paddingBottom: `${peekCount * (PEEK_HEIGHT + PEEK_GAP)}px` }}
       >
-        {/* Render peek strips BEHIND — static, not animated, just solid color bars */}
-        {Array.from({ length: peekCount }).map((_, peekIdx) => {
-          // Which slide does this peek strip represent?
-          const slideIdx = (topIndex + peekIdx + 1) % total;
-          const slide = slides[slideIdx];
-          // Position from bottom of container
-          const bottomOffset = (peekCount - 1 - peekIdx) * (PEEK_HEIGHT + PEEK_GAP);
-
-          return (
-            <div
-              key={`peek-${peekIdx}`}
-              className="absolute left-0 right-0 overflow-hidden rounded-b-3xl rounded-t-xl"
-              style={{
-                bottom: bottomOffset,
-                height: PEEK_HEIGHT,
-                backgroundColor: slide.solidColor,
-                zIndex: peekIdx + 1,
-              }}
-            >
-              {/* Card name centered, truncated */}
-              <div className="flex h-full items-center justify-center px-6 overflow-hidden">
-                <span
-                  className="text-[11px] font-bold uppercase tracking-widest text-white/80 truncate"
-                >
-                  {slide.shortName}
-                </span>
-              </div>
-            </div>
-          );
-        })}
-
-        {/* Top card — draggable */}
         <AnimatePresence initial={false}>
-          <motion.div
-            key={slides[topIndex].key}
-            drag="x"
-            dragConstraints={{ left: 0, right: 0 }}
-            dragElastic={0.08}
-            dragMomentum={false}
-            onDragEnd={(_, info) => {
-              // Fast & responsive — low threshold
-              if (Math.abs(info.offset.x) > 50 || Math.abs(info.velocity.x) > 300) {
-                advance();
-              }
-            }}
-            initial={{ x: 60, opacity: 0.8, rotate: 2 }}
-            animate={{ x: 0, opacity: 1, rotate: 0, scale: 1 }}
-            exit={{ x: -400, opacity: 0, rotate: -6, transition: { duration: 0.3, ease: [0.4, 0, 1, 1] } }}
-            whileDrag={{ rotate: 2, scale: 1.01 }}
-            transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
-            style={{
-              position: "relative",
-              zIndex: total + 2,
-              cursor: "grab",
-              touchAction: "pan-y",
-            }}
-          >
-            <div className="w-full overflow-hidden rounded-3xl">
-              {slides[topIndex].node}
-            </div>
-          </motion.div>
+          {slides.map((slide, idx) => {
+            const offset = (idx - topIndex + total) % total;
+            if (offset > peekCount) return null;
+
+            const isTop = offset === 0;
+            const translateY = offset === 0 ? 0 : peekCount * (PEEK_HEIGHT + PEEK_GAP) - (offset - 1) * (PEEK_HEIGHT + PEEK_GAP) - PEEK_HEIGHT;
+            // ^ stacks peek strips just below the top card's bottom edge, each with clear separation
+            const scale = isTop ? 1 : 1 - offset * 0.03;
+            const zIndex = total - offset;
+
+            return (
+              <motion.div
+                key={slide.key}
+                drag={isTop ? "x" : false}
+                dragConstraints={{ left: 0, right: 0 }}
+                dragElastic={0.06}
+                onDragEnd={(_, info) => {
+                  if (Math.abs(info.offset.x) > 50 || Math.abs(info.velocity.x) > 250) {
+                    next();
+                  }
+                }}
+                initial={false}
+                animate={
+                  isTop
+                    ? { y: 0, scale: 1, opacity: 1, x: 0, rotate: 0 }
+                    : { y: 0, scale, opacity: 1, x: 0, rotate: 0 }
+                }
+                exit={{
+                  x: 500,
+                  opacity: 0,
+                  rotate: 8,
+                  transition: { duration: 0.28, ease: "easeOut" },
+                }}
+                whileDrag={{ rotate: 2, cursor: "grabbing" }}
+                transition={{ duration: 0.28, ease: "easeOut" }}
+                style={{
+                  position: isTop ? "relative" : "absolute",
+                  top: isTop ? 0 : translateY + (peekCount * (PEEK_HEIGHT + PEEK_GAP)) - PEEK_HEIGHT * peekCount,
+                  left: 0,
+                  right: 0,
+                  bottom: isTop ? undefined : undefined,
+                  zIndex,
+                  cursor: isTop ? "grab" : "default",
+                  pointerEvents: isTop ? "auto" : "none",
+                }}
+              >
+                {isTop ? (
+                  <div className="w-full overflow-hidden rounded-3xl" style={{ minHeight: "260px" }}>
+                    {slide.node}
+                  </div>
+                ) : (
+                  // Peek strip — fixed short height, no real card content, just gradient + name
+                  <div
+                    className="mx-2 flex items-center justify-center overflow-hidden rounded-2xl shadow-md"
+                    style={{
+                      height: `${PEEK_HEIGHT}px`,
+                      background: slide.gradient,
+                      marginTop: `${(offset - 1) * (PEEK_HEIGHT + PEEK_GAP) + 6}px`,
+                    }}
+                  >
+                    <span className="text-[11px] font-semibold uppercase tracking-widest text-white/90">
+                      {slide.label}
+                    </span>
+                  </div>
+                )}
+              </motion.div>
+            );
+          })}
         </AnimatePresence>
       </div>
 
-      {/* Dot indicators */}
       {total > 1 && (
-        <div className="mt-4 flex items-center justify-center gap-1.5">
+        <div className="mt-5 flex items-center justify-center gap-1.5">
           {slides.map((slide, i) => (
             <button
               key={slide.key}
               type="button"
-              aria-label={`Switch to ${slide.shortName}`}
+              aria-label={`Go to ${slide.label}`}
               onClick={() => setTopIndex(i)}
               className="h-1.5 rounded-full transition-all duration-300"
               style={{
@@ -379,7 +393,7 @@ const AccountCarousel = ({
       )}
 
       {total > 1 && (
-        <p className="mt-1.5 text-center text-xs text-muted-foreground">
+        <p className="mt-2 text-center text-xs text-muted-foreground">
           Swipe or tap a dot to switch accounts
         </p>
       )}
