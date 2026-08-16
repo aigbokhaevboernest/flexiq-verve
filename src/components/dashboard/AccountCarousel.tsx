@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Lock,
@@ -25,6 +25,7 @@ interface SecondaryAccountState {
 
 interface AccountCarouselProps {
   primarySlide: React.ReactNode;
+  primaryLabel?: string;
   secondaryTypes: SecondaryType[];
   accountStates: Record<SecondaryType, SecondaryAccountState>;
   onOpenAccount: (type: SecondaryType) => void;
@@ -99,6 +100,8 @@ const StatItem = ({
   </div>
 );
 
+// isTop controls whether the real bottom bar (Account No. / View details) shows,
+// or just the account name — same idea as Cards.tsx only revealing a name-safe sliver.
 const OpenedAccountCard = ({
   type,
   balance,
@@ -106,6 +109,7 @@ const OpenedAccountCard = ({
   formatMoney,
   maskedAccountNumber,
   onViewDetails,
+  isTop,
 }: {
   type: SecondaryType;
   balance: number;
@@ -113,97 +117,117 @@ const OpenedAccountCard = ({
   formatMoney: (amount: number, currency?: string) => string;
   maskedAccountNumber: string;
   onViewDetails: () => void;
+  isTop: boolean;
 }) => {
   const meta = PLACEHOLDER_META[type];
   const Icon = meta.icon;
   return (
     <div
-      className="relative flex h-full w-full flex-col overflow-hidden rounded-3xl text-white shadow-elev"
+      className="relative flex h-full w-full flex-col overflow-hidden rounded-3xl text-white shadow-2xl"
       style={{ background: meta.gradient }}
     >
-      <div className="absolute -right-16 -top-16 h-56 w-56 rounded-full bg-white/10 blur-2xl" />
-      <div className="absolute -bottom-20 -left-10 h-56 w-56 rounded-full bg-white/10 blur-3xl" />
-      <div className="relative flex-1 p-8">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/15">
-              <Icon className="h-5 w-5" />
-            </span>
-            <span className="text-xs font-bold uppercase tracking-widest opacity-80">
-              {meta.title.toUpperCase()}
-            </span>
+      <div className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-white/15 blur-2xl" />
+      {isTop ? (
+        <>
+          <div className="relative flex-1 p-6">
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-3">
+                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/15">
+                  <Icon className="h-4.5 w-4.5" />
+                </span>
+                <span className="text-[11px] font-bold uppercase tracking-widest opacity-80">
+                  {meta.title.toUpperCase()}
+                </span>
+              </div>
+              <MoreHorizontal className="h-5 w-5 opacity-60" />
+            </div>
+            <p
+              className="mt-4 font-sans font-bold tracking-tight truncate"
+              style={{ fontSize: "clamp(1.75rem, 5vw, 2.75rem)" }}
+              title={formatMoney(balance, currency)}
+            >
+              {formatMoney(balance, currency)}
+            </p>
+            <div className="mt-4 border-t border-white/15 pt-4">
+              {type === "checking" && (
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  <StatItem icon={Clock} label="Overdraft" value={formatMoney(calcOverdraft(balance), currency)} />
+                  <StatItem icon={Clock} label="Last txn" value="Today" />
+                  <StatItem icon={FileText} label="Pending" value={formatMoney(0, currency)} />
+                  <StatItem icon={ShieldCheck} label="Status" value="Active" valueClassName="text-emerald-300" />
+                </div>
+              )}
+              {type === "savings" && (
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  <StatItem icon={TrendingUp} label="Interest" value="2.75% p.a." />
+                  <StatItem icon={Target} label="Goal" value="Not set" />
+                  <StatItem icon={Calendar} label="This month" value={formatMoney(calcMonthlyInterest(balance), currency)} />
+                  <StatItem icon={ShieldCheck} label="Status" value="Active" valueClassName="text-emerald-300" />
+                </div>
+              )}
+              {type === "retirement" && (
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  <StatItem icon={TrendingUp} label="Total return" value={`+${(RETIREMENT_TOTAL_RETURN_RATE * 100).toFixed(2)}%`} valueClassName="text-emerald-300" />
+                  <StatItem icon={LineChart} label="YTD" value={`+${(RETIREMENT_YTD_RETURN_RATE * 100).toFixed(2)}%`} valueClassName="text-emerald-300" />
+                  <StatItem icon={Target} label="Risk" value="Moderate" />
+                  <StatItem icon={ShieldCheck} label="Status" value="Active" valueClassName="text-emerald-300" />
+                </div>
+              )}
+            </div>
           </div>
-          <MoreHorizontal className="h-5 w-5 opacity-60" />
+          <button
+            type="button"
+            onClick={onViewDetails}
+            className="relative flex items-center justify-between border-t border-white/15 bg-black/10 px-6 py-3.5 text-[13px] font-semibold hover:bg-black/20 transition-colors"
+          >
+            <span>Account No. {maskedAccountNumber}</span>
+            <span className="flex items-center gap-1.5">View details <ArrowRight className="h-3.5 w-3.5" /></span>
+          </button>
+        </>
+      ) : (
+        // Peeking state: only the name shows, same spirit as the sliver behind Cards.tsx cards
+        <div className="relative flex h-full items-end justify-center pb-4">
+          <span className="text-[11px] font-semibold uppercase tracking-widest text-white/85">
+            {meta.shortName}
+          </span>
         </div>
-        <p
-          className="mt-5 font-sans font-bold tracking-tight truncate max-w-[260px] sm:max-w-[340px]"
-          style={{ fontSize: "clamp(2rem, 6vw, 3.5rem)" }}
-          title={formatMoney(balance, currency)}
-        >
-          {formatMoney(balance, currency)}
-        </p>
-        <div className="mt-6 border-t border-white/15 pt-5">
-          {type === "checking" && (
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-              <StatItem icon={Clock} label="Available overdraft" value={formatMoney(calcOverdraft(balance), currency)} />
-              <StatItem icon={Clock} label="Last transaction" value="Today" />
-              <StatItem icon={FileText} label="Pending" value={formatMoney(0, currency)} />
-              <StatItem icon={ShieldCheck} label="Status" value="Active" valueClassName="text-emerald-300" />
-            </div>
-          )}
-          {type === "savings" && (
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-              <StatItem icon={TrendingUp} label="Interest rate" value="2.75% p.a." />
-              <StatItem icon={Target} label="Savings goal" value="Not set" />
-              <StatItem icon={Calendar} label="Added this month" value={formatMoney(calcMonthlyInterest(balance), currency)} />
-              <StatItem icon={ShieldCheck} label="Status" value="Active" valueClassName="text-emerald-300" />
-            </div>
-          )}
-          {type === "retirement" && (
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-              <StatItem icon={TrendingUp} label="Total returns" value={`+${(RETIREMENT_TOTAL_RETURN_RATE * 100).toFixed(2)}%`} valueClassName="text-emerald-300" />
-              <StatItem icon={LineChart} label="YTD returns" value={`+${(RETIREMENT_YTD_RETURN_RATE * 100).toFixed(2)}%`} valueClassName="text-emerald-300" />
-              <StatItem icon={Target} label="Risk level" value="Moderate" />
-              <StatItem icon={ShieldCheck} label="Status" value="Active" valueClassName="text-emerald-300" />
-            </div>
-          )}
-        </div>
-      </div>
-      <button
-        type="button"
-        onClick={onViewDetails}
-        className="relative flex items-center justify-between border-t border-white/15 bg-black/10 px-8 py-4 text-sm font-semibold hover:bg-black/20 transition-colors"
-      >
-        <span>Account No. {maskedAccountNumber}</span>
-        <span className="flex items-center gap-1.5">View details <ArrowRight className="h-3.5 w-3.5" /></span>
-      </button>
+      )}
     </div>
   );
 };
 
-const PlaceholderCard = ({ type, onOpen }: { type: SecondaryType; onOpen: () => void }) => {
+const PlaceholderCard = ({ type, onOpen, isTop }: { type: SecondaryType; onOpen: () => void; isTop: boolean }) => {
   const meta = PLACEHOLDER_META[type];
   return (
     <div
-      className="relative flex h-full w-full flex-col justify-between overflow-hidden rounded-3xl p-8 text-white shadow-elev"
+      className="relative flex h-full w-full flex-col justify-between overflow-hidden rounded-3xl p-6 text-white shadow-2xl"
       style={{ background: meta.gradient }}
     >
-      <div className="absolute -right-16 -top-16 h-56 w-56 rounded-full bg-white/10 blur-2xl" />
-      <div className="absolute -bottom-20 -left-10 h-56 w-56 rounded-full bg-white/10 blur-3xl" />
-      <div className="relative">
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold backdrop-blur-sm">
-          <Lock className="h-3 w-3" /> Not opened
-        </span>
-        <p className="mt-4 text-xs uppercase tracking-widest opacity-70">{meta.title}</p>
-        <p className="mt-2 max-w-[280px] text-sm opacity-90">{meta.subtitle}</p>
-      </div>
-      <button
-        type="button"
-        onClick={onOpen}
-        className="relative inline-flex w-fit items-center gap-2 rounded-2xl bg-white/15 px-4 py-2.5 text-sm font-semibold backdrop-blur hover:bg-white/25 transition-colors"
-      >
-        Open {meta.title}
-      </button>
+      <div className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-white/15 blur-2xl" />
+      {isTop ? (
+        <>
+          <div className="relative">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold backdrop-blur-sm">
+              <Lock className="h-3 w-3" /> Not opened
+            </span>
+            <p className="mt-4 text-xs uppercase tracking-widest opacity-70">{meta.title}</p>
+            <p className="mt-2 max-w-[280px] text-sm opacity-90">{meta.subtitle}</p>
+          </div>
+          <button
+            type="button"
+            onClick={onOpen}
+            className="relative inline-flex w-fit items-center gap-2 rounded-2xl bg-white/15 px-4 py-2.5 text-sm font-semibold backdrop-blur hover:bg-white/25 transition-colors"
+          >
+            Open {meta.title}
+          </button>
+        </>
+      ) : (
+        <div className="relative flex h-full items-end justify-center pb-4">
+          <span className="text-[11px] font-semibold uppercase tracking-widest text-white/85">
+            {meta.shortName}
+          </span>
+        </div>
+      )}
     </div>
   );
 };
@@ -234,6 +258,7 @@ const ConnectRetirementModal = ({ onClose }: { onClose: () => void }) => (
 
 const AccountCarousel = ({
   primarySlide,
+  primaryLabel = "Primary",
   secondaryTypes,
   accountStates,
   onOpenAccount,
@@ -243,130 +268,62 @@ const AccountCarousel = ({
 }: AccountCarouselProps) => {
   const [topIndex, setTopIndex] = useState(0);
   const [connectModalOpen, setConnectModalOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
 
-  // Build slides array: primary first, then secondary cards.
-  // Each slide carries its own gradient so the peek strip always matches the real card color.
-  const slides: Array<{
-    key: string;
-    node: React.ReactNode;
-    gradient: string;
-    dotColor: string;
-    label: string;
-  }> = [
-    {
-      key: "primary",
-      node: primarySlide,
-      gradient: PRIMARY_GRADIENT,
-      dotColor: PRIMARY_DOT_COLOR,
-      label: "Primary",
-    },
-    ...secondaryTypes.map((t) => {
-      const state = accountStates[t];
-      const meta = PLACEHOLDER_META[t];
-      return {
-        key: t,
-        label: meta.shortName,
-        gradient: meta.gradient,
-        dotColor: meta.dotColor,
-        node: state.opened ? (
-          <OpenedAccountCard
-            type={t}
-            balance={state.balance}
-            currency={currency}
-            formatMoney={formatMoney}
-            maskedAccountNumber={maskedAccountNumber}
-            onViewDetails={() => {
-              if (t === "retirement") setConnectModalOpen(true);
-            }}
-          />
-        ) : (
-          <PlaceholderCard type={t} onOpen={() => onOpenAccount(t)} />
-        ),
-      };
-    }),
+  const slides = [
+    { key: "primary", type: null as SecondaryType | null, dotColor: PRIMARY_DOT_COLOR, label: primaryLabel },
+    ...secondaryTypes.map((t) => ({
+      key: t,
+      type: t,
+      dotColor: PLACEHOLDER_META[t].dotColor,
+      label: PLACEHOLDER_META[t].shortName,
+    })),
   ];
 
   const total = slides.length;
-
   const next = () => setTopIndex((i) => (i + 1) % total);
-
-  const peekCount = Math.min(2, total - 1);
-  const PEEK_HEIGHT = 34; // short strip height for cards behind the top one
-  const PEEK_GAP = 10; // vertical gap between each peeking strip
 
   return (
     <div className="w-full min-w-0">
-      <div
-        ref={containerRef}
-        className="relative w-full"
-        style={{ paddingBottom: `${peekCount * (PEEK_HEIGHT + PEEK_GAP)}px` }}
-      >
+      <div className="relative mx-auto w-full max-w-[440px]" style={{ aspectRatio: "1.586 / 1" }}>
         <AnimatePresence initial={false}>
           {slides.map((slide, idx) => {
             const offset = (idx - topIndex + total) % total;
-            if (offset > peekCount) return null;
-
+            if (offset > 2) return null;
             const isTop = offset === 0;
-            const translateY = offset === 0 ? 0 : peekCount * (PEEK_HEIGHT + PEEK_GAP) - (offset - 1) * (PEEK_HEIGHT + PEEK_GAP) - PEEK_HEIGHT;
-            // ^ stacks peek strips just below the top card's bottom edge, each with clear separation
-            const scale = isTop ? 1 : 1 - offset * 0.03;
-            const zIndex = total - offset;
+
+            const t = slide.type;
+            const state = t ? accountStates[t] : null;
 
             return (
               <motion.div
                 key={slide.key}
                 drag={isTop ? "x" : false}
                 dragConstraints={{ left: 0, right: 0 }}
-                dragElastic={0.06}
                 onDragEnd={(_, info) => {
-                  if (Math.abs(info.offset.x) > 50 || Math.abs(info.velocity.x) > 250) {
-                    next();
-                  }
+                  if (Math.abs(info.offset.x) > 100) next();
                 }}
-                initial={false}
-                animate={
-                  isTop
-                    ? { y: 0, scale: 1, opacity: 1, x: 0, rotate: 0 }
-                    : { y: 0, scale, opacity: 1, x: 0, rotate: 0 }
-                }
-                exit={{
-                  x: 500,
-                  opacity: 0,
-                  rotate: 8,
-                  transition: { duration: 0.28, ease: "easeOut" },
-                }}
-                whileDrag={{ rotate: 2, cursor: "grabbing" }}
-                transition={{ duration: 0.28, ease: "easeOut" }}
-                style={{
-                  position: isTop ? "relative" : "absolute",
-                  top: isTop ? 0 : translateY + (peekCount * (PEEK_HEIGHT + PEEK_GAP)) - PEEK_HEIGHT * peekCount,
-                  left: 0,
-                  right: 0,
-                  bottom: isTop ? undefined : undefined,
-                  zIndex,
-                  cursor: isTop ? "grab" : "default",
-                  pointerEvents: isTop ? "auto" : "none",
-                }}
+                initial={{ scale: 1 - offset * 0.05, y: offset * 14, opacity: 1, x: 0, rotate: 0 }}
+                animate={{ scale: 1 - offset * 0.05, y: offset * 14, opacity: 1 - offset * 0.2, x: 0, rotate: 0 }}
+                exit={{ x: 400, opacity: 0, rotate: 12, transition: { duration: 0.55, ease: [0.4, 0, 0.2, 1] } }}
+                whileDrag={{ rotate: 6, cursor: "grabbing" }}
+                transition={{ duration: 0.55, ease: [0.4, 0, 0.2, 1] }}
+                className={`absolute inset-0 overflow-hidden rounded-3xl ${isTop ? "cursor-grab" : ""}`}
+                style={{ zIndex: total - offset }}
               >
-                {isTop ? (
-                  <div className="w-full overflow-hidden rounded-3xl" style={{ minHeight: "260px" }}>
-                    {slide.node}
-                  </div>
+                {t === null ? (
+                  primarySlide
+                ) : state?.opened ? (
+                  <OpenedAccountCard
+                    type={t}
+                    balance={state.balance}
+                    currency={currency}
+                    formatMoney={formatMoney}
+                    maskedAccountNumber={maskedAccountNumber}
+                    onViewDetails={() => { if (t === "retirement") setConnectModalOpen(true); }}
+                    isTop={isTop}
+                  />
                 ) : (
-                  // Peek strip — fixed short height, no real card content, just gradient + name
-                  <div
-                    className="mx-2 flex items-center justify-center overflow-hidden rounded-2xl shadow-md"
-                    style={{
-                      height: `${PEEK_HEIGHT}px`,
-                      background: slide.gradient,
-                      marginTop: `${(offset - 1) * (PEEK_HEIGHT + PEEK_GAP) + 6}px`,
-                    }}
-                  >
-                    <span className="text-[11px] font-semibold uppercase tracking-widest text-white/90">
-                      {slide.label}
-                    </span>
-                  </div>
+                  <PlaceholderCard type={t} onOpen={() => onOpenAccount(t)} isTop={isTop} />
                 )}
               </motion.div>
             );
@@ -374,33 +331,27 @@ const AccountCarousel = ({
         </AnimatePresence>
       </div>
 
-      {total > 1 && (
-        <div className="mt-5 flex items-center justify-center gap-1.5">
-          {slides.map((slide, i) => (
-            <button
-              key={slide.key}
-              type="button"
-              aria-label={`Go to ${slide.label}`}
-              onClick={() => setTopIndex(i)}
-              className="h-1.5 rounded-full transition-all duration-300"
-              style={{
-                width: i === topIndex ? "1.5rem" : "0.375rem",
-                backgroundColor: i === topIndex ? slide.dotColor : "hsl(var(--border))",
-              }}
-            />
-          ))}
-        </div>
-      )}
-
+      <div className="mt-4 flex items-center justify-center gap-2">
+        {slides.map((slide, i) => (
+          <button
+            key={slide.key}
+            onClick={() => setTopIndex(i)}
+            aria-label={`Show ${slide.label}`}
+            className="h-2 rounded-full transition-all"
+            style={{
+              width: i === topIndex ? "1.5rem" : "0.5rem",
+              backgroundColor: i === topIndex ? slide.dotColor : "hsl(var(--muted))",
+            }}
+          />
+        ))}
+      </div>
       {total > 1 && (
         <p className="mt-2 text-center text-xs text-muted-foreground">
-          Swipe or tap a dot to switch accounts
+          Swipe card or tap a dot · {topIndex + 1} of {total}
         </p>
       )}
 
-      {connectModalOpen && (
-        <ConnectRetirementModal onClose={() => setConnectModalOpen(false)} />
-      )}
+      {connectModalOpen && <ConnectRetirementModal onClose={() => setConnectModalOpen(false)} />}
     </div>
   );
 };
