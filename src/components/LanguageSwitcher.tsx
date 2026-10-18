@@ -55,13 +55,9 @@ const LANGUAGES = [
 // Everything else (the public marketing pages) shows it.
 // The translation engine itself keeps running everywhere.
 const HIDE_ON_PREFIXES = [
-  "/login",
-  "/signup",
-  "/pin",
-  "/forgot-password",
-  "/reset-password",
-  "/dashboard",
-  "/admin",
+
+
+ 
 ];
 
 const PAGE_LANGUAGE = "en";
