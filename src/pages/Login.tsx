@@ -14,10 +14,7 @@ import { sendEmail } from "@/lib/sendEmail";
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
-const langChange = (val: string) => {
-  const select = document.querySelector(".goog-te-combo") as HTMLSelectElement;
-  if (select) { select.value = val; select.dispatchEvent(new Event("change")); }
-};
+
 
 const generateCode = () => Math.floor(100000 + Math.random() * 900000).toString();
 
@@ -376,28 +373,7 @@ const Login = () => {
         <div className="absolute bottom-0 right-0 h-80 w-80 rounded-full bg-[hsl(var(--mediumblue))]/20 blur-3xl" />
       </div>
 
-      <div className="w-full max-w-md">
-        <div className="mb-3 flex justify-end">
-          <select
-            onChange={(e) => langChange(e.target.value)}
-            className="text-sm rounded-md border border-white/20 bg-white/10 text-white px-3 py-1.5 backdrop-blur-sm cursor-pointer"
-          >
-            <option value="">🌐 Language</option>
-            <option value="es">Spanish</option>
-            <option value="fr">French</option>
-            <option value="de">German</option>
-            <option value="zh-CN">Chinese</option>
-            <option value="ar">Arabic</option>
-            <option value="pt">Portuguese</option>
-            <option value="ru">Russian</option>
-            <option value="ja">Japanese</option>
-            <option value="ko">Korean</option>
-            <option value="hi">Hindi</option>
-            <option value="it">Italian</option>
-            <option value="tr">Turkish</option>
-          </select>
-        </div>
-
+      
         <div className="overflow-hidden rounded-3xl border border-white/10 bg-white shadow-elev animate-fade-in">
           <div className="bg-gradient-to-br from-[#7C3AED] via-[#8B5CF6] to-[#A78BFA] px-8 pb-8 pt-10 text-center sm:px-10">
             <Link to="/" className="flex flex-col items-center justify-center">
