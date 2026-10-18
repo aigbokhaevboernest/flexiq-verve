@@ -56,8 +56,7 @@ const LANGUAGES = [
 // The translation engine itself keeps running everywhere.
 const HIDE_ON_PREFIXES = [
 
-
- 
+  "/dashboard",
 ];
 
 const PAGE_LANGUAGE = "en";
