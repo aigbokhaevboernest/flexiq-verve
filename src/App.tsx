@@ -118,6 +118,7 @@ const App = () => (
             translation engine persists across every route. The button itself
             only shows on public pages (see HIDE_ON_PREFIXES in the component). */}
         <LanguageSwitcher />
+          <ScrollToTop />
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
