@@ -154,13 +154,8 @@ export default function LanguageSwitcher() {
   const { pathname } = useLocation();
   const [current, setCurrent] = useState("en");
   const [open, setOpen] = useState(false);
-  const [dismissed, setDismissed] = useState<boolean>(() => {
-    try {
-      return localStorage.getItem(DISMISS_KEY) === "1";
-    } catch {
-      return false;
-    }
-  });
+  const [dismissed, setDismissed] = useState(false);
+
   const rootRef = useRef<HTMLDivElement>(null);
   const currentRef = useRef("en");
   const retranslateTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -295,14 +290,10 @@ export default function LanguageSwitcher() {
 
   // Hides the button only. The current language stays applied.
   function dismiss() {
-    setOpen(false);
-    setDismissed(true);
-    try {
-      localStorage.setItem(DISMISS_KEY, "1");
-    } catch {
-      /* ignore */
-    }
-  }
+  setOpen(false);
+  setDismissed(true);
+}
+
 
   const currentLang = LANGUAGES.find((l) => l.code === current) ?? LANGUAGES[0];
 
