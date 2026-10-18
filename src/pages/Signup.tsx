@@ -152,28 +152,7 @@ Flexiq Verve Support Team`,
    }
  };
 
- return (
-   <div className="page-enter relative min-h-screen bg-navy-blue-mesh px-4 py-10">
-     <div className="mx-auto mb-3 flex max-w-2xl justify-end">
-       <select
-         onChange={(e) => langChange(e.target.value)}
-         className="text-sm rounded-md border border-white/20 bg-white/10 text-white px-3 py-1.5 backdrop-blur-sm cursor-pointer"
-       >
-         <option value="">🌐 Language</option>
-         <option value="es">Spanish</option>
-         <option value="fr">French</option>
-         <option value="de">German</option>
-         <option value="zh-CN">Chinese</option>
-         <option value="ar">Arabic</option>
-         <option value="pt">Portuguese</option>
-         <option value="ru">Russian</option>
-         <option value="ja">Japanese</option>
-         <option value="ko">Korean</option>
-         <option value="hi">Hindi</option>
-         <option value="it">Italian</option>
-         <option value="tr">Turkish</option>
-       </select>
-     </div>
+ 
      <div className="mx-auto w-full max-w-2xl overflow-hidden rounded-3xl border border-white/10 bg-white shadow-elev animate-fade-in">
        <div className="bg-gradient-to-br from-[#7C3AED] via-[#8B5CF6] to-[#A78BFA] px-8 pb-8 pt-10 text-center sm:px-10">
          <Link to="/" className="flex flex-col items-center justify-center">
