@@ -46,6 +46,7 @@ import WireTransfer from "./pages/WireTransfer.tsx";
 import { SplashScreen } from "./components/SplashScreen";
 import { useSessionTimeout } from "./hooks/useSessionTimeout";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import ScrollToTop from "@/components/ScrollToTop";
 
 const queryClient = new QueryClient();
 
