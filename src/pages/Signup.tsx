@@ -14,9 +14,28 @@ import { sendEmail } from "@/lib/sendEmail";
 const nativeSelectClass =
   "mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring";
 
+const ERROR_RING = "border-red-500 focus-visible:ring-red-500 focus:ring-red-500";
+
+// Order used to scroll to the first problem on submit.
+const FIELD_ORDER = [
+  "first_name", "last_name", "username", "email", "phone", "country",
+  "account_type", "currency", "city", "date_of_birth", "address",
+  "password", "confirm_password", "terms",
+] as const;
+
+const FieldError = ({ msg }: { msg?: string }) =>
+  msg ? (
+    <p role="alert" className="mt-1 text-xs text-red-500">
+      {msg}
+    </p>
+  ) : null;
+
 const Signup = () => {
   const navigate = useNavigate();
   const [submitting, setSubmitting] = useState(false);
+  const [agreed, setAgreed] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [formError, setFormError] = useState("");
   const [form, setForm] = useState({
     first_name: "",
     last_name: "",
@@ -34,22 +53,107 @@ const Signup = () => {
     confirm_password: "",
   });
 
-  const update = (k: keyof typeof form) => (v: string) =>
-    setForm((f) => ({ ...f, [k]: v }));
+  // Returns an error message for one field, or "" if it's fine.
+  const validateField = (name: string, value: string, pwd = form.password): string => {
+    switch (name) {
+      case "first_name":
+        return value.trim() ? "" : "First name is required";
+      case "last_name":
+        return value.trim() ? "" : "Last name is required";
+      case "username":
+        if (!value.trim()) return "User ID is required";
+        if (value.trim().length < 3) return "User ID must be at least 3 characters";
+        return "";
+      case "email":
+        if (!value.trim()) return "Email is required";
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())) return "Enter a valid email address";
+        return "";
+      case "phone":
+        if (!value.trim()) return "Phone number is required";
+        if (value.replace(/\D/g, "").length < 6) return "Enter a valid phone number";
+        return "";
+      case "country":
+        return value ? "" : "Please select a country";
+      case "account_type":
+        return value ? "" : "Please choose an account type";
+      case "currency":
+        return value ? "" : "Please select a currency";
+      case "city":
+        return value.trim() ? "" : "City is required";
+      case "address":
+        return value.trim() ? "" : "Address is required";
+      case "date_of_birth":
+        if (!value) return "Date of birth is required";
+        if (new Date(value) > new Date()) return "Date of birth can't be in the future";
+        return "";
+      case "password":
+        if (!value) return "Password is required";
+        if (value.length < 8) return "Password must be at least 8 characters";
+        return "";
+      case "confirm_password":
+        if (!value) return "Please confirm your password";
+        if (value !== pwd) return "Passwords don't match";
+        return "";
+      default:
+        return "";
+    }
+  };
+
+  const setError = (name: string, msg: string) =>
+    setErrors((prev) => {
+      const next = { ...prev };
+      if (msg) next[name] = msg;
+      else delete next[name];
+      return next;
+    });
+
+  const update = (name: keyof typeof form) => (value: string) => {
+    setForm((f) => ({ ...f, [name]: value }));
+    setFormError("");
+    // Clear / refresh an error as soon as the user fixes the field.
+    if (errors[name]) setError(name, validateField(name, value));
+    // Typing a new password re-checks the confirm field if it was already filled.
+    if (name === "password" && form.confirm_password) {
+      setError("confirm_password", validateField("confirm_password", form.confirm_password, value));
+    }
+  };
+
+  const onBlur = (name: keyof typeof form) => () =>
+    setError(name, validateField(name, form[name]));
+
+  const validateAll = (): boolean => {
+    const next: Record<string, string> = {};
+    (Object.keys(form) as Array<keyof typeof form>).forEach((key) => {
+      if (key === "postal_code") return; // optional
+      const msg = validateField(key, form[key]);
+      if (msg) next[key] = msg;
+    });
+    if (!agreed) next.terms = "You must agree to the Terms and Privacy Policy";
+    setErrors(next);
+
+    const first = FIELD_ORDER.find((k) => next[k]);
+    if (first) {
+      document.getElementById(first)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+    return Object.keys(next).length === 0;
+  };
+
+  const inputCls = (name: string) => (errors[name] ? ERROR_RING : "");
+  const selectCls = (name: string) =>
+    `${nativeSelectClass} ${errors[name] ? "border-red-500" : ""}`;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (form.password !== form.confirm_password) {
-      toast({ title: "Passwords don't match", variant: "destructive" });
-      return;
-    }
+    setFormError("");
     if (submitting) return;
+    if (!validateAll()) return;
+
     setSubmitting(true);
     const releaseTimeout = setTimeout(() => setSubmitting(false), 10000);
 
     try {
       const { data, error } = await supabase.auth.signUp({
-        email: form.email,
+        email: form.email.trim(),
         password: form.password,
         options: {
           emailRedirectTo: `${window.location.origin}/dashboard`,
@@ -73,7 +177,19 @@ const Signup = () => {
       if (error) {
         clearTimeout(releaseTimeout);
         setSubmitting(false);
-        toast({ title: "Signup failed", description: error.message, variant: "destructive" });
+        // Put the message next to the field it's about, otherwise in a banner.
+        if (/already registered|already exists|user already/i.test(error.message)) {
+          setError("email", "An account with this email already exists. Try logging in.");
+          document.getElementById("email")?.scrollIntoView({ behavior: "smooth", block: "center" });
+        } else if (/password/i.test(error.message)) {
+          setError("password", error.message);
+          document.getElementById("password")?.scrollIntoView({ behavior: "smooth", block: "center" });
+        } else if (/email/i.test(error.message)) {
+          setError("email", error.message);
+          document.getElementById("email")?.scrollIntoView({ behavior: "smooth", block: "center" });
+        } else {
+          setFormError(error.message);
+        }
         return;
       }
 
@@ -136,11 +252,7 @@ Flexiq Verve Support Team`,
     } catch (err: any) {
       clearTimeout(releaseTimeout);
       setSubmitting(false);
-      toast({
-        title: "Signup failed",
-        description: err?.message || "Unexpected error",
-        variant: "destructive",
-      });
+      setFormError(err?.message || "Something went wrong. Please try again.");
     }
   };
 
@@ -158,67 +270,78 @@ Flexiq Verve Support Team`,
         </div>
 
         <div className="p-8 sm:p-10">
-          <form className="mt-8 space-y-5" onSubmit={handleSubmit}>
+          {/* noValidate: we show our own inline errors instead of the browser's pop-ups */}
+          <form className="mt-8 space-y-5" onSubmit={handleSubmit} noValidate>
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
-                <Label>First name</Label>
-                <Input required className="mt-1" placeholder="John" value={form.first_name} onChange={(e) => update("first_name")(e.target.value)} />
+                <Label htmlFor="first_name">First name</Label>
+                <Input id="first_name" className={`mt-1 ${inputCls("first_name")}`} placeholder="John" value={form.first_name} onChange={(e) => update("first_name")(e.target.value)} onBlur={onBlur("first_name")} />
+                <FieldError msg={errors.first_name} />
               </div>
               <div>
-                <Label>Last name</Label>
-                <Input required className="mt-1" placeholder="Doe" value={form.last_name} onChange={(e) => update("last_name")(e.target.value)} />
+                <Label htmlFor="last_name">Last name</Label>
+                <Input id="last_name" className={`mt-1 ${inputCls("last_name")}`} placeholder="Doe" value={form.last_name} onChange={(e) => update("last_name")(e.target.value)} onBlur={onBlur("last_name")} />
+                <FieldError msg={errors.last_name} />
               </div>
               <div>
-                <Label>User ID</Label>
-                <Input required className="mt-1" placeholder="Johndoe" value={form.username} onChange={(e) => update("username")(e.target.value.replace(/\s+/g, ""))} />
+                <Label htmlFor="username">User ID</Label>
+                <Input id="username" className={`mt-1 ${inputCls("username")}`} placeholder="Johndoe" value={form.username} onChange={(e) => update("username")(e.target.value.replace(/\s+/g, ""))} onBlur={onBlur("username")} />
+                <FieldError msg={errors.username} />
               </div>
               <div>
-                <Label>Email</Label>
-                <Input type="email" required className="mt-1" placeholder="john@example.com" value={form.email} onChange={(e) => update("email")(e.target.value)} />
+                <Label htmlFor="email">Email</Label>
+                <Input id="email" type="email" className={`mt-1 ${inputCls("email")}`} placeholder="john@example.com" value={form.email} onChange={(e) => update("email")(e.target.value)} onBlur={onBlur("email")} />
+                <FieldError msg={errors.email} />
               </div>
               <div>
-                <Label>Phone</Label>
-                <Input type="tel" required className="mt-1" placeholder="+__ ___ ___ ____ ____" value={form.phone} onChange={(e) => update("phone")(e.target.value)} />
+                <Label htmlFor="phone">Phone</Label>
+                <Input id="phone" type="tel" className={`mt-1 ${inputCls("phone")}`} placeholder="+__ ___ ___ ____ ____" value={form.phone} onChange={(e) => update("phone")(e.target.value)} onBlur={onBlur("phone")} />
+                <FieldError msg={errors.phone} />
               </div>
               <div>
-                <Label>Country</Label>
-                <select required className={nativeSelectClass} value={form.country} onChange={(e) => update("country")(e.target.value)}>
+                <Label htmlFor="country">Country</Label>
+                <select id="country" className={selectCls("country")} value={form.country} onChange={(e) => update("country")(e.target.value)} onBlur={onBlur("country")}>
                   <option value="">Select country</option>
                   {countries.map((c) => <option key={c} value={c}>{c}</option>)}
                 </select>
+                <FieldError msg={errors.country} />
               </div>
               <div>
-                <Label>Account type</Label>
-                <select required className={nativeSelectClass} value={form.account_type} onChange={(e) => update("account_type")(e.target.value)}>
+                <Label htmlFor="account_type">Account type</Label>
+                <select id="account_type" className={selectCls("account_type")} value={form.account_type} onChange={(e) => update("account_type")(e.target.value)} onBlur={onBlur("account_type")}>
                   <option value="">Choose account</option>
                   <option value="checking">Checking Account</option>
                   <option value="savings">Savings Account</option>
                   <option value="retirement">Retirement Account</option>
                   <option value="business">Business Account</option>
                 </select>
+                <FieldError msg={errors.account_type} />
               </div>
               <div>
-                <Label>Currency</Label>
-                <select required className={nativeSelectClass} value={form.currency} onChange={(e) => update("currency")(e.target.value)}>
+                <Label htmlFor="currency">Currency</Label>
+                <select id="currency" className={selectCls("currency")} value={form.currency} onChange={(e) => update("currency")(e.target.value)} onBlur={onBlur("currency")}>
                   <option value="">Currency</option>
                   {currencies.map((c) => <option key={c.code} value={c.code}>{c.code} — {c.name}</option>)}
                 </select>
+                <FieldError msg={errors.currency} />
               </div>
               <div>
-                <Label>City</Label>
-                <Input required className="mt-1" placeholder="London" value={form.city} onChange={(e) => update("city")(e.target.value)} />
+                <Label htmlFor="city">City</Label>
+                <Input id="city" className={`mt-1 ${inputCls("city")}`} placeholder="London" value={form.city} onChange={(e) => update("city")(e.target.value)} onBlur={onBlur("city")} />
+                <FieldError msg={errors.city} />
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <Label>Date of birth</Label>
+                  <Label htmlFor="date_of_birth">Date of birth</Label>
                   <span className="text-xs text-muted-foreground">(click to select)</span>
                 </div>
                 <input
+                  id="date_of_birth"
                   type="date"
-                  required
                   max={new Date().toISOString().split("T")[0]}
                   value={form.date_of_birth}
                   onChange={(e) => update("date_of_birth")(e.target.value)}
+                  onBlur={onBlur("date_of_birth")}
                   style={{
                     marginTop: "4px",
                     height: "44px",
@@ -226,7 +349,7 @@ Flexiq Verve Support Team`,
                     maxWidth: "100%",
                     padding: "0 12px",
                     borderRadius: "8px",
-                    border: "1px solid #e2e8f0",
+                    border: errors.date_of_birth ? "1px solid #ef4444" : "1px solid #e2e8f0",
                     backgroundColor: "#f8fafc",
                     fontSize: "14px",
                     boxSizing: "border-box",
@@ -235,31 +358,51 @@ Flexiq Verve Support Team`,
                     WebkitAppearance: "none",
                   }}
                 />
+                <FieldError msg={errors.date_of_birth} />
               </div>
 
               <div className="sm:col-span-2">
-                <Label>Address</Label>
-                <Input required className="mt-1" placeholder="123 Main Street" value={form.address} onChange={(e) => update("address")(e.target.value)} />
+                <Label htmlFor="address">Address</Label>
+                <Input id="address" className={`mt-1 ${inputCls("address")}`} placeholder="123 Main Street" value={form.address} onChange={(e) => update("address")(e.target.value)} onBlur={onBlur("address")} />
+                <FieldError msg={errors.address} />
               </div>
               <div>
-                <Label>Password</Label>
-                <Input type="password" required minLength={8} className="mt-1" placeholder="At least 8 characters" value={form.password} onChange={(e) => update("password")(e.target.value)} />
+                <Label htmlFor="password">Password</Label>
+                <Input id="password" type="password" className={`mt-1 ${inputCls("password")}`} placeholder="At least 8 characters" value={form.password} onChange={(e) => update("password")(e.target.value)} onBlur={onBlur("password")} />
+                <FieldError msg={errors.password} />
               </div>
               <div>
-                <Label>Confirm password</Label>
-                <Input type="password" required minLength={8} className="mt-1" placeholder="Repeat password" value={form.confirm_password} onChange={(e) => update("confirm_password")(e.target.value)} />
+                <Label htmlFor="confirm_password">Confirm password</Label>
+                <Input id="confirm_password" type="password" className={`mt-1 ${inputCls("confirm_password")}`} placeholder="Repeat password" value={form.confirm_password} onChange={(e) => update("confirm_password")(e.target.value)} onBlur={onBlur("confirm_password")} />
+                <FieldError msg={errors.confirm_password} />
               </div>
             </div>
 
-            <label className="flex items-start gap-2 text-sm text-muted-foreground">
-              <Checkbox required className="mt-0.5" />
-              <span>
-                I agree to the{" "}
-                <Link to="/terms" className="font-medium text-primary hover:underline">Terms of Service</Link>{" "}
-                and{" "}
-                <Link to="/policies" className="font-medium text-primary hover:underline">Privacy Policy</Link>.
-              </span>
-            </label>
+            <div>
+              <label id="terms" className="flex items-start gap-2 text-sm text-muted-foreground">
+                <Checkbox
+                  checked={agreed}
+                  onCheckedChange={(v) => {
+                    setAgreed(v === true);
+                    if (v === true) setError("terms", "");
+                  }}
+                  className={`mt-0.5 ${errors.terms ? "border-red-500" : ""}`}
+                />
+                <span>
+                  I agree to the{" "}
+                  <Link to="/terms" className="font-medium text-primary hover:underline">Terms of Service</Link>{" "}
+                  and{" "}
+                  <Link to="/policies" className="font-medium text-primary hover:underline">Privacy Policy</Link>.
+                </span>
+              </label>
+              <FieldError msg={errors.terms} />
+            </div>
+
+            {formError && (
+              <div role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+                {formError}
+              </div>
+            )}
 
             <Button type="submit" size="lg" disabled={submitting} className="w-full bg-gradient-primary text-primary-foreground shadow-md hover:opacity-95">
               {submitting ? "Creating account…" : "Create account"}
