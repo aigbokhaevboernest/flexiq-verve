@@ -14,8 +14,6 @@ import { sendEmail } from "@/lib/sendEmail";
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
-
-
 const generateCode = () => Math.floor(100000 + Math.random() * 900000).toString();
 
 type ForgotStep = "email" | "code" | "password";
@@ -77,18 +75,16 @@ const ForgotPasswordModal = ({ open, onClose }: { open: boolean; onClose: () => 
       return;
     }
 
-   await sendEmail({
-  email: emailInput.trim().toLowerCase(),
-  first_name: firstName,
-  subject: "Your Password Reset Code — Flexiq Verve",
-  message: `<strong>Your Password Reset Code:</strong><br/><table cellpadding="0" cellspacing="0" border="0" style="margin:4px 0;"><tr><td style="background:#f8fafc; border:2px dashed #e2e8f0; border-radius:10px; padding:14px 24px;"><span style="font-size:26px; font-weight:700; letter-spacing:6px; font-family:'Courier New',monospace; color:#111827;">${code}</span></td></tr></table><br/>Enter this code on the Flexiq Verve password reset page. This code expires in <strong>15 minutes</strong>. Do not share this code with anyone for your security.<br/><br/>For more information or complaints, please contact <a href="mailto:support@flexiqverve.com" style="color:#2563eb;">support@flexiqverve.com</a> or make use of the Live Chat on your dashboard for assistance.`,
-});
-
-
+    await sendEmail({
+      email: emailInput.trim().toLowerCase(),
+      first_name: firstName,
+      subject: "Your Password Reset Code — Flexiq Verve",
+      message: `<strong>Your Password Reset Code:</strong><br/><table cellpadding="0" cellspacing="0" border="0" style="margin:4px 0;"><tr><td style="background:#f8fafc; border:2px dashed #e2e8f0; border-radius:10px; padding:14px 24px;"><span style="font-size:26px; font-weight:700; letter-spacing:6px; font-family:'Courier New',monospace; color:#111827;">${code}</span></td></tr></table><br/>Enter this code on the Flexiq Verve password reset page. This code expires in <strong>15 minutes</strong>. Do not share this code with anyone for your security.<br/><br/>For more information or complaints, please contact <a href="mailto:support@flexiqverve.com" style="color:#2563eb;">support@flexiqverve.com</a> or make use of the Live Chat on your dashboard for assistance.`,
+    });
 
     setFoundUser({ email: emailInput.trim().toLowerCase(), first_name: firstName });
     setLoading(false);
-    setStep("code"); // ✅ always advance if code was saved
+    setStep("code"); // always advance if code was saved
     toast({ title: "Code sent! Check your email." });
   };
 
@@ -153,12 +149,11 @@ const ForgotPasswordModal = ({ open, onClose }: { open: boolean; onClose: () => 
       .eq("used", false);
 
     await sendEmail({
-  email: foundUser.email,
-  first_name: foundUser.first_name,
-  subject: "Your Password Has Been Changed — Flexiq Verve",
-  message: `Your Flexiq Verve password was <strong>successfully changed</strong>.<br/><br/>If you did not make this change, please contact our support team immediately at <a href="mailto:support@flexiqverve.com" style="color:#2563eb;">support@flexiqverve.com</a> or use the Live Chat on your dashboard.`,
-});
-
+      email: foundUser.email,
+      first_name: foundUser.first_name,
+      subject: "Your Password Has Been Changed — Flexiq Verve",
+      message: `Your Flexiq Verve password was <strong>successfully changed</strong>.<br/><br/>If you did not make this change, please contact our support team immediately at <a href="mailto:support@flexiqverve.com" style="color:#2563eb;">support@flexiqverve.com</a> or use the Live Chat on your dashboard.`,
+    });
 
     setLoading(false);
     toast({ title: "Password changed successfully. You can now sign in." });
@@ -373,7 +368,7 @@ const Login = () => {
         <div className="absolute bottom-0 right-0 h-80 w-80 rounded-full bg-[hsl(var(--mediumblue))]/20 blur-3xl" />
       </div>
 
-      
+      <div className="w-full max-w-md">
         <div className="overflow-hidden rounded-3xl border border-white/10 bg-white shadow-elev animate-fade-in">
           <div className="bg-gradient-to-br from-[#7C3AED] via-[#8B5CF6] to-[#A78BFA] px-8 pb-8 pt-10 text-center sm:px-10">
             <Link to="/" className="flex flex-col items-center justify-center">
