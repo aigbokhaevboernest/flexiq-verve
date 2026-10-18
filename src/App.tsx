@@ -61,60 +61,62 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-  <AppRoutes />
-  <LanguageSwitcher />
-</BrowserRouter>
         <AuthProvider>
           <SessionGuard>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<Signup />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
-            <Route path="/verify" element={<Verify />} />
-            <Route path="/faq" element={<FAQ />} />
-            <Route path="/terms" element={<Terms />} />
-            <Route path="/policies" element={<Policies />} />
-            <Route path="/services" element={<Services />} />
-            <Route path="/accounts" element={<Accounts />} />
-            <Route path="/transfers" element={<Transfers />} />
-            <Route path="/cards-info" element={<CardsInfo />} />
-            <Route path="/loans-info" element={<LoansInfo />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/press" element={<Press />} />
-            <Route path="/contact" element={<Contact />} />
-            <Route path="/security" element={<Security />} />
-            <Route path="/compliance" element={<Compliance />} />
-            <Route path="/pin" element={<Pin />} />
-            <Route path="/pending" element={<Pending />} />
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/signup" element={<Signup />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/verify" element={<Verify />} />
+              <Route path="/faq" element={<FAQ />} />
+              <Route path="/terms" element={<Terms />} />
+              <Route path="/policies" element={<Policies />} />
+              <Route path="/services" element={<Services />} />
+              <Route path="/accounts" element={<Accounts />} />
+              <Route path="/transfers" element={<Transfers />} />
+              <Route path="/cards-info" element={<CardsInfo />} />
+              <Route path="/loans-info" element={<LoansInfo />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/press" element={<Press />} />
+              <Route path="/contact" element={<Contact />} />
+              <Route path="/security" element={<Security />} />
+              <Route path="/compliance" element={<Compliance />} />
+              <Route path="/pin" element={<Pin />} />
+              <Route path="/pending" element={<Pending />} />
 
-            <Route element={<ProtectedRoute />}>
-              <Route path="/dashboard" element={<DashboardLayout />}>
-                <Route index element={<DashboardHome />} />
-                <Route path="transactions" element={<Transactions />} />
-                <Route path="send" element={<SendMoney />} />
-                <Route path="send/international" element={<FxTransfer />} />
-                <Route path="send/wire" element={<WireTransfer />} />
-                <Route path="send/fx" element={<FxTransfer />} />
-                <Route path="receive" element={<ReceiveMoney />} />
-                <Route path="loans" element={<Loans />} />
-                <Route path="cards" element={<Cards />} />
-                <Route path="fx" element={<FxTransfer />} />
-                <Route path="local" element={<LocalTransfer />} />
-                <Route path="bills" element={<Bills />} />
-                <Route path="financial-services" element={<FinancialServices />} />
-                <Route path="profile" element={<Profile />} />
-                <Route path="settings" element={<Settings />} />
-                <Route path="support" element={<Support />} />
-                <Route path="success" element={<Success />} />
+              <Route element={<ProtectedRoute />}>
+                <Route path="/dashboard" element={<DashboardLayout />}>
+                  <Route index element={<DashboardHome />} />
+                  <Route path="transactions" element={<Transactions />} />
+                  <Route path="send" element={<SendMoney />} />
+                  <Route path="send/international" element={<FxTransfer />} />
+                  <Route path="send/wire" element={<WireTransfer />} />
+                  <Route path="send/fx" element={<FxTransfer />} />
+                  <Route path="receive" element={<ReceiveMoney />} />
+                  <Route path="loans" element={<Loans />} />
+                  <Route path="cards" element={<Cards />} />
+                  <Route path="fx" element={<FxTransfer />} />
+                  <Route path="local" element={<LocalTransfer />} />
+                  <Route path="bills" element={<Bills />} />
+                  <Route path="financial-services" element={<FinancialServices />} />
+                  <Route path="profile" element={<Profile />} />
+                  <Route path="settings" element={<Settings />} />
+                  <Route path="support" element={<Support />} />
+                  <Route path="success" element={<Success />} />
+                </Route>
               </Route>
-            </Route>
 
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+              <Route path="*" element={<NotFound />} />
+            </Routes>
           </SessionGuard>
         </AuthProvider>
+
+        {/* Inside BrowserRouter (it needs useLocation), mounted once so the
+            translation engine persists across every route. The button itself
+            only shows on public pages (see HIDE_ON_PREFIXES in the component). */}
+        <LanguageSwitcher />
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
