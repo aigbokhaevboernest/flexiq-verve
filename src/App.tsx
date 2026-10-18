@@ -45,6 +45,7 @@ import Success from "./pages/Success.tsx";
 import WireTransfer from "./pages/WireTransfer.tsx";
 import { SplashScreen } from "./components/SplashScreen";
 import { useSessionTimeout } from "./hooks/useSessionTimeout";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 const queryClient = new QueryClient();
 
@@ -60,6 +61,9 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
+  <AppRoutes />
+  <LanguageSwitcher />
+</BrowserRouter>
         <AuthProvider>
           <SessionGuard>
           <Routes>
