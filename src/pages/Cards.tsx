@@ -7,7 +7,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { Copy, CreditCard, Eye, EyeOff, Plus, Snowflake, Wifi } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { useAccount, useProfile, formatMoney } from "@/hooks/useAccount";
+import { useProfile, formatMoney } from "@/hooks/useAccount";
+import { useTotalBalance } from "@/hooks/useTotalBalance";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
@@ -24,7 +25,8 @@ const cardGradients = [
 const Cards = () => {
   const { user } = useAuth();
   const { data: profile } = useProfile();
-  const { data: account } = useAccount();
+  // Same total the dashboard shows: primary + every opened secondary account.
+  const { account, total: balance } = useTotalBalance();
   const qc = useQueryClient();
   const [topIndex, setTopIndex] = useState(0);
   const [showDetails, setShowDetails] = useState(false);
@@ -41,7 +43,6 @@ const Cards = () => {
   const total = cards.length;
   const active = total > 0 ? cards[topIndex % total] : null;
   const currency = (account as any)?.currency || "USD";
-  const balance = Number((account as any)?.balance ?? 0);
 
   const update = async (patch: any) => {
     if (!active) return;
@@ -126,9 +127,9 @@ const Cards = () => {
                 const last4 = (c.card_number || "").slice(-4);
                 const masked = (c.card_number || "").replace(/(.{4})/g, "$1 ").trim();
                 const cardHolder =
-  c.card_holder?.trim() ||
-  ((profile as any)?.first_name || "").toUpperCase() ||
-  "—";
+                  c.card_holder?.trim() ||
+                  ((profile as any)?.first_name || "").toUpperCase() ||
+                  "—";
 
                 const expiry = c.expiry || "—";
                 const isInactive = c.status && c.status !== "active";
