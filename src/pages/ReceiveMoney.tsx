@@ -14,6 +14,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useNavigate } from "react-router-dom";
 import { sendEmail } from "@/lib/sendEmail";
 
+const ADMIN_NOTIFY_EMAIL = "support@flexiqverve.com";
+
 const ReceiveMoney = () => {
   const { data: settings, isLoading } = useAppSettings();
   const { toast } = useToast();
@@ -46,13 +48,23 @@ const ReceiveMoney = () => {
   }
 
   const walletMap: Record<string, string> = {
-  BTC: (settings as any).btc_wallet_address || "—",
-  ETH: (settings as any).eth_wallet_address || "—",
-  USDT: (settings as any).usdt_wallet_address || "—",
-};
+    BTC: (settings as any).btc_wallet_address || "—",
+    ETH: (settings as any).eth_wallet_address || "—",
+    USDT: (settings as any).usdt_wallet_address || "—",
+  };
 
-const wallet = walletMap[crypto] || "—";
-const cryptoName = crypto;
+  const wallet = walletMap[crypto] || "—";
+  const isUsdt = crypto === "USDT";
+
+  // Plain text version (used in emails / success screen) and a styled version
+  // where "TRON" is shown in red (a native <option> can't be partly coloured,
+  // so the red label appears next to the address instead).
+  const cryptoName = isUsdt ? "USDT (TRON)" : crypto;
+  const cryptoLabel = isUsdt ? (
+    <>USDT (<span className="font-semibold text-red-500">TRON</span>)</>
+  ) : (
+    <>{crypto}</>
+  );
 
   const copy = () => { navigator.clipboard.writeText(wallet); toast({ title: "Wallet address copied" }); };
 
@@ -85,7 +97,7 @@ const cryptoName = crypto;
           email: em, first_name: fn,
           subject: "Deposit Request Submitted — Flexiq Verve",
           message:
-`This is to inform you that your deposit request of ${amount} ${crypto} has been successfully submitted and is pending review.
+`This is to inform you that your deposit request of ${amount} ${cryptoName} has been successfully submitted and is pending review.
 
 You will receive a notification once your deposit has been confirmed.
 
@@ -98,7 +110,7 @@ Flexiq Verve Support Team`,
       // Admin notification (best-effort, never blocks the user flow)
       try {
         await sendEmail({
-          email: "jameshilterson@gmail.com",
+          email: ADMIN_NOTIFY_EMAIL,
           first_name: "Admin",
           subject: "New Deposit Request — Flexiq Verve",
           message:
@@ -115,7 +127,7 @@ Please verify if the deposit was actually received and log in to the admin dashb
         title: "Deposit submitted",
         message: "Upon confirmation of your payment, we will promptly process your service request.",
         details: [
-          { label: "Crypto", value: crypto },
+          { label: "Crypto", value: cryptoName },
           { label: "Amount", value: amount },
           { label: "Status", value: "Pending review" },
         ],
@@ -143,18 +155,28 @@ Please verify if the deposit was actually received and log in to the admin dashb
                 >
                   <option value="BTC">BTC — Bitcoin</option>
                   <option value="ETH">ETH — Ethereum</option>
-                  <option value="USDT">USDT — Tether</option>
+                  <option value="USDT">USDT (TRON) — Tether</option>
                 </select>
+                {isUsdt && (
+                  <p className="text-xs text-muted-foreground">
+                    Network: TRC-20 (<span className="font-semibold text-red-500">TRON</span>)
+                  </p>
+                )}
               </div>
               <div className="space-y-2"><Label>Amount</Label><Input type="number" step="0.0001" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" required /></div>
             </div>
 
             <div className="rounded-2xl border border-border/60 bg-muted/30 p-4 min-w-0">
-              <p className="text-xs uppercase tracking-wider text-muted-foreground">Wallet address ({cryptoName})</p>
+              <p className="text-xs uppercase tracking-wider text-muted-foreground">Wallet address ({cryptoLabel})</p>
               <div className="mt-2 flex items-center gap-2 min-w-0">
                 <code className="flex-1 min-w-0 truncate rounded-lg bg-background px-3 py-2 font-mono text-xs">{wallet}</code>
                 <Button type="button" variant="outline" size="icon" onClick={copy} className="shrink-0"><Copy className="h-4 w-4" /></Button>
               </div>
+              {isUsdt && (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Send USDT only on the <span className="font-semibold text-red-500">TRON</span> (TRC-20) network. Other networks may result in lost funds.
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -178,7 +200,7 @@ Please verify if the deposit was actually received and log in to the admin dashb
           <div className="mt-3 rounded-2xl bg-white p-3 ring-1 ring-border">
             {wallet && wallet !== "—" ? <QRCodeSVG value={wallet} size={180} /> : <div className="h-44 w-44 bg-muted" />}
           </div>
-          <p className="mt-3 text-xs text-muted-foreground">Open your crypto wallet, tap scan, and send {cryptoName} .</p>
+          <p className="mt-3 text-xs text-muted-foreground">Open your crypto wallet, tap scan, and send {cryptoLabel}.</p>
         </Card>
       </div>
     </div>
