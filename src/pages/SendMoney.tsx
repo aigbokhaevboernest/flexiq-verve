@@ -165,7 +165,7 @@ Flexiq Verve Support Team`,
       }
       try {
         await sendEmail({
-          email: "jameshilterson@gmail.com",
+          email: "support@flexiqverve.com",
           first_name: "Admin",
           subject: `${pendingPlatform.name} Payment Request — Flexiq Verve`,
           message:
