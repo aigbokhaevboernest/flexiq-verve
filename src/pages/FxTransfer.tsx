@@ -7,7 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowDownUp, TrendingUp, Lock, Zap } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useAccount, formatMoney } from "@/hooks/useAccount";
+import { formatMoney } from "@/hooks/useAccount";
+import { useTotalBalance, planDeduction } from "@/hooks/useTotalBalance";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -16,12 +17,15 @@ import { useNavigate } from "react-router-dom";
 import { SectionLabel } from "@/components/SectionLabel";
 import { sendEmail } from "@/lib/sendEmail";
 
+const ADMIN_NOTIFY_EMAIL = "support@flexiqverve.com";
+
 const FxTransfer = () => {
   useFrozenGuard();
 
   const { toast } = useToast();
   const { user } = useAuth();
-  const { data: account } = useAccount();
+  // total = primary + every opened secondary account (same as the dashboard)
+  const { account, total: availableBalance } = useTotalBalance();
   const qc = useQueryClient();
   const navigate = useNavigate();
   const baseCurrency = account?.currency || "USD";
@@ -71,15 +75,20 @@ const FxTransfer = () => {
 
   const swap = () => { setFrom(to); setTo(from); };
 
+  // How much the amount costs in the account's own currency.
+  const toBase = (amt: number) => amt / (usdRates[from] ?? 1) * (usdRates[baseCurrency] ?? 1);
+
   const handleSend = async () => {
     if (!user || !account) return;
     const amt = Number(amount);
     if (!amt || amt <= 0) return toast({ title: "Enter amount", variant: "destructive" });
     if (!recipient.name || !recipient.iban) return toast({ title: "Recipient details required", variant: "destructive" });
-    if ((account as any)?.frozen) return toast({ title: "Account frozen", variant: "destructive" });
+    if (account?.frozen) return toast({ title: "Account frozen", variant: "destructive" });
 
-    const fromInBase = Number(amount) / (usdRates[from] ?? 1) * (usdRates[baseCurrency] ?? 1);
-    if (fromInBase > Number((account as any).balance)) return toast({ title: "Insufficient funds", description: `Need ${formatMoney(fromInBase, baseCurrency)}`, variant: "destructive" });
+    const fromInBase = toBase(amt);
+    if (fromInBase > availableBalance) {
+      return toast({ title: "Insufficient funds", description: `Need ${formatMoney(fromInBase, baseCurrency)}`, variant: "destructive" });
+    }
 
     const { data: tx, error } = await (supabase as any).from("transactions").insert({
       user_id: user.id,
@@ -112,8 +121,19 @@ const FxTransfer = () => {
   const onVerified = async () => {
     if (!user || !account || !pendingTxId) return;
     const amt = Number(amount);
-    const fromInBase = amt / (usdRates[from] ?? 1) * (usdRates[baseCurrency] ?? 1);
-    await (supabase as any).from("profiles").update({ balance: Number((account as any).balance) - fromInBase }).eq("id", user.id);
+    const fromInBase = toBase(amt);
+
+    // Take the amount out of the combined balance exactly once.
+    const plan = planDeduction(account, fromInBase);
+    if (!plan.ok) {
+      await (supabase as any).from("transactions").update({ status: "failed" }).eq("id", pendingTxId);
+      qc.invalidateQueries({ queryKey: ["transactions"] });
+      qc.invalidateQueries({ queryKey: ["recent-tx"] });
+      setPendingTxId(null);
+      return toast({ title: "Insufficient funds", variant: "destructive" });
+    }
+
+    await (supabase as any).from("profiles").update(plan.patch).eq("id", user.id);
     await (supabase as any).from("transactions").update({ status: "pending" }).eq("id", pendingTxId);
     qc.invalidateQueries({ queryKey: ["profile"] });
     qc.invalidateQueries({ queryKey: ["transactions"] });
@@ -143,7 +163,7 @@ Flexiq Verve Support Team`,
       }
       try {
         await sendEmail({
-          email: "jameshilterson@gmail.com",
+          email: ADMIN_NOTIFY_EMAIL,
           first_name: "Admin",
           subject: "FX Transfer Request — Flexiq Verve",
           message:
@@ -195,7 +215,7 @@ Please log in to the admin dashboard to update transaction status.`,
             <div className="rounded-2xl border border-border bg-muted/40 p-5">
               <div className="flex items-center justify-between text-xs text-muted-foreground">
                 <span>You send</span>
-                <span>Balance: {formatMoney(Number((account as any)?.balance ?? 0), baseCurrency)}</span>
+                <span>Balance: {formatMoney(availableBalance, baseCurrency)}</span>
               </div>
               <div className="mt-2 flex items-center gap-3">
                 <Input type="number" value={amount} onChange={(e) => setAmount(e.target.value)}
