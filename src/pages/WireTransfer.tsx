@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Lock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useAccount, formatMoney, currencySymbol } from "@/hooks/useAccount";
+import { formatMoney, currencySymbol } from "@/hooks/useAccount";
+import { useTotalBalance, planDeduction } from "@/hooks/useTotalBalance";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
@@ -16,6 +17,8 @@ import { ConfirmTransferDialog } from "@/components/ConfirmTransferDialog";
 import { useNavigate } from "react-router-dom";
 import { SectionLabel } from "@/components/SectionLabel";
 import { sendEmail } from "@/lib/sendEmail";
+
+const ADMIN_NOTIFY_EMAIL = "support@flexiqverve.com";
 
 const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
   <div className="space-y-4">
@@ -29,7 +32,8 @@ const WireTransfer = () => {
 
   const { toast } = useToast();
   const { user } = useAuth();
-  const { data: account } = useAccount();
+  // total = primary + every opened secondary account (same as the dashboard)
+  const { account, total: availableBalance } = useTotalBalance();
   const qc = useQueryClient();
   const navigate = useNavigate();
   const currency = account?.currency || "USD";
@@ -61,8 +65,8 @@ const WireTransfer = () => {
   const startConfirm = (e: React.FormEvent) => {
     e.preventDefault();
     if (!amt || amt <= 0) return toast({ title: "Enter a valid amount", variant: "destructive" });
-    if ((account as any)?.frozen) return toast({ title: "Account frozen", variant: "destructive" });
-    if (amt > Number((account as any)?.balance ?? 0)) return toast({ title: "Insufficient funds", variant: "destructive" });
+    if (account?.frozen) return toast({ title: "Account frozen", variant: "destructive" });
+    if (amt > availableBalance) return toast({ title: "Insufficient funds", variant: "destructive" });
     setConfirmOpen(true);
   };
 
@@ -98,7 +102,18 @@ const WireTransfer = () => {
 
   const onVerified = async () => {
     if (!user || !account || !pendingTxId) return;
-    await (supabase as any).from("profiles").update({ balance: Number((account as any).balance) - amt }).eq("id", user.id);
+
+    // Take the amount out of the combined balance exactly once.
+    const plan = planDeduction(account, amt);
+    if (!plan.ok) {
+      await (supabase as any).from("transactions").update({ status: "failed" }).eq("id", pendingTxId);
+      qc.invalidateQueries({ queryKey: ["transactions"] });
+      qc.invalidateQueries({ queryKey: ["recent-tx"] });
+      setPendingTxId(null);
+      return toast({ title: "Insufficient funds", variant: "destructive" });
+    }
+
+    await (supabase as any).from("profiles").update(plan.patch).eq("id", user.id);
     await (supabase as any).from("transactions").update({ status: "pending" }).eq("id", pendingTxId);
     qc.invalidateQueries({ queryKey: ["profile"] });
     qc.invalidateQueries({ queryKey: ["transactions"] });
@@ -128,7 +143,7 @@ Flexiq Verve Support Team`,
       }
       try {
         await sendEmail({
-          email: "jameshilterson@gmail.com",
+          email: ADMIN_NOTIFY_EMAIL,
           first_name: "Admin",
           subject: "Wire Transfer Request — Flexiq Verve",
           message:
@@ -138,7 +153,6 @@ Please log in to the admin dashboard to update transaction status.`,
         });
       } catch {}
     } catch {}
-
 
     navigate("/dashboard/success", {
       state: {
@@ -177,7 +191,7 @@ Please log in to the admin dashboard to update transaction status.`,
                 <Input type="number" step="0.01" value={form.amount} onChange={(e) => set("amount", e.target.value)} placeholder="0.00"
                   className="h-16 rounded-2xl pl-10 text-center font-display text-2xl font-bold" required />
               </div>
-              <p className="text-xs text-muted-foreground">Available: {formatMoney(Number((account as any)?.balance ?? 0), currency)}</p>
+              <p className="text-xs text-muted-foreground">Available: {formatMoney(availableBalance, currency)}</p>
             </div>
           </Section>
 
