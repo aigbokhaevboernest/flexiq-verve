@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import {
   Lock,
   TrendingUp,
@@ -244,7 +245,15 @@ const PlaceholderCard = ({ type, onOpen, isTop }: { type: SecondaryType; onOpen:
   );
 };
 
-const ConnectRetirementModal = ({ onClose }: { onClose: () => void }) => (
+const ConnectRetirementModal = ({ onClose }: { onClose: () => void }) => {
+  const navigate = useNavigate();
+  // Every option sends the user to the financial services page.
+  const goToServices = () => {
+    onClose();
+    navigate("/dashboard/financial-services");
+  };
+
+  return (
   <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
     <div className="w-full max-w-sm rounded-3xl bg-card p-6 shadow-elev" onClick={(e) => e.stopPropagation()}>
       <div className="flex items-center justify-between">
@@ -256,8 +265,8 @@ const ConnectRetirementModal = ({ onClose }: { onClose: () => void }) => (
       </p>
       <div className="mt-5 space-y-2">
         {["401(k)", "Traditional IRA", "Roth IRA", "Other retirement plan"].map((label) => (
-          <button key={label} type="button" disabled
-            className="flex w-full cursor-not-allowed items-center justify-between rounded-2xl border border-border/60 px-4 py-3 text-left text-sm font-medium opacity-60"
+          <button key={label} type="button" onClick={goToServices}
+            className="flex w-full items-center justify-between rounded-2xl border border-border/60 px-4 py-3 text-left text-sm font-medium transition-colors hover:bg-muted"
           >
             {label} <ArrowRight className="h-4 w-4" />
           </button>
@@ -265,7 +274,8 @@ const ConnectRetirementModal = ({ onClose }: { onClose: () => void }) => (
       </div>
     </div>
   </div>
-);
+  );
+};
 
 const AccountCarousel = ({
   primarySlide,
