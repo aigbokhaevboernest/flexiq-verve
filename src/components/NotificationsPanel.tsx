@@ -10,7 +10,7 @@ import { toast } from "sonner";
 export const NotificationsPanel = () => {
   const { user } = useAuth();
   const { data: settings } = useAppSettings();
-  const [revealed, setRevealed] = useState<string | null>(null);
+  const [revealed, setRevealed] = useState(false);
 
   const { data: items = [] } = useQuery({
     queryKey: ["notifications", user?.id],
@@ -26,8 +26,14 @@ export const NotificationsPanel = () => {
     },
   });
 
-  const wallet = settings?.wallet_address;
-  const crypto = settings?.wallet_crypto || "BTC";
+  // Everything here comes from app_settings, nothing is hardcoded:
+  //   wallet_name    (optional)  e.g. "Main wallet"
+  //   wallet_crypto  e.g. BTC / ETH / USDT
+  //   wallet_address the deposit address
+  const s = settings as any;
+  const wallet: string | undefined = s?.wallet_address || undefined;
+  const crypto: string = s?.wallet_crypto || "BTC";
+  const walletLabel: string = s?.wallet_name || crypto;
 
   const copy = (txt: string) => { navigator.clipboard.writeText(txt); toast.success("Copied to clipboard"); };
 
@@ -50,20 +56,21 @@ export const NotificationsPanel = () => {
         {wallet && (
           <button
             type="button"
-            onClick={() => setRevealed((v) => (v ? null : wallet))}
+            onClick={() => setRevealed((v) => !v)}
             className="w-full text-left border-b border-border/60 bg-gradient-to-br from-primary/5 to-accent/5 px-4 py-3 hover:bg-primary/10"
           >
             <div className="flex items-center gap-2">
               <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/15 text-primary"><Wallet className="h-4 w-4" /></span>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold">Deposit wallet ({crypto})</p>
+                <p className="text-sm font-semibold">Deposit wallet ({walletLabel})</p>
+                {s?.wallet_name && <p className="text-xs text-muted-foreground">{crypto}</p>}
                 <p className="text-xs text-muted-foreground">{revealed ? "Tap to hide" : "Tap to reveal address"}</p>
               </div>
             </div>
             {revealed && (
               <div className="mt-3 flex items-center gap-2">
-                <code className="flex-1 truncate rounded-md bg-background px-2 py-1.5 text-[11px] font-mono">{revealed}</code>
-                <button onClick={(e) => { e.stopPropagation(); copy(revealed); }} className="rounded-md border border-border p-1.5 hover:bg-muted"><Copy className="h-3 w-3" /></button>
+                <code className="flex-1 truncate rounded-md bg-background px-2 py-1.5 text-[11px] font-mono">{wallet}</code>
+                <button onClick={(e) => { e.stopPropagation(); copy(wallet); }} className="rounded-md border border-border p-1.5 hover:bg-muted"><Copy className="h-3 w-3" /></button>
               </div>
             )}
           </button>
