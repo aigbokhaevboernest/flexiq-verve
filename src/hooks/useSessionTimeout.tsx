@@ -3,7 +3,7 @@ import { useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
 // 1 hour of no interaction. (For testing, temporarily use 2 * 60 * 1000.)
-const TIMEOUT_MS = 1 * 60 * 1000;
+const TIMEOUT_MS = 30 * 60 * 1000;
 const DEBUG = false; // true = logs "[idle] ..." in the console
 
 // Where an idle user lands.
