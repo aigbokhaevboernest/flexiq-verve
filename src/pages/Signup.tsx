@@ -5,11 +5,32 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Link, useNavigate } from "react-router-dom";
 import { countries } from "@/lib/countries";
 import { currencies } from "@/lib/currencies";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { BrandLogo } from "@/components/BrandLogo";
 import { sendEmail } from "@/lib/sendEmail";
+
+// Public site key (safe in the browser). Set VITE_RECAPTCHA_SITE_KEY in .env / Vercel.
+const RECAPTCHA_SITE_KEY = (import.meta.env.VITE_RECAPTCHA_SITE_KEY as string | undefined) ?? "";
+
+declare global {
+  interface Window {
+    grecaptcha?: {
+      ready: (cb: () => void) => void;
+      render: (
+        container: string | HTMLElement,
+        params: {
+          sitekey: string;
+          callback?: (token: string) => void;
+          "expired-callback"?: () => void;
+          "error-callback"?: () => void;
+        }
+      ) => number;
+      reset: (widgetId?: number) => void;
+    };
+  }
+}
 
 const nativeSelectClass =
   "mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring";
@@ -20,7 +41,7 @@ const ERROR_RING = "border-red-500 focus-visible:ring-red-500 focus:ring-red-500
 const FIELD_ORDER = [
   "first_name", "last_name", "username", "email", "phone", "country",
   "account_type", "currency", "city", "date_of_birth", "address",
-  "password", "confirm_password", "terms",
+  "password", "confirm_password", "terms", "captcha",
 ] as const;
 
 const FieldError = ({ msg }: { msg?: string }) =>
@@ -52,6 +73,60 @@ const Signup = () => {
     password: "",
     confirm_password: "",
   });
+
+  // ── reCAPTCHA v2 (checkbox) ──
+  const captchaRef = useRef<HTMLDivElement>(null);
+  const widgetIdRef = useRef<number | null>(null);
+  const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!RECAPTCHA_SITE_KEY) {
+      console.warn("VITE_RECAPTCHA_SITE_KEY is not set — reCAPTCHA will not load.");
+      return;
+    }
+
+    const renderWidget = () => {
+      window.grecaptcha?.ready(() => {
+        if (!captchaRef.current || widgetIdRef.current !== null) return;
+        widgetIdRef.current = window.grecaptcha!.render(captchaRef.current, {
+          sitekey: RECAPTCHA_SITE_KEY,
+          callback: (token) => {
+            setRecaptchaToken(token);
+            setErrors((prev) => {
+              const next = { ...prev };
+              delete next.captcha;
+              return next;
+            });
+          },
+          "expired-callback": () => setRecaptchaToken(null),
+          "error-callback": () => setRecaptchaToken(null),
+        });
+      });
+    };
+
+    if (window.grecaptcha) {
+      renderWidget();
+      return;
+    }
+
+    let script = document.getElementById("recaptcha-script") as HTMLScriptElement | null;
+    if (!script) {
+      script = document.createElement("script");
+      script.id = "recaptcha-script";
+      script.src = "https://www.google.com/recaptcha/api.js?render=explicit";
+      script.async = true;
+      script.defer = true;
+      document.head.appendChild(script);
+    }
+    script.addEventListener("load", renderWidget);
+    return () => script?.removeEventListener("load", renderWidget);
+  }, []);
+
+  // A token can only be verified once, so reset the widget after every attempt that used it.
+  const resetCaptcha = () => {
+    if (widgetIdRef.current !== null) window.grecaptcha?.reset(widgetIdRef.current);
+    setRecaptchaToken(null);
+  };
 
   // Returns an error message for one field, or "" if it's fine.
   const validateField = (name: string, value: string, pwd = form.password): string => {
@@ -129,6 +204,7 @@ const Signup = () => {
       if (msg) next[key] = msg;
     });
     if (!agreed) next.terms = "You must agree to the Terms and Privacy Policy";
+    if (!recaptchaToken) next.captcha = "Please complete the security check";
     setErrors(next);
 
     const first = FIELD_ORDER.find((k) => next[k]);
@@ -152,6 +228,28 @@ const Signup = () => {
     const releaseTimeout = setTimeout(() => setSubmitting(false), 10000);
 
     try {
+      // 1) Verify the reCAPTCHA token on the server BEFORE creating the auth user,
+      //    so bots never get an account.
+      const { data: captcha, error: captchaErr } = await supabase.functions.invoke(
+        "verify-recaptcha",
+        { body: { token: recaptchaToken } }
+      );
+
+      if (captchaErr || !captcha?.success) {
+        clearTimeout(releaseTimeout);
+        setSubmitting(false);
+        resetCaptcha();
+        setError("captcha", "Security check failed. Please try again.");
+        toast({
+          title: "Security check failed",
+          description: "Please complete the check and try again.",
+          variant: "destructive",
+        });
+        document.getElementById("captcha")?.scrollIntoView({ behavior: "smooth", block: "center" });
+        return;
+      }
+
+      // 2) Create the account
       const { data, error } = await supabase.auth.signUp({
         email: form.email.trim(),
         password: form.password,
@@ -177,6 +275,7 @@ const Signup = () => {
       if (error) {
         clearTimeout(releaseTimeout);
         setSubmitting(false);
+        resetCaptcha(); // the token was already used up
         // Put the message next to the field it's about, otherwise in a banner.
         if (/already registered|already exists|user already/i.test(error.message)) {
           setError("email", "An account with this email already exists. Try logging in.");
@@ -252,6 +351,7 @@ Flexiq Verve Support Team`,
     } catch (err: any) {
       clearTimeout(releaseTimeout);
       setSubmitting(false);
+      resetCaptcha();
       setFormError(err?.message || "Something went wrong. Please try again.");
     }
   };
@@ -398,13 +498,26 @@ Flexiq Verve Support Team`,
               <FieldError msg={errors.terms} />
             </div>
 
+            {/* reCAPTCHA v2 checkbox */}
+            <div id="captcha">
+              <div className="overflow-x-auto">
+                <div ref={captchaRef} />
+              </div>
+              <FieldError msg={errors.captcha} />
+            </div>
+
             {formError && (
               <div role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
                 {formError}
               </div>
             )}
 
-            <Button type="submit" size="lg" disabled={submitting} className="w-full bg-gradient-primary text-primary-foreground shadow-md hover:opacity-95">
+            <Button
+              type="submit"
+              size="lg"
+              disabled={submitting || !recaptchaToken}
+              className="w-full bg-gradient-primary text-primary-foreground shadow-md hover:opacity-95"
+            >
               {submitting ? "Creating account…" : "Create account"}
             </Button>
           </form>
