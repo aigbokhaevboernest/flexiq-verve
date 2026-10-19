@@ -72,7 +72,6 @@ const PLACEHOLDER_META: Record<
 };
 
 const PRIMARY_DOT_COLOR = "hsl(var(--primary))";
-const PRIMARY_GRADIENT = "linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary) / 0.7) 100%)";
 
 const calcOverdraft = (balance: number) => Math.min(balance * 0.15, 5000);
 const SAVINGS_APR = 0.0275;
@@ -100,8 +99,7 @@ const StatItem = ({
   </div>
 );
 
-// isTop controls whether the real bottom bar (Account No. / View details) shows,
-// or just the account name — same idea as Cards.tsx only revealing a name-safe sliver.
+// isTop controls whether the real bottom bar shows, or just the account name.
 const OpenedAccountCard = ({
   type,
   balance,
@@ -152,7 +150,7 @@ const OpenedAccountCard = ({
               {type === "checking" && (
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                   <StatItem icon={Clock} label="Overdraft" value={formatMoney(calcOverdraft(balance), currency)} />
-                  <StatItem icon={Clock} label="Last txn" value="Today" />
+                  <StatItem icon={Clock} label="Last txn" value="—" />
                   <StatItem icon={FileText} label="Pending" value={formatMoney(0, currency)} />
                   <StatItem icon={ShieldCheck} label="Status" value="Active" valueClassName="text-emerald-300" />
                 </div>
@@ -175,17 +173,31 @@ const OpenedAccountCard = ({
               )}
             </div>
           </div>
-          <button
-            type="button"
-            onClick={onViewDetails}
-            className="relative flex items-center justify-between border-t border-white/15 bg-black/10 px-6 py-3.5 text-[13px] font-semibold hover:bg-black/20 transition-colors"
-          >
-            <span>Account No. {maskedAccountNumber}</span>
-            <span className="flex items-center gap-1.5">View details <ArrowRight className="h-3.5 w-3.5" /></span>
-          </button>
+
+          {type === "retirement" ? (
+            // Retirement: no account number, no "View details" — just the
+            // connect label and the arrow.
+            <button
+              type="button"
+              onClick={onViewDetails}
+              className="relative flex items-center justify-between border-t border-white/15 bg-black/10 px-6 py-3.5 text-[13px] font-semibold hover:bg-black/20 transition-colors"
+            >
+              <span>Connect an account</span>
+              <ArrowRight className="h-3.5 w-3.5" />
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={onViewDetails}
+              className="relative flex items-center justify-between border-t border-white/15 bg-black/10 px-6 py-3.5 text-[13px] font-semibold hover:bg-black/20 transition-colors"
+            >
+              <span>Account No. {maskedAccountNumber}</span>
+              <span className="flex items-center gap-1.5">View details <ArrowRight className="h-3.5 w-3.5" /></span>
+            </button>
+          )}
         </>
       ) : (
-        // Peeking state: only the name shows, same spirit as the sliver behind Cards.tsx cards
+        // Peeking state: only the name shows
         <div className="relative flex h-full items-end justify-center pb-4">
           <span className="text-[11px] font-semibold uppercase tracking-widest text-white/85">
             {meta.shortName}
@@ -251,7 +263,6 @@ const ConnectRetirementModal = ({ onClose }: { onClose: () => void }) => (
           </button>
         ))}
       </div>
-      <p className="mt-4 text-xs text-muted-foreground">Connecting external accounts isn't available yet — coming soon.</p>
     </div>
   </div>
 );
