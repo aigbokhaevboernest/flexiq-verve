@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,14 +26,36 @@ const ReceiveMoney = () => {
   const [file, setFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  if (isLoading) return (
+  // Per-user deposit access. null = still checking. Off unless the admin
+  // turned it on for this specific user (profiles.receive_enabled).
+  const [userEnabled, setUserEnabled] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await (supabase as any)
+        .from("profiles")
+        .select("receive_enabled")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (cancelled) return;
+      // Any error or missing value means off.
+      setUserEnabled(error ? false : !!data?.receive_enabled);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
+
+  if (isLoading || userEnabled === null) return (
     <div className="space-y-4">
       <Skeleton className="h-10 w-60" />
       <Skeleton className="h-72 w-full rounded-3xl" />
     </div>
   );
 
-  if (!settings?.receive_enabled) {
+  if (!userEnabled) {
     return (
       <Dialog open onOpenChange={() => navigate("/dashboard")}>
         <DialogContent className="font-sans sm:max-w-md">
@@ -48,9 +70,9 @@ const ReceiveMoney = () => {
   }
 
   const walletMap: Record<string, string> = {
-    BTC: (settings as any).btc_wallet_address || "—",
-    ETH: (settings as any).eth_wallet_address || "—",
-    USDT: (settings as any).usdt_wallet_address || "—",
+    BTC: (settings as any)?.btc_wallet_address || "—",
+    ETH: (settings as any)?.eth_wallet_address || "—",
+    USDT: (settings as any)?.usdt_wallet_address || "—",
   };
 
   const wallet = walletMap[crypto] || "—";
