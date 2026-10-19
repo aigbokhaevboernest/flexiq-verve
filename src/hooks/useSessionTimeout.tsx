@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
-const TIMEOUT_MS = 60 * 60 * 1000; // 1 hour
+const TIMEOUT_MS = 1 * 60 * 1000; // 1 hour
 const EVENTS = ["mousemove", "mousedown", "keydown", "scroll", "touchstart"];
 const EXEMPT = ["/login", "/signup", "/forgot-password", "/reset-password", "/", "/pin", "/verify"];
 
