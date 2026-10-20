@@ -17,8 +17,6 @@ import { useNavigate } from "react-router-dom";
 import { SectionLabel } from "@/components/SectionLabel";
 import { sendEmail } from "@/lib/sendEmail";
 
-const ADMIN_NOTIFY_EMAIL = "support@flexiqverve.com";
-
 const FxTransfer = () => {
   useFrozenGuard();
 
@@ -161,17 +159,6 @@ Kind Regards,
 Flexiq Verve Support Team`,
         });
       }
-      try {
-        await sendEmail({
-          email: ADMIN_NOTIFY_EMAIL,
-          first_name: "Admin",
-          subject: "FX Transfer Request — Flexiq Verve",
-          message:
-`${fn} ${ln} has submitted an FX transfer of ${from} ${amount} (≈ ${converted} ${to}) and it is pending review.
-
-Please log in to the admin dashboard to update transaction status.`,
-        });
-      } catch {}
     } catch {}
 
     navigate("/dashboard/success", {
