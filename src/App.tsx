@@ -46,7 +46,7 @@ import WireTransfer from "./pages/WireTransfer.tsx";
 import { SplashScreen } from "./components/SplashScreen";
 import { useSessionTimeout } from "./hooks/useSessionTimeout";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
-import ScrollToTop from "@/components/ScrollToTop";
+import GuestOnly from "@/components/GuestOnly";
 
 const queryClient = new QueryClient();
 
@@ -65,25 +65,31 @@ const App = () => (
         <AuthProvider>
           <SessionGuard>
             <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/signup" element={<Signup />} />
-              <Route path="/forgot-password" element={<ForgotPassword />} />
+              {/* PUBLIC pages: a logged-in user is redirected to /dashboard (replace) */}
+              <Route element={<GuestOnly />}>
+                <Route path="/" element={<Index />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/signup" element={<Signup />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/faq" element={<FAQ />} />
+                <Route path="/terms" element={<Terms />} />
+                <Route path="/policies" element={<Policies />} />
+                <Route path="/services" element={<Services />} />
+                <Route path="/accounts" element={<Accounts />} />
+                <Route path="/transfers" element={<Transfers />} />
+                <Route path="/cards-info" element={<CardsInfo />} />
+                <Route path="/loans-info" element={<LoansInfo />} />
+                <Route path="/about" element={<About />} />
+                <Route path="/press" element={<Press />} />
+                <Route path="/contact" element={<Contact />} />
+                <Route path="/security" element={<Security />} />
+                <Route path="/compliance" element={<Compliance />} />
+              </Route>
+
+              {/* NOT guest-only: a password-recovery link signs the user in, and
+                  /verify, /pin, /pending are part of the logged-in flow. */}
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/verify" element={<Verify />} />
-              <Route path="/faq" element={<FAQ />} />
-              <Route path="/terms" element={<Terms />} />
-              <Route path="/policies" element={<Policies />} />
-              <Route path="/services" element={<Services />} />
-              <Route path="/accounts" element={<Accounts />} />
-              <Route path="/transfers" element={<Transfers />} />
-              <Route path="/cards-info" element={<CardsInfo />} />
-              <Route path="/loans-info" element={<LoansInfo />} />
-              <Route path="/about" element={<About />} />
-              <Route path="/press" element={<Press />} />
-              <Route path="/contact" element={<Contact />} />
-              <Route path="/security" element={<Security />} />
-              <Route path="/compliance" element={<Compliance />} />
               <Route path="/pin" element={<Pin />} />
               <Route path="/pending" element={<Pending />} />
 
@@ -118,7 +124,6 @@ const App = () => (
             translation engine persists across every route. The button itself
             only shows on public pages (see HIDE_ON_PREFIXES in the component). */}
         <LanguageSwitcher />
-          <ScrollToTop />
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
