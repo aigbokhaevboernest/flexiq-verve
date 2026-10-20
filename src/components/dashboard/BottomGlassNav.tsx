@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   ArrowUpRight,
@@ -26,15 +26,35 @@ type Props = {
   hidden?: boolean;
 };
 
+// Physics state lives in a ref and is written straight to the DOM every
+// frame, so dragging never triggers React re-renders.
+type Sim = {
+  x: number; // lens position (0..COUNT-1, fractional)
+  v: number; // lens velocity (tabs per second)
+  target: number;
+  p: number; // press amount 0..1 (springs too)
+  pv: number;
+  pT: number;
+  dragging: boolean;
+  raf: number;
+  last: number;
+};
+
 export const BottomGlassNav = ({ hidden = false }: Props) => {
   const { pathname } = useLocation();
   const navigate = useNavigate();
+
   const wrapRef = useRef<HTMLDivElement>(null);
+  const barRef = useRef<HTMLDivElement>(null);
+  const lensRef = useRef<HTMLDivElement>(null);
+  const btnRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
   const clean = pathname.replace(/\/$/, "");
   const activeIdx = items.findIndex((i) =>
     i.exact ? clean === i.match : clean === i.match || clean.startsWith(i.match + "/")
   );
+  const activeRef = useRef(activeIdx);
+  activeRef.current = activeIdx;
 
   // Dashboard home only: hidden at the top, slides in once you scroll down,
   // slides away again when you scroll back near the top.
@@ -59,20 +79,130 @@ export const BottomGlassNav = ({ hidden = false }: Props) => {
   // Every other dashboard page: always on. Sidebar open: always off.
   const shown = (isHome ? scrolled : true) && !hidden;
 
-  // pos is the lens position (0..COUNT-1, fractional while dragging).
-  // null means "rest on the active tab".
-  const [pos, setPos] = useState<number | null>(null);
-  const [pressing, setPressing] = useState(false);
+  const sim = useRef<Sim>({
+    x: Math.max(activeIdx, 0),
+    v: 0,
+    target: Math.max(activeIdx, 0),
+    p: 0,
+    pv: 0,
+    pT: 0,
+    dragging: false,
+    raf: 0,
+    last: 0,
+  });
 
+  const reduceMotion = useRef(false);
   useEffect(() => {
-    if (!shown) {
-      setPressing(false);
-      setPos(null);
-    }
-  }, [shown]);
+    reduceMotion.current = window.matchMedia(
+      "(prefers-reduced-motion: reduce)"
+    ).matches;
+  }, []);
 
-  const lensIndex = pos ?? Math.max(activeIdx, 0);
-  const nearIdx = Math.round(lensIndex);
+  // Write the current physics state to the DOM.
+  const apply = useCallback(() => {
+    const s = sim.current;
+    const lens = lensRef.current;
+    if (!lens) return;
+
+    const speed = Math.abs(s.v);
+    // Stretch along the direction of travel, squash a touch vertically
+    const stretch = Math.min(0.6, speed * 0.09);
+    const sx = 1.22 + 0.18 * s.p + stretch;
+    const sy = 1.0 + 0.12 * s.p - stretch * 0.2;
+    lens.style.transform = `translate3d(${s.x * 100}%,0,0) scale(${sx},${sy})`;
+    lens.style.opacity =
+      activeRef.current >= 0 || s.dragging || s.p > 0.02 ? "1" : "0";
+
+    // Refraction fringes get stronger the faster the lens moves
+    const f = Math.min(1, speed * 0.28 + s.p * 0.55);
+    lens.style.boxShadow = [
+      `inset 0 0 0 1px rgba(255,255,255,${0.3 + 0.3 * f})`,
+      `inset 3px 0 7px rgba(0,210,255,${0.12 + 0.4 * f})`,
+      `inset -3px 0 7px rgba(255,60,200,${0.1 + 0.35 * f})`,
+      `inset 0 -3px 7px rgba(255,220,80,${0.06 + 0.2 * f})`,
+      `inset 0 2px 6px rgba(255,255,255,${0.18 + 0.15 * f})`,
+      `0 6px 20px rgba(0,0,0,${0.25 + 0.25 * f})`,
+    ].join(",");
+
+    if (barRef.current) {
+      barRef.current.style.transform = `scale(${1 + 0.045 * s.p})`;
+    }
+
+    // Icon under the lens grows; neighbours ease off as it passes
+    btnRefs.current.forEach((el, i) => {
+      if (!el) return;
+      const prox = Math.max(0, 1 - Math.abs(i - s.x));
+      el.style.transform = `scale(${1 + prox * (0.1 + 0.1 * s.p)})`;
+      el.style.color = `rgba(255,255,255,${0.7 + 0.3 * prox})`;
+    });
+  }, []);
+
+  const kick = useCallback(() => {
+    const s = sim.current;
+    if (s.raf) return;
+    s.last = performance.now();
+
+    const step = (t: number) => {
+      const dt = Math.min(0.032, (t - s.last) / 1000 || 0.016);
+      s.last = t;
+
+      // Tight while a finger is dragging, softer and bouncier on release
+      const k = s.dragging ? 520 : 240;
+      const c = reduceMotion.current
+        ? 2 * Math.sqrt(k)
+        : s.dragging
+        ? 38
+        : 21;
+
+      s.v += (k * (s.target - s.x) - c * s.v) * dt;
+      s.x += s.v * dt;
+      s.pv += (420 * (s.pT - s.p) - 24 * s.pv) * dt;
+      s.p += s.pv * dt;
+
+      const settled =
+        Math.abs(s.target - s.x) < 0.0005 &&
+        Math.abs(s.v) < 0.002 &&
+        Math.abs(s.pT - s.p) < 0.001 &&
+        Math.abs(s.pv) < 0.002;
+
+      if (settled) {
+        s.x = s.target;
+        s.v = 0;
+        s.p = s.pT;
+        s.pv = 0;
+        s.raf = 0;
+        apply();
+        return;
+      }
+      apply();
+      s.raf = requestAnimationFrame(step);
+    };
+    s.raf = requestAnimationFrame(step);
+  }, [apply]);
+
+  // First paint: place the lens without animating
+  useEffect(() => {
+    apply();
+    return () => cancelAnimationFrame(sim.current.raf);
+  }, [apply]);
+
+  // Route changed (or tab tapped): glide the lens to the active tab
+  useEffect(() => {
+    const s = sim.current;
+    if (s.dragging) return;
+    s.target = Math.max(activeIdx, 0);
+    kick();
+  }, [activeIdx, kick]);
+
+  // Bar tucked away mid-drag: release cleanly
+  useEffect(() => {
+    if (shown) return;
+    const s = sim.current;
+    s.dragging = false;
+    s.pT = 0;
+    s.target = Math.max(activeRef.current, 0);
+    kick();
+  }, [shown, kick]);
 
   const posFromEvent = (e: React.PointerEvent) => {
     const rect = wrapRef.current!.getBoundingClientRect();
@@ -87,25 +217,37 @@ export const BottomGlassNav = ({ hidden = false }: Props) => {
 
   const onDown = (e: React.PointerEvent) => {
     e.currentTarget.setPointerCapture(e.pointerId);
-    setPressing(true);
-    setPos(posFromEvent(e));
+    const s = sim.current;
+    s.dragging = true;
+    s.pT = 1;
+    s.target = posFromEvent(e);
+    kick();
   };
 
   const onMove = (e: React.PointerEvent) => {
-    if (pressing) setPos(posFromEvent(e));
+    const s = sim.current;
+    if (!s.dragging) return;
+    s.target = posFromEvent(e);
+    kick();
   };
 
   const onUp = (e: React.PointerEvent) => {
-    if (!pressing) return;
+    const s = sim.current;
+    if (!s.dragging) return;
     const i = Math.round(posFromEvent(e));
-    setPressing(false);
-    setPos(null);
+    s.dragging = false;
+    s.pT = 0;
+    s.target = i;
+    kick();
     go(i);
   };
 
   const onCancel = () => {
-    setPressing(false);
-    setPos(null);
+    const s = sim.current;
+    s.dragging = false;
+    s.pT = 0;
+    s.target = Math.max(activeRef.current, 0);
+    kick();
   };
 
   return (
@@ -140,44 +282,33 @@ export const BottomGlassNav = ({ hidden = false }: Props) => {
       >
         {/* Dark frosted capsule */}
         <div
+          ref={barRef}
           className="absolute inset-0 rounded-full backdrop-blur-2xl backdrop-saturate-[1.8]"
           style={{
-            background: "rgba(34, 34, 38, 0.62)",
-            border: "1px solid rgba(255, 255, 255, 0.12)",
+            background:
+              "linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0) 40%), rgba(34, 34, 38, 0.62)",
+            border: "1px solid rgba(255, 255, 255, 0.14)",
             boxShadow:
-              "0 10px 34px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.14)",
-            transform: pressing ? "scale(1.045)" : "scale(1)",
-            transition: `transform 450ms ${SPRING}`,
+              "0 10px 34px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.16)",
+            willChange: "transform",
           }}
         />
 
-        {/* Lens: soft grey pill at rest, clear glass while pressed */}
+        {/* Glass lens: always present, stretches with speed, fringes with motion */}
         <div
+          ref={lensRef}
           aria-hidden
           className="pointer-events-none absolute bottom-1 top-1 rounded-full"
           style={{
             left: 4,
             width: `calc((100% - 8px) / ${COUNT})`,
-            zIndex: pressing ? 3 : 1,
-            opacity: pressing || activeIdx >= 0 ? 1 : 0,
-            transform: `translateX(${lensIndex * 100}%) scale(${
-              pressing ? "1.22, 1.3" : "1, 1"
-            })`,
-            transition: pressing
-              ? "transform 90ms ease-out, background 250ms, box-shadow 250ms"
-              : `transform 500ms ${SPRING}, background 250ms, box-shadow 250ms, opacity 200ms`,
-            background: pressing
-              ? "rgba(255,255,255,0.08)"
-              : "rgba(255,255,255,0.14)",
-            backdropFilter: pressing
-              ? "blur(1px) saturate(1.5) brightness(1.15)"
-              : "none",
-            WebkitBackdropFilter: pressing
-              ? "blur(1px) saturate(1.5) brightness(1.15)"
-              : "none",
-            boxShadow: pressing
-              ? "inset 0 0 0 1px rgba(255,255,255,0.55), inset 3px 0 7px rgba(0,210,255,0.38), inset -3px 0 7px rgba(255,60,200,0.32), inset 0 -4px 8px rgba(255,255,255,0.22), 0 8px 22px rgba(0,0,0,0.45)"
-              : "none",
+            zIndex: 3,
+            willChange: "transform, box-shadow",
+            transition: "opacity 200ms",
+            background:
+              "linear-gradient(180deg, rgba(255,255,255,0.22), rgba(255,255,255,0.04) 45%, rgba(255,255,255,0.1))",
+            backdropFilter: "blur(1.5px) saturate(1.5) brightness(1.18)",
+            WebkitBackdropFilter: "blur(1.5px) saturate(1.5) brightness(1.18)",
           }}
         />
 
@@ -201,6 +332,9 @@ export const BottomGlassNav = ({ hidden = false }: Props) => {
                 }}
               >
                 <button
+                  ref={(el) => {
+                    btnRefs.current[i] = el;
+                  }}
                   type="button"
                   tabIndex={shown ? 0 : -1}
                   onClick={() => go(i)}
@@ -209,13 +343,8 @@ export const BottomGlassNav = ({ hidden = false }: Props) => {
                     i === activeIdx ? "font-semibold" : "font-medium"
                   }`}
                   style={{
-                    color:
-                      i === activeIdx || (pressing && i === nearIdx)
-                        ? "#ffffff"
-                        : "rgba(255,255,255,0.72)",
-                    transform:
-                      pressing && i === nearIdx ? "scale(1.14)" : "scale(1)",
-                    transition: `transform 350ms ${SPRING}, color 200ms`,
+                    color: "rgba(255,255,255,0.72)",
+                    willChange: "transform",
                   }}
                 >
                   <Icon className="h-[21px] w-[21px]" strokeWidth={2} />
