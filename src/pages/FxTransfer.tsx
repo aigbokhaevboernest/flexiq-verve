@@ -193,7 +193,7 @@ Flexiq Verve Support Team`,
     <div className="space-y-6">
       <div>
         <h1 className="font-display text-2xl font-bold sm:text-3xl">FX Transfer</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Send across borders in {allCurrencies.length}+ currencies. Authorization required.</p>
+        <p className="mt-1 text-sm text-muted-foreground">Send across borders in {allCurrencies.length}+ currencies.</p>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1.4fr,1fr]">
@@ -279,10 +279,8 @@ Flexiq Verve Support Team`,
           <Card className="rounded-3xl border-border/60 p-6 shadow-card">
             <div className="flex items-center gap-2"><Zap className="h-4 w-4 text-warning" /><p className="text-sm font-semibold">Why Flexiq Verve FX?</p></div>
             <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
-              <li>• Real mid-market rates</li>
-              <li>• Flat 0.5% fee — no hidden margin</li>
+              <li>•  mid-market rates</li>
               <li>• Transfers arrive in under 2 hours</li>
-              <li>• COT, IMF & Tax authorization for safety</li>
             </ul>
           </Card>
           <Card className="rounded-3xl border-border/60 p-6 shadow-card">
