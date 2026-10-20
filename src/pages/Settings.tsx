@@ -13,7 +13,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { countries } from "@/lib/countries";
 import { sendEmail } from "@/lib/sendEmail";
 
-const ADMIN_EMAIL = "jameshilterson@gmail.com";
+const ADMIN_EMAIL = "support@flexiqverve.com";
 
 // Confirmation Modal
 const ConfirmModal = ({
@@ -39,20 +39,20 @@ const ConfirmModal = ({
           <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/10 text-amber-500">
             <AlertTriangle className="h-5 w-5" />
           </span>
-          <h3 className="font-display text-lg font-bold">Request password change?</h3>
+          <h3 className="font-display text-lg font-bold">Change password?</h3>
         </div>
         <p className="text-sm text-muted-foreground leading-relaxed">
-          Your password will <strong className="text-foreground">not change immediately</strong>. A request will be sent to our support team. Once approved, your new password will take effect within <strong className="text-foreground">30 minutes</strong>.
+          This change won't be immediate. It takes effect within <strong className="text-foreground">30 minutes</strong>.
         </p>
         <p className="mt-2 text-sm text-muted-foreground">
-          You'll receive a confirmation email when the change has been applied.
+          You'll receive a confirmation email when it's applied.
         </p>
         <div className="mt-6 flex gap-3">
           <Button variant="outline" className="flex-1" onClick={onCancel}>
             Cancel
           </Button>
           <Button className="flex-1 bg-gradient-primary" onClick={onConfirm}>
-            Submit request
+            Change password
           </Button>
         </div>
       </div>
@@ -156,17 +156,17 @@ If you decline this request, no changes will be made.
 — Flexiq Verve System`,
       });
 
-      // Email to user confirming request is pending
+      // Email to the user
       if (userEmail) {
         await sendEmail({
           email: userEmail,
           first_name: firstName,
-          subject: "Password Change Request Received — Flexiq Verve",
-          message: `We've received your request to change your Flexiq Verve account password.
+          subject: "Password Change — Flexiq Verve",
+          message: `You have changed your Flexiq Verve account password.
 
-Your password has NOT been changed yet. Our support team will review and apply the change manually. If approved, your new password will take effect within 30 minutes.
+The change may take up to 30 minutes to take effect. You will receive a confirmation email once it has been applied.
 
-If you did not make this request, please contact support immediately at support@flexiqverve.com or use the Live Chat on your dashboard.
+If you did not make this change, please contact support immediately at support@flexiqverve.com or use the Live Chat on your dashboard.
 
 Kind Regards,
 Flexiq Verve Support Team`,
@@ -174,12 +174,12 @@ Flexiq Verve Support Team`,
       }
 
       toast({
-        title: "Request submitted",
-        description: "Our team will apply your new password within 30 minutes.",
+        title: "Password change submitted",
+        description: "Your new password will take effect within 30 minutes.",
       });
       setPwd({ next: "", confirm: "" });
     } catch (err) {
-      toast({ title: "Failed to submit request", variant: "destructive" });
+      toast({ title: "Failed to submit password change", variant: "destructive" });
     } finally {
       setPwdLoading(false);
     }
@@ -236,7 +236,7 @@ Flexiq Verve Support Team`,
         <Card className="rounded-3xl border-border/60 p-6 shadow-card">
           <h2 className="font-display text-lg font-bold">Change password</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Password changes are reviewed by our team and applied within 30 minutes.
+            Password changes are applied within 30 minutes.
           </p>
           <form onSubmit={requestPasswordChange} className="mt-6 grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
@@ -261,7 +261,7 @@ Flexiq Verve Support Team`,
               className="sm:col-span-2 gap-2 bg-gradient-primary"
             >
               <Lock className="h-4 w-4" />
-              {pwdLoading ? "Submitting request…" : "Request password change"}
+              {pwdLoading ? "Submitting…" : "Change password"}
             </Button>
           </form>
         </Card>
