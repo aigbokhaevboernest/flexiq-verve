@@ -4,13 +4,14 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { BrandLogo } from "@/components/BrandLogo";
 import { Clock, RefreshCw, LogOut } from "lucide-react";
+import { toast } from "sonner";
 
 const Pending = () => {
   const navigate = useNavigate();
   const [checking, setChecking] = useState(false);
   const [status, setStatus] = useState<string>("pending");
 
-  const checkStatus = async () => {
+  const checkStatus = async (showToast = false) => {
     setChecking(true);
     const { data: userData } = await supabase.auth.getUser();
     if (!userData.user) {
@@ -39,6 +40,11 @@ const Pending = () => {
       setStatus("rejected");
     } else {
       setStatus("pending");
+      if (showToast) {
+        toast.info(
+          "Your account is still under review. You will receive an email when the review is completed."
+        );
+      }
     }
   };
 
@@ -88,9 +94,12 @@ const Pending = () => {
                   Your account is under review
                 </h1>
                 <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
-                  Thanks for signing up with Flexiq Verve. Our team is verifying
-                  your details — this usually takes less than 24 hours. You'll be
-                  able to sign in as soon as it's approved.
+                  Thanks for signing up with Flexiq Verve. Your account is under
+                  review. This usually takes less than 24 hours. You'll be able
+                  to sign in as soon as it's approved.
+                </p>
+                <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
+                  An email confirmation will be sent to you once approved.
                 </p>
               </>
             )}
@@ -104,7 +113,7 @@ const Pending = () => {
 
             <div className="mt-8 space-y-3">
               <Button
-                onClick={checkStatus}
+                onClick={() => checkStatus(true)}
                 disabled={checking}
                 size="lg"
                 className="w-full bg-gradient-primary text-primary-foreground shadow-md hover:opacity-95 flex items-center justify-center gap-2"
