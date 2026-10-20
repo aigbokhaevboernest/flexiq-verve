@@ -1,12 +1,19 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ArrowUpRight, ArrowDownLeft, Landmark, CreditCard } from "lucide-react";
+import {
+  ArrowUpRight,
+  ArrowDownLeft,
+  Home,
+  Landmark,
+  CreditCard,
+} from "lucide-react";
 
-// `to` is where the tab goes; `match` keeps the tab highlighted on sub-pages
-// (e.g. Send stays active on /dashboard/send, /send/wire and /send/fx).
+// `to` is where the tab goes; `match` keeps the tab highlighted on sub-pages.
+// `exact` stops Home from lighting up on every /dashboard/* page.
 const items = [
   { to: "/dashboard/send/wire", match: "/dashboard/send", label: "Send", icon: ArrowUpRight },
   { to: "/dashboard/receive", match: "/dashboard/receive", label: "Receive", icon: ArrowDownLeft },
+  { to: "/dashboard", match: "/dashboard", exact: true, label: "Home", icon: Home },
   { to: "/dashboard/loans", match: "/dashboard/loans", label: "Loan", icon: Landmark },
   { to: "/dashboard/cards", match: "/dashboard/cards", label: "Cards", icon: CreditCard },
 ];
@@ -14,63 +21,55 @@ const items = [
 const COUNT = items.length;
 const SPRING = "cubic-bezier(0.34, 1.4, 0.64, 1)";
 
-export const BottomGlassNav = () => {
+type Props = {
+  /** Pass true while the mobile sidebar is open to tuck the bar away. */
+  hidden?: boolean;
+};
+
+export const BottomGlassNav = ({ hidden = false }: Props) => {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const wrapRef = useRef<HTMLDivElement>(null);
 
-  const activeIdx = items.findIndex(
-    (i) => pathname === i.match || pathname.startsWith(i.match + "/")
+  const clean = pathname.replace(/\/$/, "");
+  const activeIdx = items.findIndex((i) =>
+    i.exact ? clean === i.match : clean === i.match || clean.startsWith(i.match + "/")
   );
 
-  // Overview only: hide the bar until the balance card has scrolled out of sight.
-  const isOverview = pathname.replace(/\/$/, "") === "/dashboard";
-  const [visible, setVisible] = useState(!isOverview);
+  // Dashboard home only: hidden at the top, slides in once you scroll down,
+  // slides away again when you scroll back near the top.
+  const isHome = clean === "/dashboard";
+  const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
-    // Other pages: always show the bar
-    if (!isOverview) {
-      setVisible(true);
+    if (!isHome) {
+      setScrolled(false);
       return;
     }
-
-    setVisible(false);
-    let observer: IntersectionObserver | null = null;
-    let tries = 0;
-
-    // The card may not be mounted yet (skeleton/loading), so wait for it
-    const timer = window.setInterval(() => {
-      const card = document.querySelector("[data-balance-card]");
-      if (card) {
-        window.clearInterval(timer);
-        observer = new IntersectionObserver(
-          ([entry]) => {
-            setVisible(
-              !entry.isIntersecting && entry.boundingClientRect.bottom < 0
-            );
-          },
-          // 64px = the sticky header height, so the card counts as gone
-          // once it slides underneath it
-          { rootMargin: "-64px 0px 0px 0px" }
-        );
-        observer.observe(card);
-      } else if (++tries > 30) {
-        // Card never appeared: show the bar so it isn't stuck hidden
-        window.clearInterval(timer);
-        setVisible(true);
-      }
-    }, 100);
-
-    return () => {
-      window.clearInterval(timer);
-      observer?.disconnect();
+    const update = () => {
+      const y = window.scrollY;
+      // Two thresholds so it doesn't flicker around a single point
+      setScrolled((prev) => (prev ? y > 40 : y > 90));
     };
-  }, [isOverview]);
+    update();
+    window.addEventListener("scroll", update, { passive: true });
+    return () => window.removeEventListener("scroll", update);
+  }, [isHome]);
+
+  // Every other dashboard page: always on. Sidebar open: always off.
+  const shown = (isHome ? scrolled : true) && !hidden;
 
   // pos is the lens position (0..COUNT-1, fractional while dragging).
   // null means "rest on the active tab".
   const [pos, setPos] = useState<number | null>(null);
   const [pressing, setPressing] = useState(false);
+
+  useEffect(() => {
+    if (!shown) {
+      setPressing(false);
+      setPos(null);
+    }
+  }, [shown]);
 
   const lensIndex = pos ?? Math.max(activeIdx, 0);
   const nearIdx = Math.round(lensIndex);
@@ -83,7 +82,7 @@ export const BottomGlassNav = () => {
   };
 
   const go = (i: number) => {
-    if (pathname !== items[i].to) navigate(items[i].to);
+    if (clean !== items[i].to) navigate(items[i].to);
   };
 
   const onDown = (e: React.PointerEvent) => {
@@ -112,13 +111,22 @@ export const BottomGlassNav = () => {
   return (
     <nav
       aria-label="Quick actions"
+      aria-hidden={!shown}
       className="fixed inset-x-4 z-50 md:hidden"
       style={{
         bottom: "calc(env(safe-area-inset-bottom, 0px) + 14px)",
-        transform: visible ? "translateY(0)" : "translateY(160%)",
-        opacity: visible ? 1 : 0,
-        pointerEvents: visible ? "auto" : "none",
-        transition: `transform 450ms ${SPRING}, opacity 250ms`,
+        transformOrigin: "50% 100%",
+        transform: shown
+          ? "translateY(0) scale(1)"
+          : "translateY(190%) scale(0.82)",
+        opacity: shown ? 1 : 0,
+        // `none` (not blur(0)) when shown: any filter on an ancestor
+        // would switch off the glass blur of the bar underneath it.
+        filter: shown ? "none" : "blur(10px)",
+        pointerEvents: shown ? "auto" : "none",
+        transition: shown
+          ? `transform 650ms ${SPRING}, opacity 300ms ease-out, filter 400ms ease-out`
+          : "transform 380ms cubic-bezier(0.4, 0, 1, 1), opacity 260ms ease-in, filter 300ms ease-in",
       }}
     >
       <div
@@ -130,18 +138,20 @@ export const BottomGlassNav = () => {
         className="relative mx-auto h-16 max-w-md select-none"
         style={{ touchAction: "none" }}
       >
-        {/* Frosted capsule */}
+        {/* Dark frosted capsule */}
         <div
-          className="absolute inset-0 rounded-full border border-border bg-background/60 backdrop-blur-2xl backdrop-saturate-[1.8]"
+          className="absolute inset-0 rounded-full backdrop-blur-2xl backdrop-saturate-[1.8]"
           style={{
+            background: "rgba(34, 34, 38, 0.62)",
+            border: "1px solid rgba(255, 255, 255, 0.12)",
             boxShadow:
-              "0 8px 30px rgba(0,0,0,0.14), inset 0 1px 0 rgba(255,255,255,0.7)",
+              "0 10px 34px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.14)",
             transform: pressing ? "scale(1.045)" : "scale(1)",
             transition: `transform 450ms ${SPRING}`,
           }}
         />
 
-        {/* Lens: grey pill at rest, clear glass while pressed */}
+        {/* Lens: soft grey pill at rest, clear glass while pressed */}
         <div
           aria-hidden
           className="pointer-events-none absolute bottom-1 top-1 rounded-full"
@@ -157,44 +167,63 @@ export const BottomGlassNav = () => {
               ? "transform 90ms ease-out, background 250ms, box-shadow 250ms"
               : `transform 500ms ${SPRING}, background 250ms, box-shadow 250ms, opacity 200ms`,
             background: pressing
-              ? "rgba(255,255,255,0.1)"
-              : "hsl(var(--foreground) / 0.1)",
+              ? "rgba(255,255,255,0.08)"
+              : "rgba(255,255,255,0.14)",
             backdropFilter: pressing
-              ? "blur(1px) saturate(1.5) brightness(1.1)"
+              ? "blur(1px) saturate(1.5) brightness(1.15)"
               : "none",
             WebkitBackdropFilter: pressing
-              ? "blur(1px) saturate(1.5) brightness(1.1)"
+              ? "blur(1px) saturate(1.5) brightness(1.15)"
               : "none",
             boxShadow: pressing
-              ? "inset 0 0 0 1px rgba(255,255,255,0.75), inset 3px 0 7px rgba(0,210,255,0.38), inset -3px 0 7px rgba(255,60,200,0.32), inset 0 -4px 8px rgba(255,255,255,0.35), 0 8px 22px rgba(0,0,0,0.2)"
+              ? "inset 0 0 0 1px rgba(255,255,255,0.55), inset 3px 0 7px rgba(0,210,255,0.38), inset -3px 0 7px rgba(255,60,200,0.32), inset 0 -4px 8px rgba(255,255,255,0.22), 0 8px 22px rgba(0,0,0,0.45)"
               : "none",
           }}
         />
 
-        {/* Tabs */}
+        {/* Tabs: each one pops in with a small stagger */}
         <ul
           className="absolute inset-1 z-[2] grid"
           style={{ gridTemplateColumns: `repeat(${COUNT}, 1fr)` }}
         >
-          {items.map(({ to, label, icon: Icon }, i) => (
-            <li key={to} className="flex">
-              <button
-                type="button"
-                onClick={() => go(i)}
-                aria-current={i === activeIdx ? "page" : undefined}
-                className={`flex flex-1 flex-col items-center justify-center gap-0.5 text-[11px] text-foreground ${
-                  i === activeIdx ? "font-semibold" : "font-medium"
-                }`}
+          {items.map(({ to, label, icon: Icon }, i) => {
+            const delay = shown ? 120 + i * 50 : 0;
+            return (
+              <li
+                key={to}
+                className="flex"
                 style={{
-                  transform: pressing && i === nearIdx ? "scale(1.14)" : "scale(1)",
-                  transition: `transform 350ms ${SPRING}`,
+                  opacity: shown ? 1 : 0,
+                  transform: shown
+                    ? "translateY(0) scale(1)"
+                    : "translateY(16px) scale(0.7)",
+                  transition: `transform 520ms ${SPRING} ${delay}ms, opacity 250ms ease-out ${delay}ms`,
                 }}
               >
-                <Icon className="h-[21px] w-[21px]" strokeWidth={2} />
-                {label}
-              </button>
-            </li>
-          ))}
+                <button
+                  type="button"
+                  tabIndex={shown ? 0 : -1}
+                  onClick={() => go(i)}
+                  aria-current={i === activeIdx ? "page" : undefined}
+                  className={`flex flex-1 flex-col items-center justify-center gap-0.5 text-[11px] ${
+                    i === activeIdx ? "font-semibold" : "font-medium"
+                  }`}
+                  style={{
+                    color:
+                      i === activeIdx || (pressing && i === nearIdx)
+                        ? "#ffffff"
+                        : "rgba(255,255,255,0.72)",
+                    transform:
+                      pressing && i === nearIdx ? "scale(1.14)" : "scale(1)",
+                    transition: `transform 350ms ${SPRING}, color 200ms`,
+                  }}
+                >
+                  <Icon className="h-[21px] w-[21px]" strokeWidth={2} />
+                  {label}
+                </button>
+              </li>
+            );
+          })}
         </ul>
       </div>
     </nav>
