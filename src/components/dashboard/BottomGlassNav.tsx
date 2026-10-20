@@ -2,12 +2,13 @@ import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ArrowUpRight, ArrowDownLeft, Landmark, CreditCard } from "lucide-react";
 
-// Adjust the routes to match your pages
+// `to` is where the tab goes; `match` keeps the tab highlighted on sub-pages
+// (e.g. Send stays active on /dashboard/send, /send/wire and /send/fx).
 const items = [
-  { to: "/dashboard/withdraw", label: "Send", icon: ArrowUpRight },
-  { to: "/dashboard/deposit", label: "Receive", icon: ArrowDownLeft },
-  { to: "/dashboard/loan", label: "Loan", icon: Landmark },
-  { to: "/dashboard/cards", label: "Cards", icon: CreditCard },
+  { to: "/dashboard/send/wire", match: "/dashboard/send", label: "Send", icon: ArrowUpRight },
+  { to: "/dashboard/receive", match: "/dashboard/receive", label: "Receive", icon: ArrowDownLeft },
+  { to: "/dashboard/loans", match: "/dashboard/loans", label: "Loan", icon: Landmark },
+  { to: "/dashboard/cards", match: "/dashboard/cards", label: "Cards", icon: CreditCard },
 ];
 
 const COUNT = items.length;
@@ -19,7 +20,7 @@ export const BottomGlassNav = () => {
   const wrapRef = useRef<HTMLDivElement>(null);
 
   const activeIdx = items.findIndex(
-    (i) => pathname === i.to || pathname.startsWith(i.to + "/")
+    (i) => pathname === i.match || pathname.startsWith(i.match + "/")
   );
 
   // Overview only: hide the bar until the balance card has scrolled out of sight.
@@ -48,9 +49,9 @@ export const BottomGlassNav = () => {
               !entry.isIntersecting && entry.boundingClientRect.bottom < 0
             );
           },
-          // If you have a sticky header, use its height instead of 0px,
-          // e.g. { rootMargin: "-64px 0px 0px 0px" }
-          { rootMargin: "0px" }
+          // 64px = the sticky header height, so the card counts as gone
+          // once it slides underneath it
+          { rootMargin: "-64px 0px 0px 0px" }
         );
         observer.observe(card);
       } else if (++tries > 30) {
