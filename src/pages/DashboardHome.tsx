@@ -1,94 +1,50 @@
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { BrandLogo } from "@/components/BrandLogo";
+import { useAccount } from "@/hooks/useAccount";
 import {
-  ArrowDownLeft,
-  ArrowUpRight,
+  Banknote,
+  ChevronDown,
   CreditCard,
-  Eye,
-  EyeOff,
   FileText,
+  Globe2,
+  Headphones,
+  Landmark,
+  LayoutDashboard,
+  LogOut,
+  Menu,
+  MoonStar,
   Receipt,
+  Repeat,
+  Search,
   Send,
-  TrendingUp,
+  Settings,
+  Sun,
   Wallet,
-  Wifi,
-  ShieldAlert,
+  ArrowRightLeft,
+  Smartphone,
+  Building2,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
-import { toast } from "sonner";
-import { useAccount, useOpenAccount, formatMoney } from "@/hooks/useAccount";
-import type { SecondaryAccountType } from "@/hooks/useAccount";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Skeleton } from "@/components/ui/skeleton";
-import { EmptyState } from "@/components/EmptyState";
-import AccountCarousel from "@/components/dashboard/AccountCarousel";
+import { useEffect, useState, useTransition } from "react";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { NotificationsPanel } from "@/components/NotificationsPanel";
+import { useRealtimeProfile } from "@/hooks/useRealtimeProfile";
+import { BottomGlassNav } from "@/components/dashboard/BottomGlassNav";
 
-const quickActions: Array<{
-  icon: any;
-  label: string;
-  to: string;
-  disabled?: boolean;
-}> = [
-  { icon: Send, label: "Send", to: "/dashboard/send/wire" },
-  { icon: ArrowDownLeft, label: "Receive", to: "/dashboard/receive" },
-  { icon: FileText, label: "Bills", to: "/dashboard/bills", disabled: true },
-  { icon: Wallet, label: "Loans", to: "/dashboard/loans" },
-];
+const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
+  const navigate = useNavigate();
+  const { signOut } = useAuth();
+  const { pathname } = useLocation();
+  const { data: profile } = useAccount();
+  const frozen = !!(profile as any)?.frozen;
 
-/** Mask account number — show only last 4 digits: •••• •••• 7890 */
-const maskAccountNumber = (raw?: string | null): string => {
-  if (!raw) return "—";
-  const digits = raw.replace(/\D/g, "");
-  if (digits.length < 4) return raw;
-  const last4 = digits.slice(-4);
-  const hiddenCount = digits.length - 4;
-  // Group masked digits in blocks of 4 for readability
-  const maskedBlocks = "•".repeat(hiddenCount).match(/.{1,4}/g) || [];
-  return [...maskedBlocks, last4].join(" ");
-};
-
-/**
- * Determine which secondary account cards to show in the carousel, based
- * on the account type chosen at signup. Pool is {checking, savings,
- * retirement} — business is never a secondary card.
- *
- * Rule: always exactly 2 secondary cards, never duplicating the signup type.
- *  - signup = "checking"   -> secondary = ["savings", "retirement"]
- *  - signup = "savings"    -> secondary = ["checking", "retirement"]
- *  - signup = "retirement" -> secondary = ["checking", "savings"]
- *  - signup = "business" | anything else/unknown
- *                           -> secondary = ["checking", "savings"]
- *
- * Matching is case-insensitive since the exact stored casing of
- * account_type is unconfirmed.
- */
-const getSecondaryAccountTypes = (
-  accountType: string | null | undefined
-): SecondaryAccountType[] => {
-  const normalized = (accountType || "").trim().toLowerCase();
-  const pool: SecondaryAccountType[] = ["checking", "savings", "retirement"];
-
-  if (pool.includes(normalized as SecondaryAccountType)) {
-    return pool.filter((t) => t !== normalized) as SecondaryAccountType[];
-  }
-
-  // business, personal, empty/unknown -> retirement excluded entirely
-  return ["checking", "savings"];
-};
-
-const DashboardHome = () => {
-  const [hidden, setHidden] = useState(false);
-  const { user } = useAuth();
-  const { data: profile, isLoading: profLoading } = useAccount();
-  const openAccount = useOpenAccount();
-  const queryClient = useQueryClient();
-
-  const isFrozen = profile?.frozen === true;
-
-  const handleFrozenAction = () => {
+  const frozenToast = () => {
     toast("Account frozen", {
       description:
         "Your account has been frozen by an administrator. All transactions and features are disabled. Please contact support.",
@@ -98,27 +54,178 @@ const DashboardHome = () => {
     });
   };
 
-  useEffect(() => {
-    if (profLoading) return;
-    if (!profile) return;
-    if ((profile as any)?.status === "blocked") {
-      toast.error("Account blocked", {
-        description: "Your account has been blocked by an administrator. Please contact support.",
-        duration: 3000,
-      });
-      setTimeout(() => {
-        supabase.auth.signOut().then(() => {
-          window.location.href = "/login";
-        });
-      }, 3000);
+  const handleFrozenNav = (e: React.MouseEvent) => {
+    if (frozen) {
+      e.preventDefault();
+      frozenToast();
+    } else {
+      onNavigate?.();
     }
-  }, [profLoading]);
+  };
+
+  const sendItems = [
+    { to: "/dashboard/send", label: "Digital Payments", icon: Smartphone },
+    { to: "/dashboard/send/wire", label: "Wire Transfer", icon: Building2 },
+    { to: "/dashboard/send/fx", label: "FX Transfer", icon: ArrowRightLeft },
+  ];
+  const sendActive = sendItems.some((i) => pathname.startsWith(i.to));
+  const [sendOpen, setSendOpen] = useState(sendActive);
+
+  const linkClass = ({ isActive }: { isActive: boolean }) =>
+    `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-smooth ${
+      isActive
+        ? "bg-gradient-primary text-primary-foreground shadow-md"
+        : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+    }`;
+
+  return (
+    <div className="flex h-full flex-col font-sans">
+      <div className="flex h-16 items-center border-b border-sidebar-border px-5">
+        <BrandLogo className="h-9 w-auto object-contain" />
+      </div>
+      <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
+        <NavLink to="/dashboard" end onClick={onNavigate} className={linkClass}>
+          <LayoutDashboard className="h-4 w-4" /> Dashboard
+        </NavLink>
+
+        {/* Send Money group */}
+        <Collapsible open={sendOpen} onOpenChange={setSendOpen}>
+          <CollapsibleTrigger
+            className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-smooth ${
+              sendActive
+                ? "text-primary"
+                : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+            }`}
+          >
+            <Send className="h-4 w-4" /> Send Money
+            <ChevronDown
+              className={`ml-auto h-4 w-4 transition-transform duration-300 ${sendOpen ? "rotate-180" : ""}`}
+            />
+          </CollapsibleTrigger>
+          <CollapsibleContent className="overflow-hidden data-[state=open]:animate-[accordion-down_550ms_cubic-bezier(0.22,1,0.36,1)] data-[state=closed]:animate-[accordion-up_500ms_cubic-bezier(0.22,1,0.36,1)]">
+            <div className="ml-4 mt-1 space-y-0.5 border-l-2 border-primary/30 pl-3">
+              {sendItems.map((s) => (
+                <NavLink
+                  key={s.to}
+                  to={s.to}
+                  end
+                  onClick={handleFrozenNav}
+                  className={({ isActive }) =>
+                    `flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 ${
+                      isActive
+                        ? "border-l-2 -ml-[14px] pl-[26px] border-primary bg-primary/10 text-primary"
+                        : "text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
+                    }`
+                  }
+                >
+                  {({ isActive }) => (
+                    <>
+                      <s.icon
+                        className={`h-4 w-4 shrink-0 ${isActive ? "text-primary" : "text-muted-foreground"}`}
+                      />
+                      <span>{s.label}</span>
+                    </>
+                  )}
+                </NavLink>
+              ))}
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+
+        <NavLink to="/dashboard/local" onClick={handleFrozenNav} className={linkClass}>
+          <Repeat className="h-4 w-4" /> Local Transfer
+        </NavLink>
+        <NavLink to="/dashboard/receive" onClick={onNavigate} className={linkClass}>
+          <Wallet className="h-4 w-4" /> Receive Money
+        </NavLink>
+        <NavLink to="/dashboard/loans" onClick={handleFrozenNav} className={linkClass}>
+          <Banknote className="h-4 w-4" /> Quick Loans
+        </NavLink>
+        <NavLink to="/dashboard/cards" onClick={onNavigate} className={linkClass}>
+          <CreditCard className="h-4 w-4" /> Cards
+        </NavLink>
+        <NavLink to="/dashboard/transactions" onClick={onNavigate} className={linkClass}>
+          <Receipt className="h-4 w-4" /> Transactions
+        </NavLink>
+        <button
+          type="button"
+          onClick={() => {
+            onNavigate?.();
+            toast.error("Feature not available", { description: "Please contact support." });
+          }}
+          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-sidebar-foreground/60 transition-smooth hover:bg-sidebar-accent/50"
+        >
+          <FileText className="h-4 w-4" /> Bill Payment
+        </button>
+        <NavLink to="/dashboard/financial-services" onClick={handleFrozenNav} className={linkClass}>
+          <Landmark className="h-4 w-4" /> Financial Services
+        </NavLink>
+        <NavLink to="/dashboard/settings" onClick={onNavigate} className={linkClass}>
+          <Settings className="h-4 w-4" /> Settings
+        </NavLink>
+        <NavLink to="/dashboard/support" onClick={onNavigate} className={linkClass}>
+          <Headphones className="h-4 w-4" /> Support
+        </NavLink>
+      </nav>
+      <div className="border-t border-sidebar-border p-3">
+        <button
+          onClick={async () => {
+            onNavigate?.();
+            await signOut();
+            navigate("/login");
+          }}
+          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground transition-smooth hover:bg-destructive/10 hover:text-destructive"
+        >
+          <LogOut className="h-4 w-4" /> Logout
+        </button>
+      </div>
+    </div>
+  );
+};
+
+export const DashboardLayout = () => {
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [dark, setDark] = useState(false);
+  const { user } = useAuth();
+  const [initials, setInitials] = useState<string | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [, startTransition] = useTransition();
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const [routeLoading, setRouteLoading] = useState(false);
+
+  useRealtimeProfile();
 
   useEffect(() => {
+    const saved = localStorage.getItem("flexiq-theme");
+    if (saved === "dark") {
+      document.documentElement.classList.add("dark");
+      setDark(true);
+    }
+  }, []);
+
+  // Fetch initials + avatar_url together, re-run when user changes
+  useEffect(() => {
     if (!user) return;
-    const cacheKey = `profileCache:${user.id}`;
+
+    const fetchProfile = async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("first_name,last_name,avatar_url")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      const f = data?.first_name?.[0];
+      const l = data?.last_name?.[0];
+      setInitials(f || l ? ((f || "") + (l || "")).toUpperCase() : null);
+      setAvatarUrl(data?.avatar_url || null);
+    };
+
+    fetchProfile();
+
+    // Listen for profile updates (e.g. after photo upload) and refresh avatar
     const channel = supabase
-      .channel("profile-realtime")
+      .channel("layout-profile-watch")
       .on(
         "postgres_changes",
         {
@@ -128,474 +235,103 @@ const DashboardHome = () => {
           filter: `id=eq.${user.id}`,
         },
         () => {
-          try { localStorage.removeItem(cacheKey); } catch {}
-          queryClient.invalidateQueries({ queryKey: ["profile", user.id] });
+          fetchProfile();
         }
       )
       .subscribe();
+
     return () => { supabase.removeChannel(channel); };
-  }, [user, queryClient]);
+  }, [user]);
 
-  const { data: txs } = useQuery({
-    queryKey: ["recent-tx", user?.id],
-    enabled: !!user,
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("transactions")
-        .select("*")
-        .eq("user_id", user!.id)
-        .order("created_at", { ascending: false })
-        .limit(6);
-      return data || [];
-    },
-  });
+  useEffect(() => {
+    setRouteLoading(true);
+    const t = setTimeout(() => setRouteLoading(false), 250);
+    return () => clearTimeout(t);
+  }, [pathname]);
 
-  const { data: card, isLoading: cardLoading } = useQuery<any>({
-    queryKey: ["primary-card", user?.id],
-    enabled: !!user,
-    queryFn: async () => {
-      const { data } = await (supabase as any)
-        .from("cards")
-        .select("*")
-        .eq("user_id", user!.id)
-        .order("created_at", { ascending: true })
-        .limit(1)
-        .maybeSingle();
-      return data;
-    },
-  });
-
-  const { data: stats, isLoading: statsLoading } = useQuery({
-    queryKey: ["stats", user?.id],
-    enabled: !!user,
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("transactions")
-        .select("amount,type,status")
-        .eq("user_id", user!.id);
-
-      const inSum = (data || [])
-        .filter((t) =>
-          Number(t.amount) > 0 ||
-          t.type === "transfer_in" ||
-          t.type === "deposit" ||
-          t.type === "refund" ||
-          t.type === "loan_disbursement"
-        )
-        .reduce((s, t) => s + Math.abs(Number(t.amount)), 0);
-
-      const outSum = (data || [])
-        .filter((t) =>
-          Number(t.amount) < 0 ||
-          t.type === "transfer_out" ||
-          t.type === "bill_payment" ||
-          t.type === "fx"
-        )
-        .reduce((s, t) => s + Math.abs(Number(t.amount)), 0);
-
-      return { inSum, outSum, net: inSum - outSum };
-    },
-  });
-
-  const profileReady = !!profile && !profLoading;
-  const firstName = (profile as any)?.first_name?.trim() || "";
-  const currency = (profile as any)?.currency || null;
-  const accountNumber = (profile as any)?.account_number || null;
-  const balanceKnown = profile && (profile as any).balance != null;
-
-  // Per-account persisted state, sourced straight from the profile row —
-  // this is what makes "opened" and each balance survive a refresh, and
-  // never fall back to the default placeholder once opened.
-  const checkingOpened = (profile as any)?.checking_opened === true;
-  const savingsOpened = (profile as any)?.savings_opened === true;
-  const retirementOpened = (profile as any)?.retirement_opened === true;
-  const checkingBalance = Number((profile as any)?.checking_balance ?? 0);
-  const savingsBalance = Number((profile as any)?.savings_balance ?? 0);
-  const retirementBalance = Number((profile as any)?.retirement_balance ?? 0);
-
-  // Primary card balance is the aggregate of the primary account's own
-  // balance plus any opened secondary accounts — recalculates automatically
-  // whenever any of these change (e.g. an admin funds a secondary account).
-  const balanceValue = useMemo(() => {
-    const own = balanceKnown ? Number((profile as any).balance) : 0;
-    const checkingPart = checkingOpened ? checkingBalance : 0;
-    const savingsPart = savingsOpened ? savingsBalance : 0;
-    const retirementPart = retirementOpened ? retirementBalance : 0;
-    return own + checkingPart + savingsPart + retirementPart;
-  }, [
-    balanceKnown,
-    profile,
-    checkingOpened,
-    savingsOpened,
-    retirementOpened,
-    checkingBalance,
-    savingsBalance,
-    retirementBalance,
-  ]);
-
-  // Stable masked account number — only recomputes when accountNumber changes, no flicker
-  const maskedAccountNumber = useMemo(() => maskAccountNumber(accountNumber), [accountNumber]);
-
-  // Which secondary cards to show alongside the primary card, based on the
-  // signup account_type. Always 2, never duplicates signup type, never
-  // shows business as a secondary card.
-  const secondaryAccountTypes = useMemo(
-    () => getSecondaryAccountTypes((profile as any)?.account_type),
-    [(profile as any)?.account_type]
-  );
-
-  const accountStates = useMemo(
-    () => ({
-      checking: { opened: checkingOpened, balance: checkingBalance },
-      savings: { opened: savingsOpened, balance: savingsBalance },
-      retirement: { opened: retirementOpened, balance: retirementBalance },
-    }),
-    [
-      checkingOpened,
-      checkingBalance,
-      savingsOpened,
-      savingsBalance,
-      retirementOpened,
-      retirementBalance,
-    ]
-  );
-
-  const handleOpenAccount = (type: SecondaryAccountType) => {
-    openAccount.mutate(type, {
-      onError: () => {
-        toast.error("Couldn't open account", {
-          description: "Please try again in a moment.",
-        });
-      },
-    });
+  const toggleTheme = () => {
+    const next = !dark;
+    setDark(next);
+    document.documentElement.classList.toggle("dark", next);
+    localStorage.setItem("flexiq-theme", next ? "dark" : "light");
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <p className="text-sm text-muted-foreground">
-          {firstName ? (
-            <>Welcome back, {firstName} 👋</>
-          ) : profileReady ? (
-            <>Welcome back 👋</>
-          ) : (
-            <Skeleton className="inline-block h-4 w-44 align-middle" />
-          )}
-        </p>
-        <h1 className="mt-1 font-display text-2xl font-bold sm:text-3xl">
-          Your financial overview
-        </h1>
-      </div>
+    <div
+      className="min-h-screen bg-muted/40 font-sans"
+      style={{ fontFamily: "'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif" }}
+    >
+      <aside className="fixed inset-y-0 left-0 hidden w-64 border-r border-sidebar-border bg-sidebar lg:block">
+        <SidebarContent />
+      </aside>
 
-      {isFrozen && (
-        <div
-          className="flex items-center gap-3 rounded-2xl px-5 py-4"
-          style={{
-            border: "1px solid rgba(255, 133, 3, 0.4)",
-            backgroundColor: "rgba(255, 133, 3, 0.1)",
-          }}
-        >
-          <ShieldAlert className="h-5 w-5 shrink-0" style={{ color: "#ff8503" }} />
-          <div>
-            <p className="text-sm font-semibold" style={{ color: "#ff8503" }}>
-              Account Frozen
-            </p>
-            <p className="text-xs" style={{ color: "rgba(255, 133, 3, 0.8)" }}>
-              Your account has been frozen by an administrator. All transactions
-              and features are disabled. Please contact support.
-            </p>
+      <div className="lg:pl-64">
+        <header className="sticky top-0 z-40 flex h-16 items-center gap-3 border-b border-border/60 bg-background/80 px-4 backdrop-blur sm:px-6">
+          <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon" className="lg:hidden">
+                <Menu className="h-5 w-5" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-72 p-0">
+              <SidebarContent onNavigate={() => setMobileOpen(false)} />
+            </SheetContent>
+          </Sheet>
+
+          <div className="relative hidden flex-1 max-w-md md:block">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input className="pl-9" placeholder="Search transactions, contacts…" />
           </div>
-        </div>
-      )}
 
-      <div className="grid gap-5 lg:grid-cols-3">
-        <div className="lg:col-span-2 min-w-0">
-          <AccountCarousel
-            secondaryTypes={secondaryAccountTypes}
-            accountStates={accountStates}
-            onOpenAccount={handleOpenAccount}
-            maskedAccountNumber={maskedAccountNumber}
-            currency={currency || "USD"}
-            formatMoney={formatMoney}
-            primarySlide={
-              <div className="relative h-full overflow-hidden rounded-3xl bg-gradient-primary p-8 text-primary-foreground shadow-elev">
-                <div className="absolute -right-16 -top-16 h-56 w-56 rounded-full bg-white/15 blur-2xl" />
-                <div className="absolute -bottom-20 -left-10 h-56 w-56 rounded-full bg-accent/40 blur-3xl" />
-
-                <div className="relative flex items-start justify-between">
-                  <div className="flex-1">
-                    {isFrozen && (
-                      <span
-                        className="mb-3 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold text-white backdrop-blur-sm"
-                        style={{ backgroundColor: "rgba(255, 133, 3, 0.8)" }}
-                      >
-                        <ShieldAlert className="h-3 w-3" />
-                        Account Frozen
-                      </span>
-                    )}
-
-                    <p className="text-xs uppercase tracking-widest opacity-70">
-                      Available Balance
-                    </p>
-                    <div className="mt-2 flex items-center gap-3">
-                      {!balanceKnown || !currency ? (
-                        <Skeleton className="h-10 w-44 bg-white/20" />
-                      ) : (
-                        <p
-                          className="font-sans font-bold tracking-tight truncate max-w-[260px] sm:max-w-[340px]"
-                          style={{ fontSize: "clamp(2rem, 6vw, 3.5rem)" }}
-                          title={formatMoney(balanceValue, currency)}
-                        >
-                          {hidden ? "••••••" : formatMoney(balanceValue, currency)}
-                        </p>
-                      )}
-                      <button
-                        onClick={() => setHidden((h) => !h)}
-                        className="rounded-full bg-white/15 p-2 backdrop-blur transition-smooth hover:bg-white/25"
-                      >
-                        {hidden ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-                      </button>
-                    </div>
-
-                    <div className="mt-6 flex flex-wrap gap-x-8 gap-y-2 text-sm opacity-90">
-                      <div>
-                        <p className="text-xs opacity-70">Account No.</p>
-                        <p className="font-mono">
-                          {!profileReady ? (
-                            <Skeleton className="inline-block h-3 w-24 bg-white/20 align-middle" />
-                          ) : (
-                            maskedAccountNumber
-                          )}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-xs opacity-70">Account type</p>
-                        {/* Currency suffix removed per request — type only */}
-                        <p className="font-medium">
-                          {(profile as any)?.account_type || "Personal"}
-                        </p>
-                      </div>
-                      {isFrozen && (
-                        <div>
-                          <p className="text-xs opacity-70">Status</p>
-                          <p className="font-semibold" style={{ color: "#ff8503" }}>
-                            ● Frozen
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="hidden text-right sm:block">
-                    <Wifi className="ml-auto h-5 w-5 rotate-90 opacity-90" />
-                    <p className="mt-12 font-display text-sm font-semibold opacity-90">
-                      PLATINUM
-                    </p>
-                  </div>
-                </div>
-
-                <div className="relative mt-8 grid grid-cols-4 gap-3">
-                  {quickActions.map((a) => {
-                    const Icon = a.icon;
-                    const cls =
-                      "group flex flex-col items-center gap-2 rounded-2xl bg-white/10 p-3 text-center backdrop-blur transition-smooth hover:bg-white/20";
-                    const inner = (
-                      <>
-                        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20 text-primary-foreground">
-                          <Icon className="h-4 w-4" />
-                        </span>
-                        <span className="text-xs font-medium">{a.label}</span>
-                      </>
-                    );
-
-                    if (isFrozen || a.disabled) {
-                      return (
-                        <button
-                          key={a.label}
-                          type="button"
-                          onClick={
-                            isFrozen
-                              ? handleFrozenAction
-                              : () => {
-                                  toast.error("Feature not available", {
-                                    description: "Please contact support for assistance.",
-                                  });
-                                }
-                          }
-                          className={cls + " cursor-not-allowed opacity-50"}
-                        >
-                          {inner}
-                        </button>
-                      );
-                    }
-
-                    return (
-                      <Link key={a.label} to={a.to} className={cls}>
-                        {inner}
-                      </Link>
-                    );
-                  })}
-                </div>
-              </div>
-            }
-          />
-        </div>
-
-        <Card className="rounded-3xl border-border/60 p-6 shadow-card">
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-semibold">Your card</p>
-            <Button variant="ghost" size="sm" className="h-8 text-xs" asChild>
-              <Link to="/dashboard/cards">Manage</Link>
+          <div className="ml-auto flex items-center gap-2">
+            <Button variant="ghost" size="icon" onClick={toggleTheme} aria-label="Toggle theme">
+              {dark ? <Sun className="h-4 w-4" /> : <MoonStar className="h-4 w-4" />}
             </Button>
-          </div>
-          <div className="mt-4 rounded-2xl bg-gradient-coral p-5 text-white">
-            <div className="flex items-center justify-between text-xs opacity-90">
-              <span>
-                {card?.card_type === "physical" ? "Physical" : "Virtual"} debit
-              </span>
-              <CreditCard className="h-4 w-4" />
-            </div>
-            {(() => {
-              const raw = card?.card_number || (profile as any)?.card_number;
-              const expiry = card?.expiry || (profile as any)?.expiry;
-              const cardName = card?.cardholder_name?.trim() || (firstName ? firstName.toUpperCase() : "");
-              if (cardLoading || profLoading) {
-                return (
-                  <>
-                    <Skeleton className="mt-6 h-5 w-56 bg-white/30" />
-                    <div className="mt-3 flex justify-between text-xs opacity-90">
-                      <Skeleton className="h-3 w-24 bg-white/30" />
-                      <Skeleton className="h-3 w-12 bg-white/30" />
-                    </div>
-                  </>
-                );
-              }
-              const masked = raw
-                ? `•••• •••• •••• ${String(raw).replace(/\s+/g, "").slice(-4)}`
-                : "•••• •••• •••• ————";
-              return (
-                <>
-                  <p className="mt-6 font-normal text-sm tracking-[0.2em]">{masked}</p>
-                  <div className="mt-3 flex justify-between text-xs opacity-90">
-                    <span>{cardName || "—"}</span>
-                    <span>{expiry || "—"}</span>
-                  </div>
-                </>
-              );
-            })()}
-          </div>
-          {(isFrozen ||
-            card?.frozen ||
-            (card?.status && card.status !== "active")) && (
-            <p
-              className="mt-3 flex items-center justify-center gap-1.5 text-xs font-semibold"
-              style={{ color: "#ff8503" }}
+            <NotificationsPanel />
+
+            {/* Avatar button — shows photo if available, falls back to initials */}
+            <button
+              type="button"
+              aria-label="View profile"
+              onClick={() => startTransition(() => navigate("/dashboard/profile"))}
+              className="relative flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-gradient-coral text-sm font-bold text-white transition-smooth hover:scale-105 hover:shadow-glow focus:outline-none focus:ring-2 focus:ring-ring"
             >
-              <ShieldAlert className="h-3.5 w-3.5" />
-              {isFrozen
-                ? "Account frozen"
-                : card?.status === "blocked"
-                ? "Card blocked"
-                : card?.status === "deleted"
-                ? "Card removed"
-                : "Card frozen"}
-            </p>
-          )}
-        </Card>
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-3">
-        {[
-          { label: "Credit", value: stats?.inSum, icon: ArrowDownLeft, positive: true },
-          { label: "Debit", value: stats?.outSum, icon: ArrowUpRight, positive: false },
-          { label: "Net", value: stats?.net, icon: TrendingUp, positive: (stats?.net ?? 0) >= 0 },
-        ].map((s) => {
-          const Icon = s.icon;
-          return (
-            <Card key={s.label} className="rounded-3xl border-border/60 p-6 shadow-card">
-              <div className="flex items-center justify-between">
-                <p className="text-sm text-muted-foreground">{s.label}</p>
-                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                  <Icon className="h-4 w-4" />
-                </span>
-              </div>
-              {statsLoading || s.value == null ? (
-                <Skeleton className="mt-3 h-7 w-32" />
+              {avatarUrl ? (
+                <img
+                  src={avatarUrl}
+                  alt="Profile"
+                  className="h-full w-full object-cover"
+                  // If image fails to load (e.g. deleted from storage), fall back to initials
+                  onError={() => setAvatarUrl(null)}
+                />
+              ) : initials ? (
+                initials
               ) : (
-                <p className={`mt-3 font-display text-2xl font-bold ${s.positive ? "text-success" : "text-foreground"}`}>
-                  {formatMoney(Math.abs(s.value), currency || "USD")}
-                </p>
+                <Skeleton className="h-5 w-5 rounded-full bg-white/30" />
               )}
-            </Card>
-          );
-        })}
+            </button>
+          </div>
+        </header>
+
+        {/* Extra bottom padding on mobile so the floating glass bar never covers content */}
+        <main className="p-4 pb-28 sm:p-6 sm:pb-28 md:pb-6 lg:p-8">
+          {routeLoading ? (
+            <div className="space-y-4 animate-fade-in">
+              <Skeleton className="h-8 w-48" />
+              <Skeleton className="h-40 w-full rounded-3xl" />
+              <div className="grid gap-4 sm:grid-cols-3">
+                <Skeleton className="h-28 rounded-3xl" />
+                <Skeleton className="h-28 rounded-3xl" />
+                <Skeleton className="h-28 rounded-3xl" />
+              </div>
+            </div>
+          ) : (
+            <Outlet />
+          )}
+        </main>
       </div>
 
-      <Card className="rounded-3xl border-border/60 p-6 shadow-card">
-        <div className="flex items-center justify-between">
-          <h2 className="font-display text-lg font-bold">Recent activity</h2>
-          <Button variant="ghost" size="sm" asChild>
-            <Link to="/dashboard/transactions">View all</Link>
-          </Button>
-        </div>
-        <div className="mt-4 divide-y divide-border/60">
-          {(txs || []).length === 0 && (
-            <EmptyState
-              icon={Receipt}
-              title="No transactions yet"
-              description="Your activity will show here as you spend, send, or receive money."
-              ctaLabel="Send Money"
-              ctaTo="/dashboard/send"
-            />
-          )}
-          {(txs || []).map((t: any) => {
-            const positive = Number(t.amount) > 0;
-            const displayStatus =
-              t.status === "awaiting_code"
-                ? "pending"
-                : t.status === "rejected"
-                ? "processing"
-                : t.status;
-            return (
-              <div key={t.id} className="flex items-center gap-4 py-4">
-                <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${positive ? "bg-success/15 text-success" : "bg-muted text-foreground/70"}`}>
-                  {positive ? <ArrowDownLeft className="h-4 w-4" /> : <ArrowUpRight className="h-4 w-4" />}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="break-words text-sm font-medium">
-                    {t.description || t.recipient_name || (t.type === "transfer_in" ? "Credit" : t.type === "transfer_out" ? "Debit" : t.type.replace(/_/g, " "))}
-                  </p>
-                  <p className="text-xs text-muted-foreground capitalize">
-                    {t.type === "transfer_in" ? "Credit" : t.type === "transfer_out" ? "Debit" : t.type.replace(/_/g, " ")} • {new Date(t.created_at).toLocaleDateString()}
-                  </p>
-                </div>
-                <div className="text-right shrink-0">
-                  <p className={`font-display text-sm font-bold ${positive ? "text-success" : ""}`}>
-                    {positive ? "+" : "−"}
-                    {formatMoney(Math.abs(Number(t.amount)), t.currency || currency || "USD")}
-                  </p>
-                  {/* Stable status badge — inline styles avoid purple background contrast issues */}
-                  <p
-                    className="text-xs capitalize font-medium"
-                    style={{
-                      color:
-                        displayStatus === "pending" ? "#f59e0b" :
-                        displayStatus === "processing" ? "#f59e0b" :
-                        displayStatus === "failed" ? "#ef4444" :
-                        displayStatus === "completed" ? "#10b981" :
-                        "#94a3b8",
-                    }}
-                  >
-                    {displayStatus.replace(/_/g, " ")}
-                  </p>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </Card>
+      <BottomGlassNav />
     </div>
   );
 };
-
-export default DashboardHome;
