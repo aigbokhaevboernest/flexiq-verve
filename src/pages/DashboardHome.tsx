@@ -332,6 +332,11 @@ export const DashboardLayout = () => {
       </div>
 
       <BottomGlassNav />
+     </nav>
+  );
+};
     </div>
   );
 };
+
+export default DashboardHome;
