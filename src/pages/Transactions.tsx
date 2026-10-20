@@ -9,9 +9,13 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { formatMoney, useAccount, useProfile } from "@/hooks/useAccount";
+import { getBalanceBreakdown } from "@/hooks/useTotalBalance";
 import { Skeleton } from "@/components/ui/skeleton";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+
+const ACCOUNT_TYPES = ["checking", "savings", "retirement"] as const;
+const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 const Transactions = () => {
  const { user } = useAuth();
@@ -84,6 +88,19 @@ const Transactions = () => {
    const periodLabel = range === "0" ? "All time" : `Last ${range} days`;
    const generated = new Date().toLocaleString();
 
+   // Balances: total = primary + every opened secondary account (same rule as the dashboard)
+   const acc: any = account;
+   const accCurrency = acc?.currency ?? currency;
+   const bd = getBalanceBreakdown(acc);
+   const signupType = String(acc?.account_type ?? "").toLowerCase();
+   const primaryType = (ACCOUNT_TYPES as readonly string[]).includes(signupType) ? signupType : "checking";
+   const balanceParts: string[] = [`Primary (${cap(primaryType)}): ${formatMoney(bd.own, accCurrency)}`];
+   ACCOUNT_TYPES.filter((k) => k !== primaryType).forEach((k) => {
+     if (acc?.[`${k}_opened`] === true) {
+       balanceParts.push(`${cap(k)}: ${formatMoney((bd as any)[k], accCurrency)}`);
+     }
+   });
+
    doc.setFillColor(15, 23, 42);
    doc.rect(0, 0, pageW, 28, "F");
    doc.setTextColor(255, 255, 255);
@@ -102,11 +119,11 @@ const Transactions = () => {
    doc.setFontSize(9);
    doc.setTextColor(80, 80, 80);
    doc.text(`Email: ${user?.email ?? "-"}`, 14, 46);
-   doc.text(`Account: ${(account as any)?.account_number ?? "-"}`, 14, 51);
-   doc.text(`Currency: ${(account as any)?.currency ?? currency}`, 14, 56);
+   doc.text(`Account: ${acc?.account_number ?? "-"}`, 14, 51);
+   doc.text(`Currency: ${accCurrency}`, 14, 56);
    doc.text(`Statement period: ${periodLabel}`, pageW - 14, 46, { align: "right" });
    doc.text(`Generated: ${generated}`, pageW - 14, 51, { align: "right" });
-   doc.text(`Current balance: ${account ? formatMoney(Number((account as any).balance), (account as any).currency) : "-"}`, pageW - 14, 56, { align: "right" });
+   doc.text(`Total balance: ${account ? formatMoney(bd.total, accCurrency) : "-"}`, pageW - 14, 56, { align: "right" });
 
    doc.setDrawColor(220);
    doc.line(14, 62, pageW - 14, 62);
@@ -118,8 +135,16 @@ const Transactions = () => {
    const net = totalIn - totalOut;
    doc.text(`Net: ${net >= 0 ? "+" : "-"}${formatMoney(Math.abs(net), currency)}`, 140, 70);
 
+   // Account balances (primary + opened secondary accounts)
+   doc.setFont("helvetica", "normal");
+   doc.setFontSize(8.5);
+   doc.setTextColor(80, 80, 80);
+   const balanceLines = doc.splitTextToSize(`Account balances:  ${balanceParts.join("   |   ")}`, pageW - 28);
+   doc.text(balanceLines, 14, 78);
+   const tableStartY = 78 + balanceLines.length * 4 + 4;
+
    autoTable(doc, {
-     startY: 76,
+     startY: tableStartY,
      head: [["Date", "Reference", "Type", "Description", "Status", "Amount"]],
      body: filtered.map((t: any) => [
        new Date(t.created_at).toLocaleDateString(),
