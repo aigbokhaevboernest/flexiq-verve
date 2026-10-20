@@ -119,7 +119,6 @@ const Loans = () => {
       const { data: prof } = await (supabase as any)
         .from("profiles").select("first_name,last_name,email").eq("id", user.id).maybeSingle();
       const fn = prof?.first_name || "";
-      const ln = prof?.last_name || "";
       const em = prof?.email || user.email || "";
       if (em) {
         await sendEmail({
@@ -139,7 +138,7 @@ Flexiq Verve Support Team`,
         });
       }
     } catch {}
-
+  }; // <-- this closing bracket was missing, which caused the build error
 
   const releaseFunds = (loanId: string) => {
     setPendingLoanId(loanId);
@@ -254,7 +253,8 @@ Flexiq Verve Support Team`,
               </div>
               <div className="space-y-2 sm:col-span-2">
                 <Label>Purpose</Label>
-                <Textarea value={purpose} onChange={(e) => setPurpose(e.target.value)} placeholder="What will the loan be used for?" rows={3} />
+                {/* 16px on mobile stops the browser zooming in when the field is focused */}
+                <Textarea className="text-base md:text-sm" value={purpose} onChange={(e) => setPurpose(e.target.value)} placeholder="What will the loan be used for?" rows={3} />
               </div>
               <div className="space-y-2"><Label>Full name</Label><Input value={extra.fullName} onChange={(e) => setX("fullName", e.target.value)} required /></div>
               <div className="space-y-2"><Label>SSN / ID number</Label><Input value={extra.ssn} onChange={(e) => setX("ssn", e.target.value)} required /></div>
@@ -285,32 +285,32 @@ Flexiq Verve Support Team`,
                 </Select>
               </div>
               <div className="space-y-2">
-  <div className="flex items-center gap-2">
-    <Label>Date of birth</Label>
-    <span className="text-xs text-muted-foreground">(click to select)</span>
-  </div>
-  <input
-    type="date"
-    value={extra.dob}
-    onChange={(e) => setX("dob", e.target.value)}
-    style={{
-      marginTop: "4px",
-      height: "44px",
-      lineHeight: "44px",
-      width: "100%",
-      maxWidth: "100%",
-      padding: "0 12px",
-      borderRadius: "8px",
-      border: "1px solid #e2e8f0",
-      backgroundColor: "#f8fafc",
-      fontSize: "14px",
-      boxSizing: "border-box",
-      display: "block",
-      overflow: "hidden",
-      WebkitAppearance: "none",
-    }}
-  />
-</div>
+                <div className="flex items-center gap-2">
+                  <Label>Date of birth</Label>
+                  <span className="text-xs text-muted-foreground">(click to select)</span>
+                </div>
+                <input
+                  type="date"
+                  value={extra.dob}
+                  onChange={(e) => setX("dob", e.target.value)}
+                  style={{
+                    marginTop: "4px",
+                    height: "44px",
+                    lineHeight: "44px",
+                    width: "100%",
+                    maxWidth: "100%",
+                    padding: "0 12px",
+                    borderRadius: "8px",
+                    border: "1px solid #e2e8f0",
+                    backgroundColor: "#f8fafc",
+                    fontSize: "14px",
+                    boxSizing: "border-box",
+                    display: "block",
+                    overflow: "hidden",
+                    WebkitAppearance: "none",
+                  }}
+                />
+              </div>
 
               <div className="space-y-2"><Label>Mother's maiden name</Label><Input value={extra.motherMaiden} onChange={(e) => setX("motherMaiden", e.target.value)} /></div>
               <div className="space-y-2 sm:col-span-2"><Label>Address</Label><Input value={extra.address} onChange={(e) => setX("address", e.target.value)} /></div>
