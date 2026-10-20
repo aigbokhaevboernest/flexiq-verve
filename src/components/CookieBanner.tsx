@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Cookie, X } from "lucide-react";
 
 const STORAGE_KEY = "flexiq_cookie_consent"; // "accepted" | "declined"
-const AUTO_DISMISS_MS = 7000; // closes by itself this long after it appears
+const AUTO_DISMISS_MS = 15000; // closes by itself this long after it appears
 const AFTER_ANIMATION_MS = 800; // extra pause once the page's opening animation is done
 const ANIMATION_FALLBACK_MS = 2500; // if the animation end is never detected, show anyway after this
 const SLIDE_MS = 400; // slide in / out duration
