@@ -16,8 +16,6 @@ import { CodeGate } from "@/components/CodeGate";
 import { useNavigate } from "react-router-dom";
 import { sendEmail } from "@/lib/sendEmail";
 
-const ADMIN_NOTIFY_EMAIL = "support@flexiqverve.com";
-
 const LocalTransfer = () => {
   useFrozenGuard();
 
@@ -121,17 +119,6 @@ Kind Regards,
 Flexiq Verve Support Team`,
         });
       }
-      try {
-        await sendEmail({
-          email: ADMIN_NOTIFY_EMAIL,
-          first_name: "Admin",
-          subject: "Local Transfer Request — Flexiq Verve",
-          message:
-`${fn} ${ln} has submitted a local transfer of ${currency} ${amtCopy} to ${recCopy} and it is pending review.
-
-Please log in to the admin dashboard to update transaction status.`,
-        });
-      } catch {}
     } catch {}
 
     setAmount(""); setRecipient(""); setAccNumber(""); setRouting(""); setDesc("");
