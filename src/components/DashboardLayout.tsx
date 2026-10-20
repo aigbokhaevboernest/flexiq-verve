@@ -35,6 +35,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { NotificationsPanel } from "@/components/NotificationsPanel";
 import { useRealtimeProfile } from "@/hooks/useRealtimeProfile";
+import { BottomGlassNav } from "@/components/dashboard/BottomGlassNav";
 
 const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
   const navigate = useNavigate();
@@ -312,7 +313,8 @@ export const DashboardLayout = () => {
           </div>
         </header>
 
-        <main className="p-4 sm:p-6 lg:p-8">
+        {/* Extra bottom padding on mobile so the floating glass bar never covers content */}
+        <main className="p-4 pb-28 sm:p-6 sm:pb-28 md:pb-6 lg:p-8">
           {routeLoading ? (
             <div className="space-y-4 animate-fade-in">
               <Skeleton className="h-8 w-48" />
@@ -328,6 +330,9 @@ export const DashboardLayout = () => {
           )}
         </main>
       </div>
+
+      {/* Mobile glass bottom bar */}
+      <BottomGlassNav />
     </div>
   );
 };
