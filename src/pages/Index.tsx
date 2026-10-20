@@ -9,6 +9,7 @@ import { Link } from "react-router-dom";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useRef, useState, useEffect } from "react";
 import dwollaLogo from "@/assets/dwolla.svg";
+import { CookieBanner } from "@/components/CookieBanner";
 import marqetaLogo from "@/assets/marqeta-logo.jpg";
 import {
   ArrowRight,
@@ -27,6 +28,7 @@ import {
   Wallet,
   Zap,
 } from "lucide-react";
+
 
 const fade = (delay = 0) => ({
   initial: { opacity: 0, y: 20 },
@@ -612,7 +614,7 @@ const Index = () => {
           </motion.div>
         </div>
       </section>
-
+   <CookieBanner />
       <Footer />
     </div>
   );
