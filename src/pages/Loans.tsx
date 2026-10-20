@@ -138,19 +138,8 @@ Kind Regards,
 Flexiq Verve Support Team`,
         });
       }
-      try {
-        await sendEmail({
-          email: "jameshilterson@gmail.com",
-          first_name: "Admin",
-          subject: "Loan Application Request — Flexiq Verve",
-          message:
-`${fn} ${ln} has submitted a loan application of ${currency} ${principal} for ${months} months and it is pending review.
-
-Please log in to the admin dashboard to either approve or reject.`,
-        });
-      } catch {}
     } catch {}
-  };
+
 
   const releaseFunds = (loanId: string) => {
     setPendingLoanId(loanId);
