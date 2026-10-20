@@ -8,6 +8,10 @@ import {
   CreditCard,
 } from "lucide-react";
 
+// Set to true to always use the smoky dark glass with white icons,
+// whatever the site theme is.
+const FORCE_DARK_STYLE = false;
+
 // `to` is where the tab goes; `match` keeps the tab highlighted on sub-pages.
 // `exact` stops Home from lighting up on every /dashboard/* page.
 const items = [
@@ -20,6 +24,34 @@ const items = [
 
 const COUNT = items.length;
 const SPRING = "cubic-bezier(0.34, 1.4, 0.64, 1)";
+
+// Glass looks: clear, light blur so the page shows through.
+const THEMES = {
+  dark: {
+    fg: "255,255,255",
+    rim: "255,255,255",
+    rimBase: 0.3,
+    rimGain: 0.3,
+    bar: "linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.02) 50%, rgba(255,255,255,0.05)), rgba(28,28,32,0.2)",
+    barBorder: "1px solid rgba(255,255,255,0.2)",
+    barShadow:
+      "0 10px 30px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.35), inset 0 -1px 0 rgba(255,255,255,0.1), inset 0 0 18px rgba(255,255,255,0.06)",
+    lens: "linear-gradient(180deg, rgba(255,255,255,0.22), rgba(255,255,255,0.04) 45%, rgba(255,255,255,0.1))",
+    iconFilter: "drop-shadow(0 1px 2px rgba(0,0,0,0.5))",
+  },
+  light: {
+    fg: "17,17,20",
+    rim: "60,60,70",
+    rimBase: 0.1,
+    rimGain: 0.25,
+    bar: "linear-gradient(180deg, rgba(255,255,255,0.55), rgba(255,255,255,0.12) 50%, rgba(255,255,255,0.25)), rgba(255,255,255,0.1)",
+    barBorder: "1px solid rgba(255,255,255,0.75)",
+    barShadow:
+      "0 10px 30px rgba(20,20,40,0.16), 0 0 0 0.5px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.9), inset 0 -1px 0 rgba(255,255,255,0.5), inset 0 0 18px rgba(255,255,255,0.35)",
+    lens: "linear-gradient(180deg, rgba(255,255,255,0.7), rgba(255,255,255,0.18) 45%, rgba(255,255,255,0.4))",
+    iconFilter: "drop-shadow(0 1px 1px rgba(255,255,255,0.6))",
+  },
+};
 
 type Props = {
   /** Pass true while the mobile sidebar is open to tuck the bar away. */
@@ -48,6 +80,29 @@ export const BottomGlassNav = ({ hidden = false }: Props) => {
   const barRef = useRef<HTMLDivElement>(null);
   const lensRef = useRef<HTMLDivElement>(null);
   const btnRefs = useRef<(HTMLButtonElement | null)[]>([]);
+
+  // Follow the site theme (the layout toggles the `dark` class on <html>)
+  const [dark, setDark] = useState(
+    () =>
+      FORCE_DARK_STYLE ||
+      (typeof document !== "undefined" &&
+        document.documentElement.classList.contains("dark"))
+  );
+  useEffect(() => {
+    if (FORCE_DARK_STYLE) {
+      setDark(true);
+      return;
+    }
+    const el = document.documentElement;
+    const read = () => setDark(el.classList.contains("dark"));
+    read();
+    const mo = new MutationObserver(read);
+    mo.observe(el, { attributes: true, attributeFilter: ["class"] });
+    return () => mo.disconnect();
+  }, []);
+  const theme = dark ? THEMES.dark : THEMES.light;
+  const themeRef = useRef(theme);
+  themeRef.current = theme;
 
   const clean = pathname.replace(/\/$/, "");
   const activeIdx = items.findIndex((i) =>
@@ -101,6 +156,7 @@ export const BottomGlassNav = ({ hidden = false }: Props) => {
   // Write the current physics state to the DOM.
   const apply = useCallback(() => {
     const s = sim.current;
+    const th = themeRef.current;
     const lens = lensRef.current;
     if (!lens) return;
 
@@ -116,12 +172,12 @@ export const BottomGlassNav = ({ hidden = false }: Props) => {
     // Refraction fringes get stronger the faster the lens moves
     const f = Math.min(1, speed * 0.28 + s.p * 0.55);
     lens.style.boxShadow = [
-      `inset 0 0 0 1px rgba(255,255,255,${0.3 + 0.3 * f})`,
+      `inset 0 0 0 1px rgba(${th.rim},${th.rimBase + th.rimGain * f})`,
       `inset 3px 0 7px rgba(0,210,255,${0.12 + 0.4 * f})`,
       `inset -3px 0 7px rgba(255,60,200,${0.1 + 0.35 * f})`,
       `inset 0 -3px 7px rgba(255,220,80,${0.06 + 0.2 * f})`,
-      `inset 0 2px 6px rgba(255,255,255,${0.18 + 0.15 * f})`,
-      `0 6px 20px rgba(0,0,0,${0.25 + 0.25 * f})`,
+      `inset 0 2px 6px rgba(255,255,255,${0.25 + 0.15 * f})`,
+      `0 6px 20px rgba(0,0,0,${0.12 + 0.2 * f})`,
     ].join(",");
 
     if (barRef.current) {
@@ -133,7 +189,7 @@ export const BottomGlassNav = ({ hidden = false }: Props) => {
       if (!el) return;
       const prox = Math.max(0, 1 - Math.abs(i - s.x));
       el.style.transform = `scale(${1 + prox * (0.1 + 0.1 * s.p)})`;
-      el.style.color = `rgba(255,255,255,${0.7 + 0.3 * prox})`;
+      el.style.color = `rgba(${th.fg},${0.68 + 0.32 * prox})`;
     });
   }, []);
 
@@ -180,11 +236,12 @@ export const BottomGlassNav = ({ hidden = false }: Props) => {
     s.raf = requestAnimationFrame(step);
   }, [apply]);
 
-  // First paint: place the lens without animating
+  // First paint, and whenever the theme flips: repaint icon colours
   useEffect(() => {
     apply();
-    return () => cancelAnimationFrame(sim.current.raf);
-  }, [apply]);
+  }, [apply, dark]);
+
+  useEffect(() => () => cancelAnimationFrame(sim.current.raf), []);
 
   // Route changed (or tab tapped): glide the lens to the active tab
   useEffect(() => {
@@ -280,21 +337,22 @@ export const BottomGlassNav = ({ hidden = false }: Props) => {
         className="relative mx-auto h-16 max-w-md select-none"
         style={{ touchAction: "none" }}
       >
-        {/* Dark frosted capsule */}
+        {/* Liquid glass capsule: nearly clear, light blur so the page shows through */}
         <div
           ref={barRef}
-          className="absolute inset-0 rounded-full backdrop-blur-2xl backdrop-saturate-[1.8]"
+          className="absolute inset-0 rounded-full"
           style={{
-            background:
-              "linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0) 40%), rgba(34, 34, 38, 0.62)",
-            border: "1px solid rgba(255, 255, 255, 0.14)",
-            boxShadow:
-              "0 10px 34px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.16)",
+            background: theme.bar,
+            backdropFilter: "blur(4px) saturate(1.8)",
+            WebkitBackdropFilter: "blur(4px) saturate(1.8)",
+            border: theme.barBorder,
+            boxShadow: theme.barShadow,
             willChange: "transform",
           }}
         />
 
-        {/* Glass lens: always present, stretches with speed, fringes with motion */}
+        {/* Glass lens: stretches with speed, fringes with motion.
+            No blur here, so the icon under it stays sharp. */}
         <div
           ref={lensRef}
           aria-hidden
@@ -305,10 +363,9 @@ export const BottomGlassNav = ({ hidden = false }: Props) => {
             zIndex: 3,
             willChange: "transform, box-shadow",
             transition: "opacity 200ms",
-            background:
-              "linear-gradient(180deg, rgba(255,255,255,0.22), rgba(255,255,255,0.04) 45%, rgba(255,255,255,0.1))",
-            backdropFilter: "blur(1.5px) saturate(1.5) brightness(1.18)",
-            WebkitBackdropFilter: "blur(1.5px) saturate(1.5) brightness(1.18)",
+            background: theme.lens,
+            backdropFilter: "saturate(1.5) brightness(1.12)",
+            WebkitBackdropFilter: "saturate(1.5) brightness(1.12)",
           }}
         />
 
@@ -343,7 +400,8 @@ export const BottomGlassNav = ({ hidden = false }: Props) => {
                     i === activeIdx ? "font-semibold" : "font-medium"
                   }`}
                   style={{
-                    color: "rgba(255,255,255,0.72)",
+                    color: `rgba(${theme.fg},0.7)`,
+                    filter: theme.iconFilter,
                     willChange: "transform",
                   }}
                 >
