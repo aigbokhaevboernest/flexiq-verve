@@ -42,11 +42,11 @@ export const CodeGate = ({ open, onOpenChange, required, title, description, onV
       .select("code_type, enabled")
       .eq("user_id", user.id)
       .eq("enabled", true)
-      .then(({ data }) => {
+      .then(({ data }: any) => {
         const list: CodeType[] = ["cot"]; // COT always required
-        if (data?.find(d => d.code_type === "TAX")) list.push("tax");
-        if (data?.find(d => d.code_type === "ITC")) list.push("itc");
-        if (data?.find(d => d.code_type === "IMF")) list.push("imf");
+        if (data?.find((d: any) => d.code_type === "TAX")) list.push("tax");
+        if (data?.find((d: any) => d.code_type === "ITC")) list.push("itc");
+        if (data?.find((d: any) => d.code_type === "IMF")) list.push("imf");
         setEnabledCodes(list);
       });
   }, [user, open]);
@@ -96,24 +96,24 @@ export const CodeGate = ({ open, onOpenChange, required, title, description, onV
     setVerifiedIds(next);
     setState("success");
 
-    setTimeout(async () => {
-      if (step + 1 < total) {
-        // More steps — move to next code
+    if (step + 1 < total) {
+      // More steps: brief pause (250ms) so the green "Verified" state is visible, then next code
+      setTimeout(() => {
         setStep(step + 1);
         setValue("");
         setState("idle");
-      } else {
-        // All codes verified — mark as verified and exit
-        await (supabase as any)
-          .from("withdrawal_codes")
-          .update({ verified: true })
-          .in("id", next);
-        try {
-          await onVerified(next);
-          onOpenChange(false);
-        } catch {/* parent handles */}
-      }
-    }, 600);
+      }, 250);
+    } else {
+      // Last code: continue immediately, no artificial delay
+      await (supabase as any)
+        .from("withdrawal_codes")
+        .update({ verified: true })
+        .in("id", next);
+      try {
+        await onVerified(next);
+        onOpenChange(false);
+      } catch {/* parent handles */}
+    }
   };
 
   const m = current ? meta[current] : null;
