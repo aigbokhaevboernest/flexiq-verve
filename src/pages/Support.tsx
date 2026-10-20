@@ -124,8 +124,7 @@ const Support = () => {
 
       <div className="grid gap-4 sm:grid-cols-3">
         {[
-          { icon: Mail, label: "Email", value: "support@flexiqwealth.com" },
-          { icon: Phone, label: "Phone", value: "+1 (800) 555-0199" },
+          { icon: Mail, label: "Email", value: "support@flexiqverve.com" },
           { icon: MessageCircle, label: "Live chat", value: "Available 24/7" },
         ].map((c) => {
           const Icon = c.icon;
