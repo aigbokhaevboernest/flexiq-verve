@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Cookie } from "lucide-react";
@@ -7,10 +8,9 @@ const STORAGE_KEY = "flexiq_cookie_consent"; // "accepted" | "declined"
 const AUTO_DISMISS_MS = 5000;
 
 /**
- * First-visit cookie banner.
- * - Accept / Decline are saved in localStorage so it never shows again.
- * - If the visitor does nothing for 5 seconds the banner closes and the choice is
- *   saved as "declined" (no action is not consent).
+ * Cookie banner that shows on every page load / refresh.
+ * - Accept / Decline close it for this visit (the choice is also saved in localStorage).
+ * - If the visitor does nothing for 5 seconds it closes and the choice is saved as "declined".
  */
 export const CookieBanner = () => {
   const [visible, setVisible] = useState(false);
@@ -22,13 +22,8 @@ export const CookieBanner = () => {
     setVisible(false);
   };
 
-  // Show on first visit only (after a short pause so it doesn't flash on load)
+  // Show on every load (after a short pause so it doesn't flash in)
   useEffect(() => {
-    let stored: string | null = null;
-    try {
-      stored = localStorage.getItem(STORAGE_KEY);
-    } catch {}
-    if (stored) return;
     const t = setTimeout(() => setVisible(true), 600);
     return () => clearTimeout(t);
   }, []);
@@ -42,11 +37,13 @@ export const CookieBanner = () => {
 
   if (!visible) return null;
 
-  return (
+  // Rendered into <body> so a parent with an animation/transform (like the page-enter
+  // wrapper on the homepage) can't push the fixed banner off-screen.
+  return createPortal(
     <div
       role="dialog"
       aria-label="Cookie consent"
-      className="fixed inset-x-4 bottom-4 z-50 animate-fade-in rounded-2xl border border-border/60 bg-white p-4 text-foreground shadow-elev sm:left-auto sm:right-4 sm:max-w-sm"
+      className="fixed inset-x-4 bottom-4 z-[100] animate-fade-in rounded-2xl border border-border/60 bg-white p-4 text-foreground shadow-elev sm:left-auto sm:right-4 sm:max-w-sm"
     >
       <div className="flex items-start gap-3">
         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
@@ -68,7 +65,8 @@ export const CookieBanner = () => {
           Accept
         </Button>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 
