@@ -237,7 +237,7 @@ Flexiq Verve Support Team`,
       <div>
         <h1 className="font-display text-2xl font-bold sm:text-3xl">Apply for a Loan</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Borrow up to 5x your monthly deposit. Disbursement requires authorization codes.
+          Borrow up to 5x your monthly deposit.
         </p>
       </div>
 
@@ -350,9 +350,9 @@ Flexiq Verve Support Team`,
             </div>
             <ol className="mt-3 space-y-2 text-sm text-muted-foreground list-decimal list-inside">
               <li>Submit your application</li>
-              <li>Account manager reviews & approves</li>
-              <li>Receive Loan Authorization Code</li>
-              <li>Enter code to release funds</li>
+              <li>Review and verification</li>
+              <li>Loan approval</li>
+              <li>Loan disbursement</li>
             </ol>
           </Card>
           <Card className="rounded-3xl border-border/60 p-6 shadow-card">
