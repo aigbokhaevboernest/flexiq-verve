@@ -178,13 +178,6 @@ Flexiq Verve Support Team`,
 
         <div className="space-y-4">
           <Card className="rounded-3xl border-border/60 p-6 shadow-card">
-            <div className="flex items-center gap-2">
-              <Shield className="h-4 w-4 text-success" />
-              <p className="text-sm font-semibold">Authorization required</p>
-            </div>
-            <p className="mt-2 text-sm text-muted-foreground">Authorization codes are required to complete this transfer.</p>
-          </Card>
-          <Card className="rounded-3xl border-border/60 p-6 shadow-card">
             <p className="text-sm font-semibold">Saved beneficiaries</p>
             <div className="mt-3 space-y-2">
               {beneficiaries.length === 0 && <p className="text-xs text-muted-foreground">No saved beneficiaries yet.</p>}
