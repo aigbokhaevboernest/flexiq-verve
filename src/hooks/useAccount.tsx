@@ -132,26 +132,52 @@ export const useVerification = () => {
   });
 };
 
+/**
+ * Money formatting — keep identical in the user app and the admin panel.
+ * Fixed "en-US" locale so amounts always read 11,000.00 on every device.
+ * USD / EUR / GBP / JPY get a clean symbol ($, €, £, ¥).
+ * Every other currency (CHF, CAD, AUD, ...) shows CODE + amount so
+ * different dollar currencies are never confused with each other.
+ */
+const SYMBOL_CURRENCIES = new Set(["USD", "EUR", "GBP", "JPY"]);
+
 export const formatMoney = (amount: number, currency = "USD") => {
-  try {
-    return new Intl.NumberFormat(undefined, {
-      style: "currency",
-      currency,
-      minimumFractionDigits: 2,
-    }).format(amount);
-  } catch {
-    return `${currency} ${amount.toFixed(2)}`;
+  const code = (currency || "USD").toUpperCase();
+  const value = Number(amount) || 0;
+  const digits = code === "JPY" ? 0 : 2;
+
+  if (SYMBOL_CURRENCIES.has(code)) {
+    try {
+      return new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: code,
+        currencyDisplay: "narrowSymbol",
+        minimumFractionDigits: digits,
+        maximumFractionDigits: digits,
+      }).format(value);
+    } catch {
+      // fall through to code + number
+    }
   }
+
+  const n = Math.abs(value).toLocaleString("en-US", {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+  });
+  return `${value < 0 ? "-" : ""}${code} ${n}`;
 };
 
 export const currencySymbol = (currency = "USD") => {
+  const code = (currency || "USD").toUpperCase();
+  if (!SYMBOL_CURRENCIES.has(code)) return code;
   try {
-    const parts = new Intl.NumberFormat(undefined, {
+    const parts = new Intl.NumberFormat("en-US", {
       style: "currency",
-      currency,
+      currency: code,
+      currencyDisplay: "narrowSymbol",
     }).formatToParts(0);
-    return parts.find((p) => p.type === "currency")?.value ?? currency;
+    return parts.find((p) => p.type === "currency")?.value ?? code;
   } catch {
-    return currency;
+    return code;
   }
 };
