@@ -25,6 +25,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/EmptyState";
 import AccountCarousel from "@/components/dashboard/AccountCarousel";
+import FitAmount from "@/components/FitAmount";
 
 const quickActions: Array<{
   icon: any;
@@ -324,7 +325,7 @@ const DashboardHome = () => {
                 <div className="absolute -bottom-20 -left-10 h-56 w-56 rounded-full bg-accent/40 blur-3xl" />
 
                 <div className="relative flex items-start justify-between">
-                  <div className="flex-1">
+                  <div className="min-w-0 flex-1">
                     {isFrozen && (
                       <span
                         className="mb-3 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold text-white backdrop-blur-sm"
@@ -342,17 +343,15 @@ const DashboardHome = () => {
                       {!balanceKnown || !currency ? (
                         <Skeleton className="h-10 w-44 bg-white/20" />
                       ) : (
-                        <p
-                          className="font-sans font-bold tracking-tight truncate max-w-[260px] sm:max-w-[340px]"
-                          style={{ fontSize: "clamp(2rem, 6vw, 3.5rem)" }}
+                        <FitAmount
+                          variant="hero"
+                          text={hidden ? "••••••" : formatMoney(balanceValue, currency)}
                           title={formatMoney(balanceValue, currency)}
-                        >
-                          {hidden ? "••••••" : formatMoney(balanceValue, currency)}
-                        </p>
+                        />
                       )}
                       <button
                         onClick={() => setHidden((h) => !h)}
-                        className="rounded-full bg-white/15 p-2 backdrop-blur transition-smooth hover:bg-white/25"
+                        className="shrink-0 rounded-full bg-white/15 p-2 backdrop-blur transition-smooth hover:bg-white/25"
                       >
                         {hidden ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
                       </button>
