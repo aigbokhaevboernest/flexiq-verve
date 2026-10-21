@@ -16,6 +16,7 @@ import {
   ArrowRight,
   X,
 } from "lucide-react";
+import FitAmount from "@/components/FitAmount";
 
 export type SecondaryType = "checking" | "savings" | "retirement";
 
@@ -140,13 +141,12 @@ const OpenedAccountCard = ({
               </div>
               <MoreHorizontal className="h-5 w-5 opacity-60" />
             </div>
-            <p
-              className="mt-4 font-sans font-bold tracking-tight truncate"
-              style={{ fontSize: "clamp(1.75rem, 5vw, 2.75rem)" }}
+            <FitAmount
+              variant="card"
+              className="mt-4"
+              text={formatMoney(balance, currency)}
               title={formatMoney(balance, currency)}
-            >
-              {formatMoney(balance, currency)}
-            </p>
+            />
             <div className="mt-4 border-t border-white/15 pt-4">
               {type === "checking" && (
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
