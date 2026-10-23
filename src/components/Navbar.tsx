@@ -13,8 +13,7 @@ const links: { href: string; label: string }[] = [
   { href: "/faq", label: "FAQ" },
   { href: "/terms", label: "Terms" },
   { href: "/policies", label: "Privacy" },
-  { href: "/verify", label: "ID.me" },
-];
+
 
 export const Navbar = () => {
   const [open, setOpen] = useState(false);
