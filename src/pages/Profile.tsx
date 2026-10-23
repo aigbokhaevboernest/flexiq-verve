@@ -2,13 +2,40 @@ import { useRef, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile, useAccount, useVerification, useIsAdmin, formatMoney } from "@/hooks/useAccount";
-import { Settings as SettingsIcon, ShieldCheck, Mail, Phone, Globe2, CreditCard, BadgeCheck, CalendarClock, Camera, Loader2 } from "lucide-react";
+import {
+  Settings as SettingsIcon,
+  ShieldCheck,
+  Mail,
+  Phone,
+  Globe2,
+  CreditCard,
+  BadgeCheck,
+  CalendarClock,
+  Camera,
+  Loader2,
+  ExternalLink,
+  FileCheck2,
+  ArrowRight,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
+
+// Brand green sampled from the logo
+const GREEN = "#4FA85E";
+const GREEN_DEEP = "#3E9A52";
+const GREEN_SOFT = "#5DB56B";
+const IDME_URL = "https://www.id.me/";
 
 const Row = ({ label, value, icon: Icon }: { label: string; value?: string | null; icon?: any }) => (
   <div className="flex items-start justify-between gap-4 border-b border-border/50 py-3 last:border-0">
@@ -31,6 +58,7 @@ const maskValue = (val?: string | null, visibleChars = 4): string | null => {
 
 const Profile = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { data: profile } = useProfile();
   const { data: account } = useAccount();
   const { data: verification } = useVerification();
@@ -39,6 +67,7 @@ const Profile = () => {
   const qc = useQueryClient();
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [verifyOpen, setVerifyOpen] = useState(false);
 
   const fullName = [profile?.first_name, profile?.last_name].filter(Boolean).join(" ") || "Account holder";
   const initials = (
@@ -49,12 +78,12 @@ const Profile = () => {
   const verifStatus = verification?.status || "not_started";
   const verifColor =
     verifStatus === "approved"
-      ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/40"
+      ? "bg-emerald-500/20 text-emerald-100 border-emerald-300/50"
       : verifStatus === "pending" || verifStatus === "submitted"
-      ? "bg-amber-500/20 text-amber-400 border-amber-500/40"
+      ? "bg-amber-500/25 text-amber-100 border-amber-300/50"
       : verifStatus === "rejected"
-      ? "bg-red-500/20 text-red-400 border-red-500/40"
-      : "bg-white/10 text-white/70 border-white/20";
+      ? "bg-red-500/25 text-red-100 border-red-300/50"
+      : "bg-white/10 text-white/80 border-white/30";
 
   const avatarUrl = (profile as any)?.avatar_url || null;
 
@@ -106,6 +135,16 @@ const Profile = () => {
     }
   };
 
+  const chooseIdMe = () => {
+    setVerifyOpen(false);
+    window.open(IDME_URL, "_blank", "noopener,noreferrer");
+  };
+
+  const chooseKyc = () => {
+    setVerifyOpen(false);
+    navigate("/dashboard/kyc");
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -121,7 +160,10 @@ const Profile = () => {
       </div>
 
       <Card className="overflow-hidden rounded-3xl border-border/60 shadow-card">
-        <div className="bg-gradient-primary p-6 text-primary-foreground">
+        <div
+          className="p-6 text-white"
+          style={{ backgroundImage: `linear-gradient(135deg, ${GREEN_DEEP}, ${GREEN_SOFT})` }}
+        >
           <div className="flex items-center gap-4">
             {/* Avatar with upload */}
             <div className="relative shrink-0">
@@ -140,7 +182,8 @@ const Profile = () => {
                 type="button"
                 onClick={() => fileRef.current?.click()}
                 disabled={uploading}
-                className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-white text-primary shadow-md transition hover:scale-105 disabled:opacity-60"
+                className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-white shadow-md transition hover:scale-105 disabled:opacity-60"
+                style={{ color: GREEN_DEEP }}
                 title="Upload photo"
               >
                 {uploading ? (
@@ -160,7 +203,7 @@ const Profile = () => {
 
             <div className="min-w-0">
               <h2 className="truncate font-display text-xl font-bold">{fullName}</h2>
-              <p className="truncate text-sm text-white/80">{user?.email}</p>
+              <p className="truncate text-sm text-white/85">{user?.email}</p>
               <div className="mt-2 flex flex-wrap gap-2">
                 {/* Stable badge — key forces no re-mount flicker */}
                 <Badge
@@ -249,13 +292,71 @@ const Profile = () => {
               )}
             </div>
             {verifStatus !== "approved" && (
-              <Button asChild className="mt-4 w-full bg-gradient-primary">
-                <Link to="/verify">Complete verification</Link>
+              <Button
+                className="mt-4 w-full text-white hover:opacity-95"
+                style={{ backgroundColor: GREEN_DEEP }}
+                onClick={() => setVerifyOpen(true)}
+              >
+                Complete verification
               </Button>
             )}
           </Card>
         </div>
       </div>
+
+      {/* Verification method chooser */}
+      <Dialog open={verifyOpen} onOpenChange={setVerifyOpen}>
+        <DialogContent className="max-w-md rounded-3xl">
+          <DialogHeader>
+            <DialogTitle className="font-display text-xl">Choose how to verify</DialogTitle>
+            <DialogDescription>
+              Pick the option that suits you. Either one confirms your identity.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="mt-2 space-y-3">
+            <button
+              type="button"
+              onClick={chooseIdMe}
+              className="flex w-full items-center gap-4 rounded-2xl border border-border/60 p-4 text-left transition-colors hover:bg-muted"
+            >
+              <span
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
+                style={{ color: GREEN, backgroundColor: `${GREEN}1A` }}
+              >
+                <ExternalLink className="h-5 w-5" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-semibold">Verify with ID.me</span>
+                <span className="block text-xs text-muted-foreground">
+                  Opens the ID.me website in a new tab
+                </span>
+              </span>
+              <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+            </button>
+
+            <button
+              type="button"
+              onClick={chooseKyc}
+              className="flex w-full items-center gap-4 rounded-2xl border border-border/60 p-4 text-left transition-colors hover:bg-muted"
+            >
+              <span
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
+                style={{ color: GREEN, backgroundColor: `${GREEN}1A` }}
+              >
+                <FileCheck2 className="h-5 w-5" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-semibold">AML / KYC verification</span>
+                <span className="block text-xs text-muted-foreground">
+                  Upload your ID and a selfie here
+                </span>
+              </span>
+              <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
