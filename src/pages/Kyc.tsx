@@ -9,10 +9,6 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Upload, Loader2, ShieldCheck, Clock, X, FileText, ArrowLeft } from "lucide-react";
 
-// Brand green sampled from the logo
-const GREEN = "#4FA85E";
-const GREEN_DEEP = "#3E9A52";
-
 const MAX_BYTES = 8 * 1024 * 1024;
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
 const SIGNED_URL_SECONDS = 60 * 60 * 24 * 365; // 1 year, so the admin panel can show the image
@@ -21,6 +17,13 @@ const validateFile = (f: File): string | null => {
   if (!ALLOWED_TYPES.includes(f.type)) return "Please upload a JPG, PNG, WebP or PDF file.";
   if (f.size > MAX_BYTES) return "File is too large. Max size is 8MB.";
   return null;
+};
+
+// Supabase returns plain objects (not Error instances), so read .message from either
+const errorMessage = (e: unknown): string => {
+  if (e instanceof Error) return e.message;
+  const m = (e as any)?.message;
+  return typeof m === "string" && m ? m : "Something went wrong. Please try again.";
 };
 
 interface Submission {
@@ -44,7 +47,7 @@ const FileSlot = ({
 }) => (
   <div>
     <Label>
-      {label} {required && <span style={{ color: GREEN }}>*</span>}
+      {label} {required && <span className="text-primary">*</span>}
     </Label>
     {file ? (
       <div className="mt-1 overflow-hidden rounded-xl border border-border bg-muted/40">
@@ -127,12 +130,14 @@ export default function Kyc() {
     const { error } = await supabase.storage
       .from("kyc-documents")
       .upload(path, file, { upsert: true, contentType: file.type || "application/octet-stream" });
-    if (error) throw new Error(`Upload failed (${key}): ${error.message}`);
+    if (error) throw new Error(`File upload failed (${key}): ${error.message}`);
 
     const { data, error: signError } = await supabase.storage
       .from("kyc-documents")
       .createSignedUrl(path, SIGNED_URL_SECONDS);
-    if (signError || !data?.signedUrl) throw new Error(`Could not prepare ${key} file`);
+    if (signError || !data?.signedUrl) {
+      throw new Error(`Could not prepare ${key} file: ${signError?.message ?? "no link returned"}`);
+    }
     return data.signedUrl;
   };
 
@@ -198,7 +203,8 @@ export default function Kyc() {
       qc.invalidateQueries({ queryKey: ["id-verification", user.id] });
       toast.success("KYC submitted. Pending review.");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Upload failed");
+      console.error("KYC submit failed:", e);
+      toast.error(errorMessage(e));
     } finally {
       setLoading(false);
     }
@@ -217,7 +223,7 @@ export default function Kyc() {
       </Button>
 
       <div>
-        <p className="mb-2 text-xs font-semibold uppercase tracking-widest" style={{ color: GREEN }}>
+        <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-primary">
           Identity verification
         </p>
         <h1 className="font-display text-3xl font-bold tracking-tight">AML / KYC</h1>
@@ -294,7 +300,7 @@ export default function Kyc() {
             </div>
             <div>
               <Label>
-                Document number <span style={{ color: GREEN }}>*</span>
+                Document number <span className="text-primary">*</span>
               </Label>
               <Input value={docNumber} onChange={(e) => setDocNumber(e.target.value)} />
             </div>
@@ -304,12 +310,7 @@ export default function Kyc() {
           <FileSlot label="ID back (if applicable)" file={back} onChange={setBack} />
           <FileSlot label="Selfie holding ID" file={selfie} onChange={setSelfie} required />
 
-          <Button
-            onClick={submit}
-            disabled={loading}
-            className="w-full text-white hover:opacity-95"
-            style={{ backgroundColor: GREEN_DEEP }}
-          >
+          <Button onClick={submit} disabled={loading} className="w-full">
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Submit for verification"}
           </Button>
         </div>
