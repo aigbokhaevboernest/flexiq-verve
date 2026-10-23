@@ -13,6 +13,8 @@ const links: { href: string; label: string }[] = [
   { href: "/faq", label: "FAQ" },
   { href: "/terms", label: "Terms" },
   { href: "/policies", label: "Privacy" },
+];
+
 
 
 export const Navbar = () => {
