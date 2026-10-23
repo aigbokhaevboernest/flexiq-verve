@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
-import { Globe, X } from "lucide-react";
+import { Globe, X, Loader2 } from "lucide-react";
 
 declare global {
   interface Window {
@@ -62,7 +62,10 @@ const HIDE_ON_PREFIXES = [
 const PAGE_LANGUAGE = "en";
 const COOKIE_NAME = "googtrans";
 const AUTO_DETECT_FLAG = "lang_auto_detected";
-const DISMISS_KEY = "lang_switcher_dismissed";
+const USER_CHOICE_KEY = "lang_user_choice";
+const RELOAD_GUARD_KEY = "lang_reload_at";
+
+const isIpHost = (host: string) => /^\d{1,3}(\.\d{1,3}){3}$/.test(host);
 
 function getCookie(name: string): string | null {
   const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
@@ -76,8 +79,7 @@ function setLangCookie(targetCode: string) {
   const host = window.location.hostname;
   // Skip domain-scoped cookies on plain IPs / localhost, where a leading
   // dot isn't valid.
-  const isIp = /^\d{1,3}(\.\d{1,3}){3}$/.test(host);
-  if (host === "localhost" || isIp) return;
+  if (host === "localhost" || isIpHost(host)) return;
   const parts = host.split(".");
   if (parts.length >= 2) {
     const parentDomain = "." + parts.slice(-2).join(".");
@@ -85,8 +87,37 @@ function setLangCookie(targetCode: string) {
   }
 }
 
+// Google can set the cookie on several domain variants, so every one of them
+// has to be expired or the old language keeps coming back.
 function clearLangCookie() {
-  document.cookie = `${COOKIE_NAME}=; path=/; max-age=0`;
+  const expire = "Thu, 01 Jan 1970 00:00:00 GMT";
+  const host = window.location.hostname;
+  const domains: string[] = [""];
+  if (host !== "localhost" && !isIpHost(host)) {
+    domains.push(`; domain=${host}`, `; domain=.${host}`);
+    const parts = host.split(".");
+    if (parts.length >= 2) {
+      const parent = parts.slice(-2).join(".");
+      domains.push(`; domain=${parent}`, `; domain=.${parent}`);
+    }
+  }
+  domains.forEach((d) => {
+    document.cookie = `${COOKIE_NAME}=; path=/; expires=${expire}; max-age=0${d}`;
+  });
+}
+
+// Google adds translated-ltr / translated-rtl to <html> while a page is translated.
+function isPageTranslated(): boolean {
+  const cl = document.documentElement.classList;
+  return cl.contains("translated-ltr") || cl.contains("translated-rtl");
+}
+
+// One reload at most per 10 seconds, so a failing widget can never loop.
+function reloadOnce() {
+  const last = Number(sessionStorage.getItem(RELOAD_GUARD_KEY) || 0);
+  if (Date.now() - last < 10000) return;
+  sessionStorage.setItem(RELOAD_GUARD_KEY, String(Date.now()));
+  window.location.reload();
 }
 
 function loadGoogleTranslateScript() {
@@ -124,19 +155,24 @@ function applyGoogleLang(code: string, force = false): boolean {
   return true;
 }
 
-// The combo only exists once Google's script has finished booting, which can
-// take several seconds on a cold refresh, so keep retrying for a while.
-function applyGoogleLangWithRetry(code: string, attempts = 75, intervalMs = 200) {
+// Tries to apply the language for up to 5 seconds, then checks the page
+// really changed. If it didn't, reload once (the cookie is already set, so
+// Google translates on load; for English the cookie is cleared first).
+function applyAndVerify(code: string) {
   let tries = 0;
-  const interval = setInterval(() => {
+  const poll = setInterval(() => {
     tries += 1;
-    const applied = applyGoogleLang(code);
-    if (applied || tries >= attempts) {
-      clearInterval(interval);
+    if (applyGoogleLang(code) || tries >= 25) clearInterval(poll);
+  }, 200);
+  if (applyGoogleLang(code)) clearInterval(poll);
+
+  setTimeout(() => {
+    const ok = code === PAGE_LANGUAGE ? !isPageTranslated() : isPageTranslated();
+    if (!ok) {
+      if (code === PAGE_LANGUAGE) clearLangCookie();
+      reloadOnce();
     }
-  }, intervalMs);
-  const applied = applyGoogleLang(code);
-  if (applied) clearInterval(interval);
+  }, 5000);
 }
 
 // Re-firing "change" makes Google re-walk the DOM and translate anything new
@@ -145,11 +181,14 @@ function forceRetranslate(code: string) {
   applyGoogleLang(code, true);
 }
 
+type EngineState = "loading" | "ready" | "failed";
+
 export default function LanguageSwitcher() {
   const { pathname } = useLocation();
   const [current, setCurrent] = useState("en");
   const [open, setOpen] = useState(false);
   const [dismissed, setDismissed] = useState(false);
+  const [engine, setEngine] = useState<EngineState>("loading");
 
   const rootRef = useRef<HTMLDivElement>(null);
   const currentRef = useRef("en");
@@ -165,9 +204,26 @@ export default function LanguageSwitcher() {
     setCurrent(code);
   };
 
+  // Engine readiness: only enable languages once Google's dropdown has options.
   useEffect(() => {
     loadGoogleTranslateScript();
+    let tries = 0;
+    const id = setInterval(() => {
+      tries += 1;
+      const combo = document.querySelector<HTMLSelectElement>(".goog-te-combo");
+      if (combo && combo.options.length > 1) {
+        setEngine("ready");
+        clearInterval(id);
+      } else if (tries >= 66) {
+        // ~20 seconds
+        setEngine("failed");
+        clearInterval(id);
+      }
+    }, 300);
+    return () => clearInterval(id);
+  }, []);
 
+  useEffect(() => {
     const suppressBanner = () => {
       if (document.body.style.top && document.body.style.top !== "0px") {
         document.body.style.top = "0px";
@@ -219,12 +275,17 @@ export default function LanguageSwitcher() {
       if (to && to !== PAGE_LANGUAGE) {
         setLang(to);
         document.documentElement.setAttribute("lang", to);
-        applyGoogleLangWithRetry(to);
+        applyAndVerify(to);
       }
       return cleanup;
     }
 
-    if (!sessionStorage.getItem(AUTO_DETECT_FLAG)) {
+    // Browser-language auto-detect runs once per session, and never if the
+    // user has already picked a language themselves (including English).
+    if (
+      !sessionStorage.getItem(AUTO_DETECT_FLAG) &&
+      !localStorage.getItem(USER_CHOICE_KEY)
+    ) {
       sessionStorage.setItem(AUTO_DETECT_FLAG, "1");
       const browserLang = (navigator.language || "en").toLowerCase();
       const short = browserLang.split("-")[0];
@@ -235,7 +296,7 @@ export default function LanguageSwitcher() {
         setLangCookie(supported.code);
         setLang(supported.code);
         document.documentElement.setAttribute("lang", supported.code);
-        applyGoogleLangWithRetry(supported.code);
+        applyAndVerify(supported.code);
       }
     }
 
@@ -271,24 +332,23 @@ export default function LanguageSwitcher() {
   function selectLanguage(code: string) {
     setOpen(false);
     if (code === current) return;
+    localStorage.setItem(USER_CHOICE_KEY, "1");
     setLang(code);
     document.documentElement.setAttribute("lang", code);
 
     if (code === PAGE_LANGUAGE) {
       clearLangCookie();
-      applyGoogleLangWithRetry(PAGE_LANGUAGE);
     } else {
       setLangCookie(code);
-      applyGoogleLangWithRetry(code);
     }
+    applyAndVerify(code);
   }
 
   // Hides the button only. The current language stays applied.
   function dismiss() {
-  setOpen(false);
-  setDismissed(true);
-}
-
+    setOpen(false);
+    setDismissed(true);
+  }
 
   const currentLang = LANGUAGES.find((l) => l.code === current) ?? LANGUAGES[0];
 
@@ -310,21 +370,45 @@ export default function LanguageSwitcher() {
               aria-label="Select language"
               className="absolute bottom-full left-0 mb-2 w-64 max-h-80 overflow-y-auto rounded-xl border border-black/10 bg-white shadow-xl py-1"
             >
-              {LANGUAGES.map((lang) => (
-                <button
-                  key={lang.code}
-                  type="button"
-                  role="option"
-                  aria-selected={lang.code === current}
-                  onClick={() => selectLanguage(lang.code)}
-                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-left text-[15px] hover:bg-black/5 transition-colors ${
-                    lang.code === current ? "bg-black/[0.04] font-medium" : ""
-                  }`}
-                >
-                  <span className="text-lg leading-none shrink-0">{lang.flag}</span>
-                  <span className="text-[#111] truncate">{lang.label}</span>
-                </button>
-              ))}
+              {engine === "loading" && (
+                <div className="flex items-center gap-2 px-4 py-2 text-xs text-black/60">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  Loading translation…
+                </div>
+              )}
+              {engine === "failed" && (
+                <div className="flex items-center justify-between gap-2 px-4 py-2 text-xs text-black/70">
+                  <span>Translation unavailable</span>
+                  <button
+                    type="button"
+                    onClick={() => window.location.reload()}
+                    className="rounded-md border border-black/15 px-2 py-1 font-medium hover:bg-black/5"
+                  >
+                    Retry
+                  </button>
+                </div>
+              )}
+
+              {LANGUAGES.map((lang) => {
+                // English can always be chosen (it just clears the translation).
+                const disabled = engine !== "ready" && lang.code !== PAGE_LANGUAGE;
+                return (
+                  <button
+                    key={lang.code}
+                    type="button"
+                    role="option"
+                    aria-selected={lang.code === current}
+                    disabled={disabled}
+                    onClick={() => selectLanguage(lang.code)}
+                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-left text-[15px] transition-colors ${
+                      disabled ? "opacity-40 cursor-not-allowed" : "hover:bg-black/5"
+                    } ${lang.code === current ? "bg-black/[0.04] font-medium" : ""}`}
+                  >
+                    <span className="text-lg leading-none shrink-0">{lang.flag}</span>
+                    <span className="text-[#111] truncate">{lang.label}</span>
+                  </button>
+                );
+              })}
             </div>
           )}
 
@@ -337,7 +421,7 @@ export default function LanguageSwitcher() {
               aria-haspopup="listbox"
               className="flex items-center gap-1.5 rounded-full border border-white/15 bg-black/70 backdrop-blur px-3.5 py-2.5 text-white shadow-lg hover:bg-black/80 transition-colors"
             >
-              <Globe className="w-4 h-4" />
+              <Globe className={`w-4 h-4 ${engine === "loading" ? "animate-pulse" : ""}`} />
               <span className="text-lg leading-none">{currentLang.flag}</span>
               <span className="text-[10px] text-white/70">▼</span>
             </button>
