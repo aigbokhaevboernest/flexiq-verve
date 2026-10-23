@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -26,6 +26,7 @@ import Settings from "./pages/Settings.tsx";
 import Profile from "./pages/Profile.tsx";
 import Support from "./pages/Support.tsx";
 import Verify from "./pages/Verify.tsx";
+import Kyc from "./pages/Kyc.tsx";
 import FAQ from "./pages/FAQ.tsx";
 import Terms from "./pages/Terms.tsx";
 import Policies from "./pages/Policies.tsx";
@@ -47,6 +48,7 @@ import { SplashScreen } from "./components/SplashScreen";
 import { useSessionTimeout } from "./hooks/useSessionTimeout";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import GuestOnly from "@/components/GuestOnly";
+import ScrollToTop from "@/components/ScrollToTop";
 
 const queryClient = new QueryClient();
 
@@ -62,6 +64,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
+        <ScrollToTop />
         <AuthProvider>
           <SessionGuard>
             <Routes>
@@ -87,11 +90,13 @@ const App = () => (
               </Route>
 
               {/* NOT guest-only: a password-recovery link signs the user in, and
-                  /verify, /pin, /pending are part of the logged-in flow. */}
+                  /pin, /pending are part of the logged-in flow. */}
               <Route path="/reset-password" element={<ResetPassword />} />
-              <Route path="/verify" element={<Verify />} />
               <Route path="/pin" element={<Pin />} />
               <Route path="/pending" element={<Pending />} />
+
+              {/* ID.me is no longer a public page: old links go into the dashboard */}
+              <Route path="/verify" element={<Navigate to="/dashboard/verify" replace />} />
 
               <Route element={<ProtectedRoute />}>
                 <Route path="/dashboard" element={<DashboardLayout />}>
@@ -112,6 +117,8 @@ const App = () => (
                   <Route path="settings" element={<Settings />} />
                   <Route path="support" element={<Support />} />
                   <Route path="success" element={<Success />} />
+                  <Route path="verify" element={<Verify />} />
+                  <Route path="kyc" element={<Kyc />} />
                 </Route>
               </Route>
 
