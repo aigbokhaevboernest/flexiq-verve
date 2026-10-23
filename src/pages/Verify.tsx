@@ -5,11 +5,6 @@ import { ShieldCheck, ExternalLink, CheckCircle2, Lock, Clock, ArrowLeft } from 
 
 const IDME_URL = "https://www.id.me/";
 
-// Brand green sampled from the logo
-const GREEN = "#4FA85E";
-const GREEN_DEEP = "#3E9A52";
-const GREEN_SOFT = "#5DB56B";
-
 const steps = [
   {
     icon: ShieldCheck,
@@ -47,10 +42,7 @@ const Verify = () => {
       </Button>
 
       <div className="text-center">
-        <span
-          className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold"
-          style={{ color: GREEN, borderColor: `${GREEN}55`, backgroundColor: `${GREEN}10` }}
-        >
+        <span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/5 px-3 py-1 text-xs font-semibold text-primary">
           <ShieldCheck className="h-3.5 w-3.5" /> Identity Verification
         </span>
         <h1 className="mt-4 font-display text-3xl font-bold sm:text-4xl">
@@ -63,10 +55,7 @@ const Verify = () => {
       </div>
 
       <Card className="overflow-hidden rounded-3xl border-border/60 p-0 shadow-card">
-        <div
-          className="p-8 text-white sm:p-10"
-          style={{ backgroundImage: `linear-gradient(135deg, ${GREEN_DEEP}, ${GREEN_SOFT})` }}
-        >
+        <div className="bg-gradient-primary p-8 text-primary-foreground sm:p-10">
           <div className="flex flex-col items-start gap-6 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-xs uppercase tracking-widest opacity-80">Powered by</p>
@@ -79,8 +68,7 @@ const Verify = () => {
             <Button
               size="lg"
               onClick={goToIdMe}
-              className="bg-white hover:bg-white/90"
-              style={{ color: GREEN_DEEP }}
+              className="bg-white text-primary hover:bg-white/90"
             >
               Verify with ID.me
               <ExternalLink className="ml-1 h-4 w-4" />
@@ -96,10 +84,7 @@ const Verify = () => {
               return (
                 <li key={s.title} className="flex gap-4">
                   <div className="flex flex-col items-center">
-                    <span
-                      className="flex h-10 w-10 items-center justify-center rounded-xl"
-                      style={{ color: GREEN, backgroundColor: `${GREEN}1A` }}
-                    >
+                    <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
                       <Icon className="h-5 w-5" />
                     </span>
                     {i < steps.length - 1 && (
@@ -126,12 +111,7 @@ const Verify = () => {
           </div>
 
           <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
-            <Button
-              size="lg"
-              onClick={goToIdMe}
-              className="text-white hover:opacity-95"
-              style={{ backgroundColor: GREEN_DEEP }}
-            >
+            <Button size="lg" onClick={goToIdMe} className="bg-gradient-primary text-primary-foreground">
               Continue to ID.me
               <ExternalLink className="ml-1 h-4 w-4" />
             </Button>
