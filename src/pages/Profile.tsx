@@ -12,6 +12,7 @@ import {
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile, useAccount, useVerification, useIsAdmin, formatMoney } from "@/hooks/useAccount";
+import { useTotalBalance } from "@/hooks/useTotalBalance";
 import {
   Settings as SettingsIcon,
   ShieldCheck,
@@ -23,19 +24,12 @@ import {
   CalendarClock,
   Camera,
   Loader2,
-  ExternalLink,
   FileCheck2,
   ArrowRight,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
-
-// Brand green sampled from the logo
-const GREEN = "#4FA85E";
-const GREEN_DEEP = "#3E9A52";
-const GREEN_SOFT = "#5DB56B";
-const IDME_URL = "https://www.id.me/";
 
 const Row = ({ label, value, icon: Icon }: { label: string; value?: string | null; icon?: any }) => (
   <div className="flex items-start justify-between gap-4 border-b border-border/50 py-3 last:border-0">
@@ -61,6 +55,7 @@ const Profile = () => {
   const navigate = useNavigate();
   const { data: profile } = useProfile();
   const { data: account } = useAccount();
+  const { total: totalBalance } = useTotalBalance();
   const { data: verification } = useVerification();
   const { data: isAdmin } = useIsAdmin();
   const { toast } = useToast();
@@ -78,12 +73,12 @@ const Profile = () => {
   const verifStatus = verification?.status || "not_started";
   const verifColor =
     verifStatus === "approved"
-      ? "bg-emerald-500/20 text-emerald-100 border-emerald-300/50"
+      ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/40"
       : verifStatus === "pending" || verifStatus === "submitted"
-      ? "bg-amber-500/25 text-amber-100 border-amber-300/50"
+      ? "bg-amber-500/20 text-amber-400 border-amber-500/40"
       : verifStatus === "rejected"
-      ? "bg-red-500/25 text-red-100 border-red-300/50"
-      : "bg-white/10 text-white/80 border-white/30";
+      ? "bg-red-500/20 text-red-400 border-red-500/40"
+      : "bg-white/10 text-white/70 border-white/20";
 
   const avatarUrl = (profile as any)?.avatar_url || null;
 
@@ -137,7 +132,7 @@ const Profile = () => {
 
   const chooseIdMe = () => {
     setVerifyOpen(false);
-    window.open(IDME_URL, "_blank", "noopener,noreferrer");
+    navigate("/dashboard/verify");
   };
 
   const chooseKyc = () => {
@@ -160,10 +155,7 @@ const Profile = () => {
       </div>
 
       <Card className="overflow-hidden rounded-3xl border-border/60 shadow-card">
-        <div
-          className="p-6 text-white"
-          style={{ backgroundImage: `linear-gradient(135deg, ${GREEN_DEEP}, ${GREEN_SOFT})` }}
-        >
+        <div className="bg-gradient-primary p-6 text-primary-foreground">
           <div className="flex items-center gap-4">
             {/* Avatar with upload */}
             <div className="relative shrink-0">
@@ -182,8 +174,7 @@ const Profile = () => {
                 type="button"
                 onClick={() => fileRef.current?.click()}
                 disabled={uploading}
-                className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-white shadow-md transition hover:scale-105 disabled:opacity-60"
-                style={{ color: GREEN_DEEP }}
+                className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-white text-primary shadow-md transition hover:scale-105 disabled:opacity-60"
                 title="Upload photo"
               >
                 {uploading ? (
@@ -203,7 +194,7 @@ const Profile = () => {
 
             <div className="min-w-0">
               <h2 className="truncate font-display text-xl font-bold">{fullName}</h2>
-              <p className="truncate text-sm text-white/85">{user?.email}</p>
+              <p className="truncate text-sm text-white/80">{user?.email}</p>
               <div className="mt-2 flex flex-wrap gap-2">
                 {/* Stable badge — key forces no re-mount flicker */}
                 <Badge
@@ -254,7 +245,7 @@ const Profile = () => {
                 label="Balance"
                 value={
                   account
-                    ? formatMoney(Number((account as any).balance), (account as any).currency)
+                    ? formatMoney(totalBalance, (account as any).currency)
                     : undefined
                 }
               />
@@ -293,8 +284,7 @@ const Profile = () => {
             </div>
             {verifStatus !== "approved" && (
               <Button
-                className="mt-4 w-full text-white hover:opacity-95"
-                style={{ backgroundColor: GREEN_DEEP }}
+                className="mt-4 w-full bg-gradient-primary"
                 onClick={() => setVerifyOpen(true)}
               >
                 Complete verification
@@ -320,16 +310,13 @@ const Profile = () => {
               onClick={chooseIdMe}
               className="flex w-full items-center gap-4 rounded-2xl border border-border/60 p-4 text-left transition-colors hover:bg-muted"
             >
-              <span
-                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
-                style={{ color: GREEN, backgroundColor: `${GREEN}1A` }}
-              >
-                <ExternalLink className="h-5 w-5" />
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <ShieldCheck className="h-5 w-5" />
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block text-sm font-semibold">Verify with ID.me</span>
                 <span className="block text-xs text-muted-foreground">
-                  Opens the ID.me website in a new tab
+                  See how it works, then continue to ID.me
                 </span>
               </span>
               <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
@@ -340,10 +327,7 @@ const Profile = () => {
               onClick={chooseKyc}
               className="flex w-full items-center gap-4 rounded-2xl border border-border/60 p-4 text-left transition-colors hover:bg-muted"
             >
-              <span
-                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
-                style={{ color: GREEN, backgroundColor: `${GREEN}1A` }}
-              >
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
                 <FileCheck2 className="h-5 w-5" />
               </span>
               <span className="min-w-0 flex-1">
