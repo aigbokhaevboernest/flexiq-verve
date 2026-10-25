@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Check, Cookie, X } from "lucide-react";
+import { Check, X } from "lucide-react";
 
 const STORAGE_KEY = "flexiq_cookie_consent"; // "accepted" | "declined"
 const AUTO_DISMISS_MS = 15000; // banner closes by itself this long after it appears
@@ -15,7 +15,9 @@ const TOAST_VISIBLE_MS = 3000; // "Cookie accepted" message stays this long
  * Cookie banner shown on every page load / refresh.
  * - Waits for the page's opening animation (the `.page-enter` wrapper) to finish,
  *   then slides up from the bottom.
- * - X (top left) or doing nothing for 5 seconds closes it as "declined".
+ * - Sits flush against the bottom, left and right edges of the screen, kept short so
+ *   it doesn't cover the main button on pages like Login.
+ * - X (top left) or doing nothing for 15 seconds closes it as "declined".
  * - Accept closes it and slides a green "Cookie accepted successfully" message
  *   down from the top.
  */
@@ -80,7 +82,7 @@ export const CookieBanner = () => {
     };
   }, []);
 
-  // Auto-dismiss the banner a few seconds after it has appeared
+  // Auto-dismiss the banner a while after it has appeared
   useEffect(() => {
     if (!entered) return;
     const t = setTimeout(() => choose("declined"), AUTO_DISMISS_MS);
@@ -104,21 +106,22 @@ export const CookieBanner = () => {
             role="dialog"
             aria-label="Cookie consent"
             style={{ transitionDuration: `${SLIDE_MS}ms` }}
-            className={`fixed inset-x-4 bottom-4 z-[100] mx-auto max-w-md rounded-3xl border border-white/20 bg-black/25 p-5 pt-6 text-center text-white shadow-2xl backdrop-blur-md transition-transform ease-out ${
-              entered ? "translate-y-0" : "translate-y-[150%]"
+            // Plain black with opacity (no glass/blur), flush to the bottom, left and right edges
+            className={`fixed inset-x-0 bottom-0 z-[100] rounded-t-2xl bg-black/80 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 text-center text-white transition-transform ease-out ${
+              entered ? "translate-y-0" : "translate-y-full"
             }`}
           >
             <button
               type="button"
               aria-label="Close"
               onClick={() => choose("declined")}
-              className="absolute left-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-white/15 text-white transition hover:bg-white/30"
+              className="absolute left-3 top-3 flex h-7 w-7 items-center justify-center rounded-full bg-white/15 text-white transition hover:bg-white/30"
             >
               <X className="h-4 w-4" />
             </button>
 
-            <Cookie className="mx-auto h-6 w-6 text-white" />
-            <p className="mt-2 text-sm font-medium leading-relaxed text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.6)]">
+            {/* side padding keeps the text clear of the X button */}
+            <p className="px-9 text-[13px] font-medium leading-snug text-white">
               We use cookies to improve your experience. See our{" "}
               <Link to="/policies" className="font-semibold underline underline-offset-2">
                 Privacy Policy
@@ -128,7 +131,7 @@ export const CookieBanner = () => {
 
             <Button
               size="lg"
-              className="mt-4 h-12 w-full rounded-2xl bg-gradient-primary text-base font-semibold text-primary-foreground shadow-glow"
+              className="mt-3 h-11 w-full rounded-xl bg-gradient-primary text-base font-semibold text-primary-foreground"
               onClick={() => choose("accepted")}
             >
               Accept
