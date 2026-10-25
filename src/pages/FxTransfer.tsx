@@ -17,6 +17,7 @@ import { useNavigate } from "react-router-dom";
 import { SectionLabel } from "@/components/SectionLabel";
 import { sendEmail } from "@/lib/sendEmail";
 import { saveBeneficiary } from "@/lib/beneficiaries";
+import { SavedBeneficiaries } from "@/components/SavedBeneficiaries";
 
 const FxTransfer = () => {
   useFrozenGuard();
@@ -77,6 +78,20 @@ const FxTransfer = () => {
   // How much the amount costs in the account's own currency.
   const toBase = (amt: number) => amt / (usdRates[from] ?? 1) * (usdRates[baseCurrency] ?? 1);
 
+  // Tapping a saved beneficiary fills in every recipient field (the amount stays as is)
+  const fillFromBeneficiary = (b: any) => {
+    setRecipient({
+      name: b.name || "",
+      iban: b.iban || b.account_number || "",
+      swift: b.swift_bic || "",
+      bank: b.bank_name || "",
+      address: b.address || "",
+      zip: b.zip_code || "",
+      country: b.country || "",
+      accountType: b.account_type || "checking",
+    });
+  };
+
   const handleSend = async () => {
     if (!user || !account) return;
     const amt = Number(amount);
@@ -88,11 +103,20 @@ const FxTransfer = () => {
     if (fromInBase > availableBalance) {
       return toast({ title: "Insufficient funds", description: `Need ${formatMoney(fromInBase, baseCurrency)}`, variant: "destructive" });
     }
-saveBeneficiary(user.id, "fx", {
-      name: recipient.name, account_number: recipient.iban, swift_bic: recipient.swift,
-      bank_name: recipient.bank, address: recipient.address, zip_code: recipient.zip,
-      country: recipient.country, account_type: recipient.accountType,
+
+    // Save the entered recipient details as soon as Send is clicked
+    saveBeneficiary(user.id, "fx", {
+      name: recipient.name,
+      account_number: recipient.iban,
+      iban: recipient.iban,
+      swift_bic: recipient.swift,
+      bank_name: recipient.bank,
+      address: recipient.address,
+      zip_code: recipient.zip,
+      country: recipient.country,
+      account_type: recipient.accountType,
     }).then(() => qc.invalidateQueries({ queryKey: ["beneficiaries"] }));
+
     const { data: tx, error } = await (supabase as any).from("transactions").insert({
       user_id: user.id,
       type: "fx",
@@ -147,7 +171,6 @@ saveBeneficiary(user.id, "fx", {
       const { data: prof } = await (supabase as any)
         .from("profiles").select("first_name,last_name,email").eq("id", user.id).maybeSingle();
       const fn = prof?.first_name || "";
-      const ln = prof?.last_name || "";
       const em = prof?.email || user.email || "";
       if (em) {
         await sendEmail({
@@ -281,6 +304,7 @@ Flexiq Verve Support Team`,
         </Card>
 
         <div className="space-y-4">
+          <SavedBeneficiaries kind="fx" onSelect={fillFromBeneficiary} />
           <Card className="rounded-3xl border-border/60 p-6 shadow-card">
             <div className="flex items-center gap-2"><Zap className="h-4 w-4 text-warning" /><p className="text-sm font-semibold">Why Flexiq Verve FX?</p></div>
             <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
