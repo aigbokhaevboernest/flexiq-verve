@@ -11,9 +11,9 @@ import { formatMoney, currencySymbol } from "@/hooks/useAccount";
 import { useTotalBalance, planDeduction } from "@/hooks/useTotalBalance";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { useQueryClient, useQuery } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { CodeGate } from "@/components/CodeGate";
-import { PulseLoader } from "@/components/PulseLoader";
+import { SavedBeneficiaries } from "@/components/SavedBeneficiaries";
 import { saveBeneficiary } from "@/lib/beneficiaries";
 import { useNavigate } from "react-router-dom";
 import { sendEmail } from "@/lib/sendEmail";
@@ -36,20 +36,6 @@ const LocalTransfer = () => {
   const [submitting, setSubmitting] = useState(false);
   const [gateOpen, setGateOpen] = useState(false);
   const [pendingTxId, setPendingTxId] = useState<string | null>(null);
-
-  const { data: beneficiaries = [], isLoading: loadingBeneficiaries } = useQuery({
-    queryKey: ["beneficiaries", user?.id, "local"],
-    enabled: !!user,
-    queryFn: async () => {
-      const { data } = await (supabase as any)
-        .from("beneficiaries")
-        .select("*")
-        .eq("user_id", user!.id)
-        .eq("kind", "local")
-        .order("created_at", { ascending: false });
-      return data || [];
-    },
-  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -194,30 +180,14 @@ Flexiq Verve Support Team`,
         </Card>
 
         <div className="space-y-4">
-          <Card className="rounded-3xl border-border/60 p-6 shadow-card">
-            <p className="text-sm font-semibold">Saved beneficiaries</p>
-            <div className="mt-3 space-y-2">
-              {loadingBeneficiaries ? (
-                <PulseLoader size={32} />
-              ) : beneficiaries.length === 0 ? (
-                <p className="text-xs text-muted-foreground">No saved beneficiaries yet.</p>
-              ) : (
-                beneficiaries.map((b: any) => (
-                  <button key={b.id} type="button"
-                    onClick={() => { setRecipient(b.name); setAccNumber(b.account_number); setRouting(b.routing_number || ""); }}
-                    className="flex w-full items-center gap-3 rounded-xl p-2 text-left transition-smooth hover:bg-muted">
-                    <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-primary text-xs font-bold text-white">
-                      {b.name.split(" ").map((p: string) => p[0]).join("").slice(0, 2)}
-                    </span>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">{b.name}</p>
-                      <p className="text-xs text-muted-foreground">•••• {b.account_number.slice(-4)}</p>
-                    </div>
-                  </button>
-                ))
-              )}
-            </div>
-          </Card>
+          <SavedBeneficiaries
+            kind="local"
+            onSelect={(b) => {
+              setRecipient(b.name || "");
+              setAccNumber(b.account_number || "");
+              setRouting(b.routing_number || "");
+            }}
+          />
         </div>
       </div>
 
