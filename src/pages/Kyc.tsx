@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Upload, Loader2, ShieldCheck, Clock, X, FileText, ArrowLeft } from "lucide-react";
+import { Upload, Loader2, ShieldCheck, Clock, X, FileText, ArrowLeft, ShieldQuestion } from "lucide-react";
 
 const MAX_BYTES = 8 * 1024 * 1024;
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
@@ -165,7 +165,8 @@ export default function Kyc() {
         reviewed_at: null,
       };
 
-      // One row per user: update after a rejection, insert the first time
+      // One row per user: update an existing row (created at signup, or after a rejection),
+      // insert only if there is none
       const { data: existing } = await (supabase as any)
         .from("id_verifications")
         .select("id")
@@ -187,6 +188,11 @@ export default function Kyc() {
 
       if (error) throw error;
 
+      // The profile's KYC status moves from "not started" to "pending" once documents are submitted
+      try {
+        await (supabase as any).from("profiles").update({ kyc_status: "pending" }).eq("id", user.id);
+      } catch {}
+
       setSubmission(
         (data as Submission) ?? {
           id: crypto.randomUUID(),
@@ -201,6 +207,7 @@ export default function Kyc() {
       setSelfie(null);
       setDocNumber("");
       qc.invalidateQueries({ queryKey: ["id-verification", user.id] });
+      qc.invalidateQueries({ queryKey: ["profile"] });
       toast.success("KYC submitted. Pending review.");
     } catch (e) {
       console.error("KYC submit failed:", e);
@@ -210,9 +217,16 @@ export default function Kyc() {
     }
   };
 
-  const showStatusCard = !!submission && submission.status !== "rejected";
-  const showRejected = !!submission && submission.status === "rejected";
-  const showForm = !loadingStatus && (!submission || submission.status === "rejected");
+  // "Not started" = no row yet, or a row that exists only from signup (no documents submitted)
+  const isNotStarted = !submission || submission.status === "not_started";
+  const isRejected = !!submission && submission.status === "rejected";
+
+  // Status cards appear once the status is known
+  const showNotStartedCard = !loadingStatus && isNotStarted;
+  const showStatusCard = !loadingStatus && !!submission && !isNotStarted && !isRejected;
+  const showRejected = !loadingStatus && isRejected;
+  // The form is fully visible by default, and hidden only when a submission is under review / approved
+  const showForm = loadingStatus || isNotStarted || isRejected;
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
@@ -233,17 +247,19 @@ export default function Kyc() {
         </p>
       </div>
 
-      {loadingStatus && (
-        <div className="flex items-center gap-4 rounded-2xl border border-border bg-card p-5">
-          <div className="h-5 w-5 animate-pulse rounded-full bg-muted" />
-          <div className="flex-1 space-y-2">
-            <div className="h-4 w-40 animate-pulse rounded bg-muted" />
-            <div className="h-3 w-56 animate-pulse rounded bg-muted" />
+      {showNotStartedCard && (
+        <div className="flex items-center gap-4 rounded-2xl border border-border bg-muted/40 p-5">
+          <ShieldQuestion className="h-5 w-5 text-muted-foreground" />
+          <div className="flex-1">
+            <p className="text-[14px] font-medium">Status: Not started</p>
+            <p className="text-[12px] text-muted-foreground">
+              Upload your documents below to start verification.
+            </p>
           </div>
         </div>
       )}
 
-      {!loadingStatus && showStatusCard && submission && (
+      {showStatusCard && submission && (
         <div
           className={`flex items-center gap-4 rounded-2xl border p-5 ${
             submission.status === "approved"
@@ -267,7 +283,7 @@ export default function Kyc() {
         </div>
       )}
 
-      {!loadingStatus && showRejected && submission && (
+      {showRejected && submission && (
         <div className="flex items-center gap-4 rounded-2xl border border-red-500/30 bg-red-500/5 p-5">
           <X className="h-5 w-5 text-red-600" />
           <div className="flex-1">
