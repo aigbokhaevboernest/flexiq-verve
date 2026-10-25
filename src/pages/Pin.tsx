@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import { BrandLogo } from "@/components/BrandLogo";
 import { sendEmail } from "@/lib/sendEmail";
+import { PulseLoader } from "@/components/PulseLoader";
+
 
 const Pin = () => {
   const navigate = useNavigate();
