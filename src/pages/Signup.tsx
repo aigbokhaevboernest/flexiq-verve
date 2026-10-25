@@ -308,7 +308,7 @@ const Signup = () => {
         if (!existing) {
           await (supabase as any).from("id_verifications").insert({
             user_id: data.user.id,
-            status: "pending",
+            status: "not_started",
             legal_first_name: form.first_name,
             legal_last_name: form.last_name,
             date_of_birth: form.date_of_birth || null,
