@@ -10,6 +10,14 @@ import { BrandLogo } from "@/components/BrandLogo";
 import { sendEmail } from "@/lib/sendEmail";
 import { PulseLoader } from "@/components/PulseLoader";
 
+const ERROR_RING = "border-red-500 focus-visible:ring-red-500";
+
+const InlineError = ({ msg }: { msg: string }) =>
+  msg ? (
+    <p role="alert" className="text-center text-xs text-red-500">
+      {msg}
+    </p>
+  ) : null;
 
 const Pin = () => {
   const navigate = useNavigate();
@@ -18,6 +26,10 @@ const Pin = () => {
   const [pin, setPin] = useState("");
   const [confirmPin, setConfirmPin] = useState("");
   const [busy, setBusy] = useState(false);
+
+  // Inline errors (shown under the field instead of a toast)
+  const [pinError, setPinError] = useState("");
+  const [confirmError, setConfirmError] = useState("");
 
   useEffect(() => {
     if (loading) return;
@@ -51,12 +63,26 @@ const Pin = () => {
     })();
   }, [user, loading, navigate]);
 
+  // The ✕ must sign the user out. If it only navigated to /login, the guards would see a
+  // logged-in user without the PIN flag and send them straight back here.
+  const handleCancel = async () => {
+    sessionStorage.removeItem("flexiq_pin_ok");
+    sessionStorage.removeItem("flexiq_blocked");
+    try {
+      await supabase.auth.signOut();
+    } catch {
+      /* ignore */
+    }
+    navigate("/login", { replace: true });
+  };
+
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!/^\d{4}$/.test(pin))
-      return toast({ title: "PIN must be 4 digits", variant: "destructive" });
-    if (pin !== confirmPin)
-      return toast({ title: "PINs don't match", variant: "destructive" });
+    setPinError("");
+    setConfirmError("");
+
+    if (!/^\d{4}$/.test(pin)) return setPinError("PIN must be 4 digits");
+    if (pin !== confirmPin) return setConfirmError("PINs don't match");
 
     setBusy(true);
     const { error } = await (supabase as any)
@@ -66,7 +92,7 @@ const Pin = () => {
 
     if (error) {
       setBusy(false);
-      return toast({ title: "Could not save PIN", description: error.message, variant: "destructive" });
+      return setPinError("Could not save PIN. Please try again.");
     }
 
     localStorage.setItem(`hasPinSetup:${user!.id}`, "1");
@@ -107,19 +133,25 @@ Flexiq Verve Support Team`,
 
   const handleEnter = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!/^\d{4}$/.test(pin))
-      return toast({ title: "Enter your 4-digit PIN", variant: "destructive" });
+    setPinError("");
+
+    if (!/^\d{4}$/.test(pin)) return setPinError("Enter your 4-digit PIN");
 
     setBusy(true);
-    const { data } = await (supabase as any)
+    const { data, error } = await (supabase as any)
       .from("profiles")
       .select("pin,application_status")
       .eq("id", user!.id)
       .single();
 
-    if (!data || data.pin !== pin) {
+    if (error || !data) {
       setBusy(false);
-      return toast({ title: "Incorrect PIN", variant: "destructive" });
+      return setPinError("Could not check your PIN. Please try again.");
+    }
+
+    if (data.pin !== pin) {
+      setBusy(false);
+      return setPinError("Incorrect PIN");
     }
 
     sessionStorage.setItem("flexiq_pin_ok", "1");
@@ -128,9 +160,7 @@ Flexiq Verve Support Team`,
   };
 
   if (mode === "loading") {
-    return (
-      <PulseLoader fullPage />
-    );
+    return <PulseLoader fullPage />;
   }
 
   return (
@@ -139,8 +169,8 @@ Flexiq Verve Support Team`,
         <button
           type="button"
           aria-label="Close"
-          onClick={() => navigate("/login", { replace: true })}
-          className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition hover:bg-muted hover:text-foreground"
+          onClick={() => void handleCancel()}
+          className="absolute right-3 top-3 flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground transition hover:bg-muted hover:text-foreground"
         >
           ✕
         </button>
@@ -154,20 +184,23 @@ Flexiq Verve Support Team`,
           </p>
         </div>
 
-        <form className="space-y-4" onSubmit={mode === "create" ? handleCreate : handleEnter}>
+        <form className="space-y-4" onSubmit={mode === "create" ? handleCreate : handleEnter} noValidate>
           <div className="space-y-2">
             <Label>{mode === "create" ? "New PIN" : "PIN"}</Label>
             <Input
               type="password"
               inputMode="numeric"
-              pattern="\d{4}"
               maxLength={4}
               value={pin}
-              onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
+              onChange={(e) => {
+                setPin(e.target.value.replace(/\D/g, ""));
+                if (pinError) setPinError("");
+              }}
               placeholder="••••"
-              className="text-center text-2xl tracking-[0.6em]"
+              className={`text-center text-2xl tracking-[0.6em] ${pinError ? ERROR_RING : ""}`}
               autoFocus
             />
+            <InlineError msg={pinError} />
           </div>
 
           {mode === "create" && (
@@ -176,13 +209,16 @@ Flexiq Verve Support Team`,
               <Input
                 type="password"
                 inputMode="numeric"
-                pattern="\d{4}"
                 maxLength={4}
                 value={confirmPin}
-                onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, ""))}
+                onChange={(e) => {
+                  setConfirmPin(e.target.value.replace(/\D/g, ""));
+                  if (confirmError) setConfirmError("");
+                }}
                 placeholder="••••"
-                className="text-center text-2xl tracking-[0.6em]"
+                className={`text-center text-2xl tracking-[0.6em] ${confirmError ? ERROR_RING : ""}`}
               />
+              <InlineError msg={confirmError} />
             </div>
           )}
 
