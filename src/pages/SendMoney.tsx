@@ -19,6 +19,7 @@ import { useTotalBalance, getBalanceBreakdown, planDeduction } from "@/hooks/use
 import { EmptyState } from "@/components/EmptyState";
 import { PulseLoader } from "@/components/PulseLoader";
 import { saveBeneficiary } from "@/lib/beneficiaries";
+import { SavedBeneficiaries } from "@/components/SavedBeneficiaries";
 import { Inbox } from "lucide-react";
 import { sendEmail } from "@/lib/sendEmail";
 
@@ -150,6 +151,16 @@ const SendMoney = () => {
   const open = (p: Platform) => {
     setSelected(p);
     setForm({});
+    setAmount("");
+    setNote("");
+  };
+
+  // Tapping a saved beneficiary opens its platform with the saved handle filled in
+  const fillFromBeneficiary = (b: any) => {
+    const p = platforms.find((x) => x.name === b.platform);
+    if (!p) return toast({ title: "Platform not found for this beneficiary", variant: "destructive" });
+    setSelected(p);
+    setForm({ [p.fields[0].key]: b.account_number || "" });
     setAmount("");
     setNote("");
   };
@@ -311,6 +322,8 @@ Flexiq Verve Support Team`,
           </Card>
         ))}
       </div>
+
+      <SavedBeneficiaries kind="digital" onSelect={fillFromBeneficiary} />
 
       <Card className="rounded-3xl border-border/60 p-6 shadow-card">
         <h2 className="font-display text-lg font-bold">Recent Transactions</h2>
