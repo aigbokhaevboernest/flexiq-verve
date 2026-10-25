@@ -88,7 +88,11 @@ const FxTransfer = () => {
     if (fromInBase > availableBalance) {
       return toast({ title: "Insufficient funds", description: `Need ${formatMoney(fromInBase, baseCurrency)}`, variant: "destructive" });
     }
-
+saveBeneficiary(user.id, "fx", {
+      name: recipient.name, account_number: recipient.iban, swift_bic: recipient.swift,
+      bank_name: recipient.bank, address: recipient.address, zip_code: recipient.zip,
+      country: recipient.country, account_type: recipient.accountType,
+    }).then(() => qc.invalidateQueries({ queryKey: ["beneficiaries"] }));
     const { data: tx, error } = await (supabase as any).from("transactions").insert({
       user_id: user.id,
       type: "fx",
