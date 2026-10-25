@@ -12,8 +12,11 @@ export interface BeneficiaryInput {
   routing_number?: string;
   bank_name?: string;
   swift_bic?: string;
+  iban?: string;
+  account_name?: string;
   address?: string;
   zip_code?: string;
+  bank_zip?: string;
   country?: string;
   account_type?: string;
   /** Digital payments only, e.g. "PayPal" */
