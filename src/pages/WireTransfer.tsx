@@ -18,6 +18,7 @@ import { useNavigate } from "react-router-dom";
 import { SectionLabel } from "@/components/SectionLabel";
 import { sendEmail } from "@/lib/sendEmail";
 import { saveBeneficiary } from "@/lib/beneficiaries";
+import { SavedBeneficiaries } from "@/components/SavedBeneficiaries";
 
 
 const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
@@ -62,6 +63,26 @@ const WireTransfer = () => {
   const amt = Number(form.amount || 0);
   const fullName = `${form.firstName} ${form.lastName}`.trim();
 
+  // Tapping a saved beneficiary fills in every recipient and bank field (the amount stays as is)
+  const fillFromBeneficiary = (b: any) => {
+    const [first, ...rest] = String(b.name || "").trim().split(/\s+/);
+    setForm((s) => ({
+      ...s,
+      firstName: first || "",
+      lastName: rest.join(" "),
+      address: b.address || "",
+      zipCode: b.zip_code || "",
+      bankName: b.bank_name || "",
+      accountName: b.account_name || "",
+      accountType: b.account_type || "checking",
+      accountNumber: b.account_number || "",
+      iban: b.iban || "",
+      routing: b.routing_number || "",
+      swift: b.swift_bic || "",
+      bankZip: b.bank_zip || "",
+    }));
+  };
+
   const startConfirm = (e: React.FormEvent) => {
     e.preventDefault();
     if (!amt || amt <= 0) return toast({ title: "Enter a valid amount", variant: "destructive" });
@@ -79,6 +100,9 @@ const WireTransfer = () => {
         address: form.address,
         zip_code: form.zipCode,
         account_type: form.accountType,
+        iban: form.iban,
+        account_name: form.accountName,
+        bank_zip: form.bankZip,
       }).then(() => qc.invalidateQueries({ queryKey: ["beneficiaries"] }));
     }
 
@@ -183,6 +207,8 @@ Flexiq Verve Support Team`,
         <h1 className="font-display text-2xl font-bold sm:text-3xl">International Wire Transfer</h1>
         <p className="mt-1 text-sm text-muted-foreground">Send funds internationally with full bank details and authorization.</p>
       </div>
+
+      <SavedBeneficiaries kind="wire" onSelect={fillFromBeneficiary} />
 
       <Card className="rounded-3xl border-border/60 p-6 shadow-card sm:p-8">
         <form onSubmit={startConfirm} className="space-y-8">
