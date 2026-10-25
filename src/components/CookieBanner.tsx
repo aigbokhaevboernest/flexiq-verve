@@ -106,8 +106,8 @@ export const CookieBanner = () => {
             role="dialog"
             aria-label="Cookie consent"
             style={{ transitionDuration: `${SLIDE_MS}ms` }}
-            // Plain black with opacity (no glass/blur), flush to the bottom, left and right edges
-            className={`fixed inset-x-0 bottom-0 z-[100] rounded-t-2xl bg-black/80 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 text-center text-white transition-transform ease-out ${
+            // Plain white, flush to the bottom, left and right edges
+            className={`fixed inset-x-0 bottom-0 z-[100] rounded-t-2xl bg-white px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 text-center text-gray-900 shadow-[0_-4px_20px_rgba(0,0,0,0.15)] transition-transform ease-out ${
               entered ? "translate-y-0" : "translate-y-full"
             }`}
           >
@@ -115,15 +115,15 @@ export const CookieBanner = () => {
               type="button"
               aria-label="Close"
               onClick={() => choose("declined")}
-              className="absolute left-3 top-3 flex h-7 w-7 items-center justify-center rounded-full bg-white/15 text-white transition hover:bg-white/30"
+              className="absolute left-3 top-3 flex h-7 w-7 items-center justify-center rounded-full bg-gray-100 text-gray-700 transition hover:bg-gray-200"
             >
               <X className="h-4 w-4" />
             </button>
 
             {/* side padding keeps the text clear of the X button */}
-            <p className="px-9 text-[13px] font-medium leading-snug text-white">
+            <p className="px-9 text-[13px] font-medium leading-snug text-gray-800">
               We use cookies to improve your experience. See our{" "}
-              <Link to="/policies" className="font-semibold underline underline-offset-2">
+              <Link to="/policies" className="font-semibold text-primary underline underline-offset-2">
                 Privacy Policy
               </Link>
               .
