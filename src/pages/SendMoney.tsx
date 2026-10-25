@@ -17,6 +17,8 @@ import { CodeGate } from "@/components/CodeGate";
 import { formatMoney } from "@/hooks/useAccount";
 import { useTotalBalance, getBalanceBreakdown, planDeduction } from "@/hooks/useTotalBalance";
 import { EmptyState } from "@/components/EmptyState";
+import { PulseLoader } from "@/components/PulseLoader";
+import { saveBeneficiary } from "@/lib/beneficiaries";
 import { Inbox } from "lucide-react";
 import { sendEmail } from "@/lib/sendEmail";
 
@@ -164,6 +166,15 @@ const SendMoney = () => {
         variant: "destructive",
       });
     }
+
+    // Save the recipient as soon as Submit is clicked and the details are valid
+    if (user) {
+      saveBeneficiary(user.id, "digital", {
+        name: recipient,
+        account_number: recipient,
+        platform: selected.name,
+      }).then(() => queryClient.invalidateQueries({ queryKey: ["beneficiaries"] }));
+    }
     setConfirmOpen(true);
   };
 
@@ -305,9 +316,7 @@ Flexiq Verve Support Team`,
         <h2 className="font-display text-lg font-bold">Recent Transactions</h2>
         <div className="mt-4 divide-y divide-border/60">
           {loadingHistory ? (
-            <div className="space-y-3 py-2">
-              {[0, 1, 2].map((i) => <div key={i} className="h-12 animate-pulse rounded-xl bg-muted" />)}
-            </div>
+            <PulseLoader />
           ) : history.length === 0 ? (
             <EmptyState icon={Inbox} title="No payments yet" description="Send money to a wallet to see it here." />
           ) : (
