@@ -127,9 +127,7 @@ Flexiq Verve Support Team`,
 
   if (mode === "loading") {
     return (
-      <div className="flex min-h-screen items-center justify-center text-muted-foreground">
-        Loading…
-      </div>
+      <PulseLoader fullPage />
     );
   }
 
