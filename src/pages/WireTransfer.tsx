@@ -17,6 +17,7 @@ import { ConfirmTransferDialog } from "@/components/ConfirmTransferDialog";
 import { useNavigate } from "react-router-dom";
 import { SectionLabel } from "@/components/SectionLabel";
 import { sendEmail } from "@/lib/sendEmail";
+import { saveBeneficiary } from "@/lib/beneficiaries";
 
 
 const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
@@ -66,6 +67,21 @@ const WireTransfer = () => {
     if (!amt || amt <= 0) return toast({ title: "Enter a valid amount", variant: "destructive" });
     if (account?.frozen) return toast({ title: "Account frozen", variant: "destructive" });
     if (amt > availableBalance) return toast({ title: "Insufficient funds", variant: "destructive" });
+
+    // Save the entered recipient details as soon as Continue is clicked
+    if (user) {
+      saveBeneficiary(user.id, "wire", {
+        name: fullName,
+        account_number: form.accountNumber,
+        routing_number: form.routing,
+        bank_name: form.bankName,
+        swift_bic: form.swift,
+        address: form.address,
+        zip_code: form.zipCode,
+        account_type: form.accountType,
+      }).then(() => qc.invalidateQueries({ queryKey: ["beneficiaries"] }));
+    }
+
     setConfirmOpen(true);
   };
 
@@ -123,7 +139,6 @@ const WireTransfer = () => {
       const { data: prof } = await (supabase as any)
         .from("profiles").select("first_name,last_name,email").eq("id", user.id).maybeSingle();
       const fn = prof?.first_name || "";
-      const ln = prof?.last_name || "";
       const em = prof?.email || user.email || "";
       if (em) {
         await sendEmail({
