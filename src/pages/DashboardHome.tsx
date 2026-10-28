@@ -2,11 +2,14 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
   ArrowDownLeft,
+  ArrowRight,
   ArrowUpRight,
+  Banknote,
   CreditCard,
   Eye,
   EyeOff,
   FileText,
+  Globe,
   Receipt,
   Send,
   TrendingUp,
@@ -15,7 +18,7 @@ import {
   ShieldAlert,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useAccount, useOpenAccount, formatMoney } from "@/hooks/useAccount";
 import type { SecondaryAccountType } from "@/hooks/useAccount";
@@ -37,9 +40,9 @@ const quickActions: Array<{
   action?: "send";
 }> = [
   { icon: Send, label: "Send", to: "/dashboard/send", action: "send" },
-  { icon: ArrowDownLeft, label: "+ Add money", to: "/dashboard/receive" },
+  { icon: Wallet, label: "Add money", to: "/dashboard/receive" },
   { icon: FileText, label: "Bills", to: "/dashboard/bills", disabled: true },
-  { icon: Wallet, label: "Loans", to: "/dashboard/loans" },
+  { icon: Banknote, label: "Loans", to: "/dashboard/loans" },
 ];
 
 /** Mask account number — show only last 4 digits: •••• •••• 7890 */
@@ -86,6 +89,7 @@ const getSecondaryAccountTypes = (
 const DashboardHome = () => {
   const [hidden, setHidden] = useState(false);
   const [sendOpen, setSendOpen] = useState(false);
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { data: profile, isLoading: profLoading } = useAccount();
   const openAccount = useOpenAccount();
@@ -408,7 +412,7 @@ const DashboardHome = () => {
                         <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20 text-primary-foreground">
                           <Icon className="h-4 w-4" />
                         </span>
-                        <span className="text-xs font-medium">{a.label}</span>
+                        <span className="whitespace-nowrap text-xs font-medium">{a.label}</span>
                       </>
                     );
 
@@ -454,6 +458,20 @@ const DashboardHome = () => {
                     );
                   })}
                 </div>
+
+                {/* View currency wallets */}
+                <button
+                  type="button"
+                  onClick={() =>
+                    isFrozen ? handleFrozenAction() : navigate("/dashboard/wallets")
+                  }
+                  className="relative mt-3 flex w-full items-center justify-between rounded-2xl bg-white/15 px-4 py-3 text-sm font-semibold backdrop-blur transition-smooth hover:bg-white/25"
+                >
+                  <span className="flex items-center gap-2">
+                    <Globe className="h-4 w-4" /> View currency wallets
+                  </span>
+                  <ArrowRight className="h-4 w-4" />
+                </button>
               </div>
             }
           />
