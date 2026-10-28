@@ -1,25 +1,31 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import {
-  ArrowUpRight,
-  ArrowDownLeft,
-  Home,
-  Landmark,
-  CreditCard,
-} from "lucide-react";
+import { Send, Wallet, Home, Landmark, CreditCard } from "lucide-react";
+import { toast } from "sonner";
+import { useAccount } from "@/hooks/useAccount";
+import { SendChooserModal } from "@/components/dashboard/SendChooserModal";
 
 // Set to true to always use the smoky dark glass with white icons,
 // whatever the site theme is.
 const FORCE_DARK_STYLE = false;
 
-// `to` is where the tab goes; `match` keeps the tab highlighted on sub-pages.
-// `exact` stops Home from lighting up on every /dashboard/* page.
-const items = [
-  { to: "/dashboard/send/wire", match: "/dashboard/send", label: "Send", icon: ArrowUpRight },
-  { to: "/dashboard/receive", match: "/dashboard/receive", label: "Receive", icon: ArrowDownLeft },
-  { to: "/dashboard", match: "/dashboard", exact: true, label: "Home", icon: Home },
-  { to: "/dashboard/loans", match: "/dashboard/loans", label: "Loan", icon: Landmark },
-  { to: "/dashboard/cards", match: "/dashboard/cards", label: "Cards", icon: CreditCard },
+const ACTIVE_COLOR = "hsl(var(--primary))";
+
+// `to` is where the tab goes (null = opens the Send chooser modal);
+// `matches` keeps the tab highlighted on sub-pages. `exact` stops Home from
+// lighting up on every /dashboard/* page.
+const items: Array<{
+  to: string | null;
+  matches: string[];
+  exact?: boolean;
+  label: string;
+  icon: typeof Send;
+}> = [
+  { to: null, matches: ["/dashboard/send", "/dashboard/local"], label: "Send", icon: Send },
+  { to: "/dashboard/receive", matches: ["/dashboard/receive"], label: "Add money", icon: Wallet },
+  { to: "/dashboard", matches: ["/dashboard"], exact: true, label: "Home", icon: Home },
+  { to: "/dashboard/loans", matches: ["/dashboard/loans"], label: "Loan", icon: Landmark },
+  { to: "/dashboard/cards", matches: ["/dashboard/cards"], label: "Cards", icon: CreditCard },
 ];
 
 const COUNT = items.length;
@@ -75,6 +81,9 @@ type Sim = {
 export const BottomGlassNav = ({ hidden = false }: Props) => {
   const { pathname } = useLocation();
   const navigate = useNavigate();
+  const { data: profile } = useAccount();
+  const frozen = !!(profile as any)?.frozen;
+  const [sendOpen, setSendOpen] = useState(false);
 
   const wrapRef = useRef<HTMLDivElement>(null);
   const barRef = useRef<HTMLDivElement>(null);
@@ -106,33 +115,15 @@ export const BottomGlassNav = ({ hidden = false }: Props) => {
 
   const clean = pathname.replace(/\/$/, "");
   const activeIdx = items.findIndex((i) =>
-    i.exact ? clean === i.match : clean === i.match || clean.startsWith(i.match + "/")
+    i.exact
+      ? i.matches.includes(clean)
+      : i.matches.some((m) => clean === m || clean.startsWith(m + "/"))
   );
   const activeRef = useRef(activeIdx);
   activeRef.current = activeIdx;
 
-  // Dashboard home only: hidden at the top, slides in once you scroll down,
-  // slides away again when you scroll back near the top.
-  const isHome = clean === "/dashboard";
-  const [scrolled, setScrolled] = useState(false);
-
-  useEffect(() => {
-    if (!isHome) {
-      setScrolled(false);
-      return;
-    }
-    const update = () => {
-      const y = window.scrollY;
-      // Two thresholds so it doesn't flicker around a single point
-      setScrolled((prev) => (prev ? y > 40 : y > 90));
-    };
-    update();
-    window.addEventListener("scroll", update, { passive: true });
-    return () => window.removeEventListener("scroll", update);
-  }, [isHome]);
-
-  // Every other dashboard page: always on. Sidebar open: always off.
-  const shown = (isHome ? scrolled : true) && !hidden;
+  // Always visible on every dashboard page. Only the open sidebar hides it.
+  const shown = !hidden;
 
   const sim = useRef<Sim>({
     x: Math.max(activeIdx, 0),
@@ -161,10 +152,11 @@ export const BottomGlassNav = ({ hidden = false }: Props) => {
     if (!lens) return;
 
     const speed = Math.abs(s.v);
-    // Stretch along the direction of travel, squash a touch vertically
-    const stretch = Math.min(0.6, speed * 0.09);
-    const sx = 1.22 + 0.18 * s.p + stretch;
-    const sy = 1.0 + 0.12 * s.p - stretch * 0.2;
+    // Stretch a little along the direction of travel. Kept small, and the
+    // track clips the lens, so it can never poke out past the capsule.
+    const stretch = Math.min(0.2, speed * 0.04);
+    const sx = 1 + 0.04 * s.p + stretch;
+    const sy = 1 + 0.03 * s.p - stretch * 0.15;
     lens.style.transform = `translate3d(${s.x * 100}%,0,0) scale(${sx},${sy})`;
     lens.style.opacity =
       activeRef.current >= 0 || s.dragging || s.p > 0.02 ? "1" : "0";
@@ -177,19 +169,21 @@ export const BottomGlassNav = ({ hidden = false }: Props) => {
       `inset -3px 0 7px rgba(255,60,200,${0.1 + 0.35 * f})`,
       `inset 0 -3px 7px rgba(255,220,80,${0.06 + 0.2 * f})`,
       `inset 0 2px 6px rgba(255,255,255,${0.25 + 0.15 * f})`,
-      `0 6px 20px rgba(0,0,0,${0.12 + 0.2 * f})`,
     ].join(",");
 
     if (barRef.current) {
-      barRef.current.style.transform = `scale(${1 + 0.045 * s.p})`;
+      barRef.current.style.transform = `scale(${1 + 0.015 * s.p})`;
     }
 
-    // Icon under the lens grows; neighbours ease off as it passes
+    // Icon under the lens grows slightly; the selected tab is purple
     btnRefs.current.forEach((el, i) => {
       if (!el) return;
       const prox = Math.max(0, 1 - Math.abs(i - s.x));
-      el.style.transform = `scale(${1 + prox * (0.1 + 0.1 * s.p)})`;
-      el.style.color = `rgba(${th.fg},${0.68 + 0.32 * prox})`;
+      el.style.transform = `scale(${1 + prox * (0.06 + 0.06 * s.p)})`;
+      el.style.color =
+        i === activeRef.current && !s.dragging
+          ? ACTIVE_COLOR
+          : `rgba(${th.fg},${0.62 + 0.38 * prox})`;
     });
   }, []);
 
@@ -236,10 +230,10 @@ export const BottomGlassNav = ({ hidden = false }: Props) => {
     s.raf = requestAnimationFrame(step);
   }, [apply]);
 
-  // First paint, and whenever the theme flips: repaint icon colours
+  // First paint, whenever the theme flips, or the active tab changes
   useEffect(() => {
     apply();
-  }, [apply, dark]);
+  }, [apply, dark, activeIdx]);
 
   useEffect(() => () => cancelAnimationFrame(sim.current.raf), []);
 
@@ -269,7 +263,23 @@ export const BottomGlassNav = ({ hidden = false }: Props) => {
   };
 
   const go = (i: number) => {
-    if (clean !== items[i].to) navigate(items[i].to);
+    const item = items[i];
+    if (item.to === null) {
+      // Send: pick the type first
+      if (frozen) {
+        toast("Account frozen", {
+          description:
+            "Your account has been frozen by an administrator. All transactions and features are disabled. Please contact support.",
+          duration: 5000,
+          style: { background: "#ff8503", color: "#ffffff", border: "none" },
+          classNames: { title: "text-white font-semibold", description: "text-white/90" },
+        });
+        return;
+      }
+      setSendOpen(true);
+      return;
+    }
+    if (clean !== item.to) navigate(item.to);
   };
 
   const onDown = (e: React.PointerEvent) => {
@@ -294,7 +304,9 @@ export const BottomGlassNav = ({ hidden = false }: Props) => {
     const i = Math.round(posFromEvent(e));
     s.dragging = false;
     s.pT = 0;
-    s.target = i;
+    // Send opens a modal and doesn't change the route, so the lens
+    // returns to the current tab instead of staying on Send.
+    s.target = items[i].to === null ? Math.max(activeRef.current, 0) : i;
     kick();
     go(i);
   };
@@ -308,111 +320,123 @@ export const BottomGlassNav = ({ hidden = false }: Props) => {
   };
 
   return (
-    <nav
-      aria-label="Quick actions"
-      aria-hidden={!shown}
-      className="fixed inset-x-4 z-50 md:hidden"
-      style={{
-        bottom: "calc(env(safe-area-inset-bottom, 0px) + 14px)",
-        transformOrigin: "50% 100%",
-        transform: shown
-          ? "translateY(0) scale(1)"
-          : "translateY(190%) scale(0.82)",
-        opacity: shown ? 1 : 0,
-        // `none` (not blur(0)) when shown: any filter on an ancestor
-        // would switch off the glass blur of the bar underneath it.
-        filter: shown ? "none" : "blur(10px)",
-        pointerEvents: shown ? "auto" : "none",
-        transition: shown
-          ? `transform 650ms ${SPRING}, opacity 300ms ease-out, filter 400ms ease-out`
-          : "transform 380ms cubic-bezier(0.4, 0, 1, 1), opacity 260ms ease-in, filter 300ms ease-in",
-      }}
-    >
-      <div
-        ref={wrapRef}
-        onPointerDown={onDown}
-        onPointerMove={onMove}
-        onPointerUp={onUp}
-        onPointerCancel={onCancel}
-        className="relative mx-auto h-16 max-w-md select-none"
-        style={{ touchAction: "none" }}
+    <>
+      <nav
+        aria-label="Quick actions"
+        aria-hidden={!shown}
+        className="fixed inset-x-4 z-50 md:hidden"
+        style={{
+          bottom: "calc(env(safe-area-inset-bottom, 0px) + 14px)",
+          transformOrigin: "50% 100%",
+          transform: shown
+            ? "translateY(0) scale(1)"
+            : "translateY(190%) scale(0.82)",
+          opacity: shown ? 1 : 0,
+          // `none` (not blur(0)) when shown: any filter on an ancestor
+          // would switch off the glass blur of the bar underneath it.
+          filter: shown ? "none" : "blur(10px)",
+          pointerEvents: shown ? "auto" : "none",
+          transition: shown
+            ? `transform 650ms ${SPRING}, opacity 300ms ease-out, filter 400ms ease-out`
+            : "transform 380ms cubic-bezier(0.4, 0, 1, 1), opacity 260ms ease-in, filter 300ms ease-in",
+        }}
       >
-        {/* Liquid glass capsule: nearly clear, light blur so the page shows through */}
         <div
-          ref={barRef}
-          className="absolute inset-0 rounded-full"
-          style={{
-            background: theme.bar,
-            backdropFilter: "blur(4px) saturate(1.8)",
-            WebkitBackdropFilter: "blur(4px) saturate(1.8)",
-            border: theme.barBorder,
-            boxShadow: theme.barShadow,
-            willChange: "transform",
-          }}
-        />
-
-        {/* Glass lens: stretches with speed, fringes with motion.
-            No blur here, so the icon under it stays sharp. */}
-        <div
-          ref={lensRef}
-          aria-hidden
-          className="pointer-events-none absolute bottom-1 top-1 rounded-full"
-          style={{
-            left: 4,
-            width: `calc((100% - 8px) / ${COUNT})`,
-            zIndex: 3,
-            willChange: "transform, box-shadow",
-            transition: "opacity 200ms",
-            background: theme.lens,
-            backdropFilter: "saturate(1.5) brightness(1.12)",
-            WebkitBackdropFilter: "saturate(1.5) brightness(1.12)",
-          }}
-        />
-
-        {/* Tabs: each one pops in with a small stagger */}
-        <ul
-          className="absolute inset-1 z-[2] grid"
-          style={{ gridTemplateColumns: `repeat(${COUNT}, 1fr)` }}
+          ref={wrapRef}
+          onPointerDown={onDown}
+          onPointerMove={onMove}
+          onPointerUp={onUp}
+          onPointerCancel={onCancel}
+          className="relative mx-auto h-16 max-w-md select-none"
+          style={{ touchAction: "none" }}
         >
-          {items.map(({ to, label, icon: Icon }, i) => {
-            const delay = shown ? 120 + i * 50 : 0;
-            return (
-              <li
-                key={to}
-                className="flex"
-                style={{
-                  opacity: shown ? 1 : 0,
-                  transform: shown
-                    ? "translateY(0) scale(1)"
-                    : "translateY(16px) scale(0.7)",
-                  transition: `transform 520ms ${SPRING} ${delay}ms, opacity 250ms ease-out ${delay}ms`,
-                }}
-              >
-                <button
-                  ref={(el) => {
-                    btnRefs.current[i] = el;
-                  }}
-                  type="button"
-                  tabIndex={shown ? 0 : -1}
-                  onClick={() => go(i)}
-                  aria-current={i === activeIdx ? "page" : undefined}
-                  className={`flex flex-1 flex-col items-center justify-center gap-0.5 text-[11px] ${
-                    i === activeIdx ? "font-semibold" : "font-medium"
-                  }`}
-                  style={{
-                    color: `rgba(${theme.fg},0.7)`,
-                    filter: theme.iconFilter,
-                    willChange: "transform",
-                  }}
-                >
-                  <Icon className="h-[21px] w-[21px]" strokeWidth={2} />
-                  {label}
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      </div>
-    </nav>
+          {/* Liquid glass capsule: nearly clear, light blur so the page shows through */}
+          <div
+            ref={barRef}
+            className="absolute inset-0 rounded-full"
+            style={{
+              background: theme.bar,
+              backdropFilter: "blur(4px) saturate(1.8)",
+              WebkitBackdropFilter: "blur(4px) saturate(1.8)",
+              border: theme.barBorder,
+              boxShadow: theme.barShadow,
+              willChange: "transform",
+            }}
+          />
+
+          {/* Track: 4px inside the capsule on every side. It clips the lens, so the
+              bright edge can never be longer than the bar. */}
+          <div className="absolute inset-1 overflow-hidden rounded-full">
+            {/* Glass lens: exactly one slot wide (100% / COUNT) */}
+            <div
+              ref={lensRef}
+              aria-hidden
+              className="pointer-events-none absolute inset-y-0 left-0 rounded-full"
+              style={{
+                width: `${100 / COUNT}%`,
+                zIndex: 3,
+                willChange: "transform, box-shadow",
+                transition: "opacity 200ms",
+                background: theme.lens,
+                backdropFilter: "saturate(1.5) brightness(1.12)",
+                WebkitBackdropFilter: "saturate(1.5) brightness(1.12)",
+              }}
+            />
+
+            {/* Tabs: each one pops in with a small stagger */}
+            <ul
+              className="absolute inset-0 z-[2] grid"
+              style={{ gridTemplateColumns: `repeat(${COUNT}, 1fr)` }}
+            >
+              {items.map(({ label, icon: Icon }, i) => {
+                const delay = shown ? 120 + i * 50 : 0;
+                const active = i === activeIdx;
+                return (
+                  <li
+                    key={label}
+                    className="flex"
+                    style={{
+                      opacity: shown ? 1 : 0,
+                      transform: shown
+                        ? "translateY(0) scale(1)"
+                        : "translateY(16px) scale(0.7)",
+                      transition: `transform 520ms ${SPRING} ${delay}ms, opacity 250ms ease-out ${delay}ms`,
+                    }}
+                  >
+                    <button
+                      ref={(el) => {
+                        btnRefs.current[i] = el;
+                      }}
+                      type="button"
+                      tabIndex={shown ? 0 : -1}
+                      onClick={() => go(i)}
+                      aria-current={active ? "page" : undefined}
+                      className={`flex flex-1 flex-col items-center justify-center gap-0.5 whitespace-nowrap text-[11px] ${
+                        active ? "font-semibold" : "font-medium"
+                      }`}
+                      style={{
+                        color: active ? ACTIVE_COLOR : `rgba(${theme.fg},0.7)`,
+                        filter: theme.iconFilter,
+                        willChange: "transform",
+                      }}
+                    >
+                      <Icon
+                        className="h-[21px] w-[21px]"
+                        strokeWidth={2}
+                        fill={active ? "currentColor" : "none"}
+                        fillOpacity={active ? 0.9 : 0}
+                      />
+                      {label}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        </div>
+      </nav>
+
+      <SendChooserModal open={sendOpen} onOpenChange={setSendOpen} />
+    </>
   );
 };
