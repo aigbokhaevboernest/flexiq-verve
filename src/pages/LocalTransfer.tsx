@@ -1,3 +1,4 @@
+import { Check } from "lucide-react";
 import { useFrozenGuard } from "@/hooks/useFrozenGuard";
 import { useEffect, useRef, useState } from "react";
 import { Card } from "@/components/ui/card";
