@@ -1,4 +1,5 @@
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 import { BrandLogo } from "@/components/BrandLogo";
 import { useAccount } from "@/hooks/useAccount";
 import {
@@ -6,7 +7,6 @@ import {
   ChevronDown,
   CreditCard,
   FileText,
-  Globe2,
   Headphones,
   Landmark,
   LayoutDashboard,
@@ -29,13 +29,31 @@ import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { NotificationsPanel } from "@/components/NotificationsPanel";
 import { useRealtimeProfile } from "@/hooks/useRealtimeProfile";
 import { BottomGlassNav } from "@/components/dashboard/BottomGlassNav";
+
+// Same order as the bottom bar, so a page slides left/right the way the tabs sit.
+const TAB_ORDER = [
+  "/dashboard/send",
+  "/dashboard/receive",
+  "/dashboard",
+  "/dashboard/loans",
+  "/dashboard/cards",
+];
+
+const tabRank = (path: string) => {
+  const p = path.replace(/\/$/, "");
+  if (p.startsWith("/dashboard/local")) return 0;
+  const i = TAB_ORDER.findIndex((t) =>
+    t === "/dashboard" ? p === t : p === t || p.startsWith(t + "/")
+  );
+  return i < 0 ? 2 : i; // pages outside the bar behave like Home
+};
 
 const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
   const navigate = useNavigate();
@@ -136,7 +154,7 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
           <Repeat className="h-4 w-4" /> Local Transfer
         </NavLink>
         <NavLink to="/dashboard/receive" onClick={onNavigate} className={linkClass}>
-          <Wallet className="h-4 w-4" /> Receive Money
+          <Wallet className="h-4 w-4" /> + Add money
         </NavLink>
         <NavLink to="/dashboard/loans" onClick={handleFrozenNav} className={linkClass}>
           <Banknote className="h-4 w-4" /> Quick Loans
@@ -192,7 +210,15 @@ export const DashboardLayout = () => {
   const [, startTransition] = useTransition();
   const navigate = useNavigate();
   const { pathname } = useLocation();
-  const [routeLoading, setRouteLoading] = useState(false);
+
+  // Slide direction: +1 = new page enters from the right, -1 = from the left.
+  const prevRank = useRef(tabRank(pathname));
+  const direction = useRef(1);
+  const rank = tabRank(pathname);
+  if (rank !== prevRank.current) {
+    direction.current = rank > prevRank.current ? 1 : -1;
+    prevRank.current = rank;
+  }
 
   useRealtimeProfile();
 
@@ -242,12 +268,6 @@ export const DashboardLayout = () => {
 
     return () => { supabase.removeChannel(channel); };
   }, [user]);
-
-  useEffect(() => {
-    setRouteLoading(true);
-    const t = setTimeout(() => setRouteLoading(false), 250);
-    return () => clearTimeout(t);
-  }, [pathname]);
 
   const toggleTheme = () => {
     const next = !dark;
@@ -313,21 +333,17 @@ export const DashboardLayout = () => {
           </div>
         </header>
 
-        {/* Extra bottom padding on mobile so the floating glass bar never covers content */}
-        <main className="p-4 pb-28 sm:p-6 sm:pb-28 md:pb-6 lg:p-8">
-          {routeLoading ? (
-            <div className="space-y-4 animate-fade-in">
-              <Skeleton className="h-8 w-48" />
-              <Skeleton className="h-40 w-full rounded-3xl" />
-              <div className="grid gap-4 sm:grid-cols-3">
-                <Skeleton className="h-28 rounded-3xl" />
-                <Skeleton className="h-28 rounded-3xl" />
-                <Skeleton className="h-28 rounded-3xl" />
-              </div>
-            </div>
-          ) : (
+        {/* Extra bottom padding on mobile so the floating glass bar never covers content.
+            overflow-x-clip keeps the slide from creating a sideways scrollbar. */}
+        <main className="overflow-x-clip p-4 pb-28 sm:p-6 sm:pb-28 md:pb-6 lg:p-8">
+          <motion.div
+            key={pathname}
+            initial={{ opacity: 0, x: direction.current * 48 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+          >
             <Outlet />
-          )}
+          </motion.div>
         </main>
       </div>
 
