@@ -25,6 +25,7 @@ import FinancialServices from "./pages/FinancialServices.tsx";
 import Settings from "./pages/Settings.tsx";
 import Profile from "./pages/Profile.tsx";
 import Support from "./pages/Support.tsx";
+import Inbox from "./pages/Inbox.tsx";
 import Verify from "./pages/Verify.tsx";
 import Kyc from "./pages/Kyc.tsx";
 import FAQ from "./pages/FAQ.tsx";
@@ -68,7 +69,7 @@ const App = () => (
         <AuthProvider>
           <SessionGuard>
             <Routes>
-              {/* PUBLIC pages: a logged-in user is redirected to /dashboard (replace) */}
+              {/* PUBLIC pages: a logged-in user is redirected (to /pin until unlocked, then /dashboard) */}
               <Route element={<GuestOnly />}>
                 <Route path="/" element={<Index />} />
                 <Route path="/login" element={<Login />} />
@@ -116,6 +117,7 @@ const App = () => (
                   <Route path="profile" element={<Profile />} />
                   <Route path="settings" element={<Settings />} />
                   <Route path="support" element={<Support />} />
+                  <Route path="notifications" element={<Inbox />} />
                   <Route path="success" element={<Success />} />
                   <Route path="verify" element={<Verify />} />
                   <Route path="kyc" element={<Kyc />} />
