@@ -6,6 +6,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { countries } from "@/lib/countries";
 import { currencies } from "@/lib/currencies";
 import { useEffect, useRef, useState } from "react";
+import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { BrandLogo } from "@/components/BrandLogo";
@@ -34,6 +35,10 @@ declare global {
 
 const nativeSelectClass =
   "mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring";
+
+// Theme-aware native date field: follows light/dark instead of staying white.
+const dateInputClass =
+  "mt-1 block h-11 w-full max-w-full rounded-md border bg-background px-3 text-sm text-foreground [color-scheme:light] dark:[color-scheme:dark] focus:outline-none focus:ring-2 focus:ring-ring";
 
 const ERROR_RING = "border-red-500 focus-visible:ring-red-500 focus:ring-red-500";
 
@@ -249,12 +254,18 @@ const Signup = () => {
         return;
       }
 
-      // 2) Create the account
+      // 2) Create the account.
+      // Clear any old PIN unlock BEFORE the session exists. The moment signUp
+      // returns, GuestOnly sees a logged-in user and sends them to /pin (not
+      // /dashboard) because the PIN isn't unlocked, so the dashboard never paints.
+      sessionStorage.removeItem("flexiq_pin_ok");
+
       const { data, error } = await supabase.auth.signUp({
         email: form.email.trim(),
         password: form.password,
         options: {
-          emailRedirectTo: `${window.location.origin}/dashboard`,
+          // Email links also land on the PIN screen, never straight on the dashboard
+          emailRedirectTo: `${window.location.origin}/pin`,
           data: {
             first_name: form.first_name,
             last_name: form.last_name,
@@ -291,6 +302,10 @@ const Signup = () => {
         }
         return;
       }
+
+      // Go to the PIN screen right away (replace: Back never returns to signup).
+      // The profile setup below keeps running in the background.
+      navigate("/pin", { replace: true });
 
       if (data.user) {
         await new Promise((res) => setTimeout(res, 1500));
@@ -346,8 +361,6 @@ Flexiq Verve Support Team`,
         title: "Account created",
         description: "Welcome to Flexiq Verve, Create a pin to continue!",
       });
-      sessionStorage.removeItem("flexiq_pin_ok");
-      navigate("/pin");
     } catch (err: any) {
       clearTimeout(releaseTimeout);
       setSubmitting(false);
@@ -358,6 +371,14 @@ Flexiq Verve Support Team`,
 
   return (
     <div className="page-enter relative min-h-screen bg-navy-blue-mesh px-4 py-10">
+      {/* Full-screen cover while the account is created, so nothing else paints before /pin */}
+      {submitting && (
+        <div className="fixed inset-0 z-[60] flex flex-col items-center justify-center gap-3 bg-background/95 backdrop-blur-sm">
+          <Loader2 className="h-7 w-7 animate-spin text-primary" />
+          <p className="text-sm font-medium text-foreground">Creating your account…</p>
+        </div>
+      )}
+
       <div className="mx-auto w-full max-w-2xl overflow-hidden rounded-3xl border border-white/10 bg-white shadow-elev animate-fade-in">
         <div className="bg-gradient-to-br from-[#7C3AED] via-[#8B5CF6] to-[#A78BFA] px-8 pb-8 pt-10 text-center sm:px-10">
           <Link to="/" className="flex flex-col items-center justify-center">
@@ -442,21 +463,7 @@ Flexiq Verve Support Team`,
                   value={form.date_of_birth}
                   onChange={(e) => update("date_of_birth")(e.target.value)}
                   onBlur={onBlur("date_of_birth")}
-                  style={{
-                    marginTop: "4px",
-                    height: "44px",
-                    width: "100%",
-                    maxWidth: "100%",
-                    padding: "0 12px",
-                    borderRadius: "8px",
-                    border: errors.date_of_birth ? "1px solid #ef4444" : "1px solid #e2e8f0",
-                    backgroundColor: "#f8fafc",
-                    fontSize: "14px",
-                    boxSizing: "border-box",
-                    display: "block",
-                    overflow: "hidden",
-                    WebkitAppearance: "none",
-                  }}
+                  className={`${dateInputClass} ${errors.date_of_birth ? "border-red-500" : "border-input"}`}
                 />
                 <FieldError msg={errors.date_of_birth} />
               </div>
