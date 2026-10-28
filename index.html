@@ -10,7 +10,7 @@
    <link rel="preconnect" href="https://fonts.googleapis.com" />
    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
-  <link rel="preload" as="image" href="/logo.png">.
+   <link rel="preload" as="image" href="/logo.png">
  </head>
 
  <body>
@@ -29,8 +29,12 @@
    </script>
    <script type="text/javascript" src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
    <style>
-     .goog-te-banner-frame { display: none !important; }
-     body { top: 0 !important; }
+     /* Google Translate adds a banner and pushes the page down; keep it flat at the top */
+     .goog-te-banner-frame,
+     iframe.skiptranslate,
+     .skiptranslate > iframe,
+     .VIpgJd-ZVi9od-ORHb-OEVmcd { display: none !important; visibility: hidden !important; height: 0 !important; }
+     html, body { top: 0 !important; margin-top: 0 !important; position: static !important; }
      #goog-gt-tt { display: none !important; }
    </style>
 
