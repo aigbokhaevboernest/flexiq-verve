@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Bell, Wallet, Copy, Check, ChevronDown } from "lucide-react";
 import { useAppSettings } from "@/hooks/useAppSettings";
@@ -26,6 +27,7 @@ const AssetLabel = ({ asset }: { asset: Asset }) =>
 export const NotificationsPanel = () => {
   const { user } = useAuth();
   const { data: settings } = useAppSettings();
+  const [open, setOpen] = useState(false);
   const [revealed, setRevealed] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [selected, setSelected] = useState<Asset>("BTC"); // BTC is the default
@@ -63,7 +65,7 @@ export const NotificationsPanel = () => {
   };
 
   return (
-    <Popover>
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <button className="relative inline-flex h-9 w-9 items-center justify-center rounded-md text-foreground transition-smooth hover:bg-accent" aria-label="Notifications">
           <Bell className="h-4 w-4 animate-pulse" />
@@ -166,6 +168,15 @@ export const NotificationsPanel = () => {
             ))
           )}
         </div>
+
+        {/* Full history lives in the inbox */}
+        <Link
+          to="/dashboard/notifications"
+          onClick={() => setOpen(false)}
+          className="block border-t border-border/60 px-4 py-3 text-center text-sm font-semibold text-primary transition-smooth hover:bg-muted"
+        >
+          Open inbox
+        </Link>
       </PopoverContent>
     </Popover>
   );
