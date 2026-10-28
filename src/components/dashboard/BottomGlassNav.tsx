@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Send, Wallet, Home, Landmark, CreditCard } from "lucide-react";
+import { Send, Wallet, Home, Banknote, CreditCard } from "lucide-react";
 import { toast } from "sonner";
 import { useAccount } from "@/hooks/useAccount";
 import { SendChooserModal } from "@/components/dashboard/SendChooserModal";
+
 
 // Set to true to always use the smoky dark glass with white icons,
 // whatever the site theme is.
@@ -24,7 +25,7 @@ const items: Array<{
   { to: null, matches: ["/dashboard/send", "/dashboard/local"], label: "Send", icon: Send },
   { to: "/dashboard/receive", matches: ["/dashboard/receive"], label: "Add money", icon: Wallet },
   { to: "/dashboard", matches: ["/dashboard"], exact: true, label: "Home", icon: Home },
-  { to: "/dashboard/loans", matches: ["/dashboard/loans"], label: "Loan", icon: Landmark },
+  { to: "/dashboard/loans", matches: ["/dashboard/loans"], label: "Loan", icon: Banknote },
   { to: "/dashboard/cards", matches: ["/dashboard/cards"], label: "Cards", icon: CreditCard },
 ];
 
