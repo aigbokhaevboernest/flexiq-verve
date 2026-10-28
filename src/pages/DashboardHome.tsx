@@ -468,7 +468,7 @@ const DashboardHome = () => {
                   onKeyDown={(e) => {
                     if (e.key === "Enter") isFrozen ? handleFrozenAction() : navigate("/dashboard/wallets");
                   }}
-                  className="absolute inset-x-0 bottom-3 flex cursor-pointer items-center justify-center gap-2 text-sm font-medium opacity-90 transition-opacity hover:opacity-100"
+                  className="absolute inset-x-0 bottom-8 flex cursor-pointer items-center justify-center gap-2 text-sm font-medium opacity-90 transition-opacity hover:opacity-100"
                 >
                   <ArrowLeftRight className="h-4 w-4" />
                   <span>Switch currency wallet</span>
