@@ -45,6 +45,8 @@ import Pin from "./pages/Pin.tsx";
 import Pending from "./pages/Pending.tsx";
 import Success from "./pages/Success.tsx";
 import WireTransfer from "./pages/WireTransfer.tsx";
+import CurrencyWallets from "./pages/CurrencyWallets.tsx";
+import WalletDeposit from "./pages/WalletDeposit.tsx";
 import { SplashScreen } from "./components/SplashScreen";
 import { useSessionTimeout } from "./hooks/useSessionTimeout";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
@@ -108,6 +110,8 @@ const App = () => (
                   <Route path="send/wire" element={<WireTransfer />} />
                   <Route path="send/fx" element={<FxTransfer />} />
                   <Route path="receive" element={<ReceiveMoney />} />
+                  <Route path="wallets" element={<CurrencyWallets />} />
+                  <Route path="wallets/:currency/deposit" element={<WalletDeposit />} />
                   <Route path="loans" element={<Loans />} />
                   <Route path="cards" element={<Cards />} />
                   <Route path="fx" element={<FxTransfer />} />
