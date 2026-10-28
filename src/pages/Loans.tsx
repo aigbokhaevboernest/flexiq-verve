@@ -17,6 +17,11 @@ import { useNavigate } from "react-router-dom";
 import { LoanCodeGate } from "@/components/LoanCodeGate";
 import { sendEmail } from "@/lib/sendEmail";
 
+// Theme-aware native date field: background and text follow light/dark mode,
+// and color-scheme makes the browser draw its picker icon and popup to match.
+const dateInputClass =
+  "mt-1 block h-11 w-full max-w-full rounded-md border border-input bg-background px-3 text-sm text-foreground [color-scheme:light] dark:[color-scheme:dark] focus:outline-none focus:ring-2 focus:ring-ring";
+
 const Loans = () => {
   useFrozenGuard();
 
@@ -138,7 +143,7 @@ Flexiq Verve Support Team`,
         });
       }
     } catch {}
-  }; // <-- this closing bracket was missing, which caused the build error
+  };
 
   const releaseFunds = (loanId: string) => {
     setPendingLoanId(loanId);
@@ -292,23 +297,9 @@ Flexiq Verve Support Team`,
                 <input
                   type="date"
                   value={extra.dob}
+                  max={new Date().toISOString().split("T")[0]}
                   onChange={(e) => setX("dob", e.target.value)}
-                  style={{
-                    marginTop: "4px",
-                    height: "44px",
-                    lineHeight: "44px",
-                    width: "100%",
-                    maxWidth: "100%",
-                    padding: "0 12px",
-                    borderRadius: "8px",
-                    border: "1px solid #e2e8f0",
-                    backgroundColor: "#f8fafc",
-                    fontSize: "14px",
-                    boxSizing: "border-box",
-                    display: "block",
-                    overflow: "hidden",
-                    WebkitAppearance: "none",
-                  }}
+                  className={dateInputClass}
                 />
               </div>
 
