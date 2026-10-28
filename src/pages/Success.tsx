@@ -1,7 +1,7 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Download, X, Clock, Receipt } from "lucide-react";
+import { Download, X, Clock, Check, Receipt } from "lucide-react";
 import jsPDF from "jspdf";
 
 interface SuccessState {
@@ -10,6 +10,8 @@ interface SuccessState {
   details?: { label: string; value: string }[];
   receipt?: boolean;
   pending?: boolean;
+  /** true = show the green done ✔ icon instead of the amber pending clock */
+  success?: boolean;
   /** Path to navigate to when user cancels (X). Defaults to history back. */
   returnTo?: string;
 }
@@ -33,9 +35,13 @@ const Success = () => {
     doc.save("flexiq-receipt.pdf");
   };
 
-  const iconWrap = "bg-amber-100 ring-amber-200";
-  const iconColor = "text-amber-600";
-  const Icon = Clock;
+  // Green ✔ when completed, amber clock when pending
+  const isSuccess = !!state.success && !state.pending;
+  const iconWrap = isSuccess
+    ? "bg-emerald-100 ring-emerald-200 dark:bg-emerald-950 dark:ring-emerald-900"
+    : "bg-amber-100 ring-amber-200";
+  const iconColor = isSuccess ? "text-emerald-600" : "text-amber-600";
+  const Icon = isSuccess ? Check : Clock;
 
   const handleCancel = () => {
     if (state.returnTo) navigate(state.returnTo);
@@ -58,7 +64,7 @@ const Success = () => {
         {/* Shown straight away: no artificial loading delay */}
         <div className="text-center animate-fade-in">
           <div className={`mx-auto flex h-20 w-20 items-center justify-center rounded-full ring-4 ${iconWrap}`}>
-            <Icon className={`h-12 w-12 ${iconColor}`} />
+            <Icon className={`h-12 w-12 ${iconColor}`} strokeWidth={isSuccess ? 3 : 2} />
           </div>
           <h1 className="mt-5 font-display text-2xl font-bold">{state.title || "Transfer Submitted"}</h1>
           <p className="mt-1 text-sm text-muted-foreground">{state.message || "Pending system verification."}</p>
