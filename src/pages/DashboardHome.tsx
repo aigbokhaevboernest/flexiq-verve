@@ -471,7 +471,7 @@ const DashboardHome = () => {
                   className="absolute inset-x-0 bottom-8 flex cursor-pointer items-center justify-center gap-2 text-sm font-medium opacity-90 transition-opacity hover:opacity-100"
                 >
                   <ArrowLeftRight className="h-4 w-4" />
-                  <span>Switch currency wallet</span>
+                  <span>View currency wallet</span>
                   <motion.span
                     className="flex"
                     animate={{ x: [0, 4, 0] }}
