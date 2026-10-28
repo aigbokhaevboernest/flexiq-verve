@@ -202,6 +202,9 @@ const LocalTransfer = () => {
       });
     }
 
+    // Flag the sender as debited so admin approve never debits twice
+    await (supabase as any).rpc("mark_tx_debited", { p_tx_id: pendingTxId });
+
     const ref = pendingTxId;
     const amtCopy = amt;
     const recCopy = isInternal
