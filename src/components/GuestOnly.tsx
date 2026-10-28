@@ -5,10 +5,10 @@ import { useAuth } from "@/hooks/useAuth";
 /**
  * Layout route for PUBLIC pages (home, login, signup, FAQ, ...).
  *
- * A logged-in user can't stay on these: they are sent to /dashboard with
- * `replace`, so Back / swipe-back never lands on (or oscillates with) a
- * public page. /dashboard's ProtectedRoute then sends them to /pin first if
- * the PIN hasn't been entered yet.
+ * A logged-in user can't stay on these. They go straight to /pin until the PIN
+ * is unlocked for this session, and only then to /dashboard. Going directly to
+ * the right place (instead of /dashboard -> bounce -> /pin) is what removes the
+ * dashboard flash after signup.
  */
 export default function GuestOnly() {
   const auth = useAuth() as any;
@@ -23,6 +23,9 @@ export default function GuestOnly() {
     );
   }
 
-  if (user) return <Navigate to="/dashboard" replace />;
+  if (user) {
+    const pinOk = sessionStorage.getItem("flexiq_pin_ok") === "1";
+    return <Navigate to={pinOk ? "/dashboard" : "/pin"} replace />;
+  }
   return <Outlet />;
 }
