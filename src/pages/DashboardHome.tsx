@@ -2,14 +2,14 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
   ArrowDownLeft,
-  ArrowRight,
+  ArrowLeftRight,
   ArrowUpRight,
   Banknote,
+  ChevronRight,
   CreditCard,
   Eye,
   EyeOff,
   FileText,
-  Globe,
   Receipt,
   Send,
   TrendingUp,
@@ -17,6 +17,7 @@ import {
   Wifi,
   ShieldAlert,
 } from "lucide-react";
+import { motion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
