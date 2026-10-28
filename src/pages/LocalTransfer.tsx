@@ -1,11 +1,11 @@
 import { useFrozenGuard } from "@/hooks/useFrozenGuard";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowRight, Check, Loader2, Lock } from "lucide-react";
+import { ArrowRight, Check, Loader2, Lock, Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatMoney, currencySymbol } from "@/hooks/useAccount";
 import { useTotalBalance, planDeduction } from "@/hooks/useTotalBalance";
@@ -45,50 +45,67 @@ const LocalTransfer = () => {
   // Confirmed Flexiq Verve receiver (null = manual entry / not found)
   const [receiver, setReceiver] = useState<any>(null);
   const [lookupState, setLookupState] = useState<LookupState>("idle");
+  // Found account waiting for the user's confirmation
+  const [candidate, setCandidate] = useState<any>(null);
+  const reqId = useRef(0);
 
   const isInternal = dest === "internal";
 
   const resetLookup = () => {
+    reqId.current++;
     setLookupState("idle");
+    setCandidate(null);
     setReceiver(null);
   };
 
-  // Auto-lookup: runs as soon as a 10-digit account number is entered
+  // Lookup by account number (used by both auto-search and the Find button)
+  const lookupAccount = async (num: string) => {
+    const n = num.trim();
+    if (!isInternal || n.length < 4) return;
+    const id = ++reqId.current;
+    setLookupState("loading");
+    setCandidate(null);
+    const { data, error } = await (supabase as any).rpc("resolve_flexiq_user", {
+      p_account_number: n,
+      p_email: null, // RPC should treat email as optional
+    });
+    if (id !== reqId.current) return; // stale result
+    const found = Array.isArray(data) ? data[0] : data;
+    if (error || !found) {
+      setLookupState("none");
+      return;
+    }
+    setCandidate(found);
+    setLookupState("found");
+  };
+
+  // Auto-search as soon as a 10-digit number is entered
   useEffect(() => {
+    reqId.current++;
     setReceiver(null);
+    setCandidate(null);
     if (!isInternal) {
       setLookupState("idle");
       return;
     }
     const n = accNumber.trim();
-    if (!/^\d{10}$/.test(n)) {
-      setLookupState("idle");
-      return;
-    }
-
-    let cancelled = false;
-    setLookupState("loading");
-    (async () => {
-      const { data, error } = await (supabase as any).rpc("resolve_flexiq_user", {
-        p_account_number: n,
-        p_email: null, // RPC should treat email as optional
-      });
-      if (cancelled) return;
-      const found = Array.isArray(data) ? data[0] : data;
-      if (error || !found) {
-        setLookupState("none");
-        return;
-      }
-      setReceiver(found);
-      setRecipient(`${found.first_name || ""} ${found.last_name || ""}`.trim());
-      setEmail(found.email || "");
-      setLookupState("found");
-    })();
-
+    if (/^\d{10}$/.test(n)) lookupAccount(n);
+    else setLookupState("idle");
     return () => {
-      cancelled = true;
+      reqId.current++;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accNumber, isInternal]);
+
+  // Only fill the form after the user confirms the account
+  const confirmCandidate = () => {
+    if (!candidate) return;
+    setReceiver(candidate);
+    setRecipient(`${candidate.first_name || ""} ${candidate.last_name || ""}`.trim());
+    setEmail(candidate.email || "");
+    setCandidate(null);
+    setLookupState("idle");
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -327,14 +344,14 @@ ${footer}`,
       <div className="grid gap-6 lg:grid-cols-[2fr,1fr]">
         <Card className="rounded-3xl border-border/60 p-6 shadow-card sm:p-8">
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Compact inline toggle with sliding pill */}
+            {/* Toggle: full width, pill fills each half edge to edge */}
             <div
-              className="relative grid w-fit grid-cols-2 rounded-full bg-muted p-0.5 text-xs font-medium"
+              className="relative grid w-full grid-cols-2 rounded-full bg-muted p-1 text-sm font-semibold"
               role="tablist"
             >
               <span
                 aria-hidden
-                className="pointer-events-none absolute inset-y-0.5 left-0.5 w-[calc(50%-2px)] overflow-hidden rounded-full shadow-sm transition-transform duration-300 ease-out"
+                className="pointer-events-none absolute inset-y-1 left-1 w-[calc(50%-4px)] overflow-hidden rounded-full shadow-sm transition-transform duration-300 ease-out"
                 style={{ transform: isInternal ? "translateX(100%)" : "translateX(0)" }}
               >
                 <span
@@ -349,7 +366,7 @@ ${footer}`,
                 role="tab"
                 aria-selected={!isInternal}
                 onClick={() => switchDest("external")}
-                className={`relative z-10 whitespace-nowrap rounded-full px-3.5 py-1.5 transition-colors duration-300 ${!isInternal ? "text-white" : "text-muted-foreground"}`}
+                className={`relative z-10 whitespace-nowrap rounded-full px-4 py-2.5 transition-colors duration-300 ${!isInternal ? "text-white" : "text-muted-foreground"}`}
               >
                 External account
               </button>
@@ -358,7 +375,7 @@ ${footer}`,
                 role="tab"
                 aria-selected={isInternal}
                 onClick={() => switchDest("internal")}
-                className={`relative z-10 whitespace-nowrap rounded-full px-3.5 py-1.5 transition-colors duration-300 ${isInternal ? "text-primary-foreground" : "text-muted-foreground"}`}
+                className={`relative z-10 whitespace-nowrap rounded-full px-4 py-2.5 transition-colors duration-300 ${isInternal ? "text-primary-foreground" : "text-muted-foreground"}`}
               >
                 Flexiq Verve account
               </button>
@@ -378,41 +395,72 @@ ${footer}`,
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2 sm:col-span-2">
                 <Label>Account number</Label>
-                <div className="relative">
-                  <Input
-                    value={accNumber}
-                    inputMode="numeric"
-                    onChange={(e) => {
-                      if (receiver) {
-                        // Number changed after an auto-fill: clear the filled details
-                        setRecipient("");
-                        setEmail("");
-                      }
-                      setAccNumber(e.target.value);
-                    }}
-                    required
-                  />
-                  {isInternal && lookupState === "loading" && (
-                    <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
-                  )}
-                  {isInternal && lookupState === "found" && (
-                    <span className="absolute right-3 top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full bg-emerald-500 text-white">
-                      <Check className="h-3 w-3" strokeWidth={3} />
-                    </span>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Input
+                      value={accNumber}
+                      inputMode="numeric"
+                      onChange={(e) => {
+                        if (receiver) {
+                          // Number changed after confirming: clear the filled details
+                          setRecipient("");
+                          setEmail("");
+                        }
+                        setAccNumber(e.target.value);
+                      }}
+                      required
+                    />
+                    {isInternal && receiver && (
+                      <span className="absolute right-3 top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full bg-emerald-500 text-white">
+                        <Check className="h-3 w-3" strokeWidth={3} />
+                      </span>
+                    )}
+                  </div>
+                  {isInternal && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="gap-1 rounded-xl"
+                      disabled={lookupState === "loading" || accNumber.trim().length < 4}
+                      onClick={() => lookupAccount(accNumber)}
+                    >
+                      {lookupState === "loading" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                      Find
+                    </Button>
                   )}
                 </div>
 
                 {isInternal && lookupState === "loading" && (
                   <p className="text-xs text-muted-foreground">Looking up account…</p>
                 )}
-                {isInternal && lookupState === "found" && receiver && (
-                  <p className="text-xs font-medium text-emerald-600">
-                    Verified: {`${receiver.first_name || ""} ${receiver.last_name || ""}`.trim()}
-                  </p>
+
+                {/* Confirmation before anything is auto-filled */}
+                {isInternal && lookupState === "found" && candidate && (
+                  <div className="rounded-2xl border border-border bg-muted/40 p-4">
+                    <p className="text-xs text-muted-foreground">Account found. Is this the right person?</p>
+                    <p className="mt-1 font-semibold">
+                      {`${candidate.first_name || ""} ${candidate.last_name || ""}`.trim()}
+                    </p>
+                    <p className="text-xs text-muted-foreground">{candidate.email}</p>
+                    <div className="mt-3 flex gap-2">
+                      <Button type="button" size="sm" className="rounded-xl bg-gradient-primary" onClick={confirmCandidate}>
+                        Yes, use this account
+                      </Button>
+                      <Button type="button" size="sm" variant="ghost" className="rounded-xl" onClick={() => { setCandidate(null); setLookupState("idle"); }}>
+                        Dismiss
+                      </Button>
+                    </div>
+                  </div>
                 )}
+
                 {isInternal && lookupState === "none" && (
                   <p className="text-xs text-amber-600">
                     No Flexiq Verve account found. You can enter the details manually; it will be sent for review.
+                  </p>
+                )}
+                {isInternal && receiver && (
+                  <p className="text-xs font-medium text-emerald-600">
+                    Verified: {`${receiver.first_name || ""} ${receiver.last_name || ""}`.trim()}
                   </p>
                 )}
               </div>
