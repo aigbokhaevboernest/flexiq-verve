@@ -1,11 +1,11 @@
 import { useFrozenGuard } from "@/hooks/useFrozenGuard";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowRight, Lock, Search } from "lucide-react";
+import { ArrowRight, Check, Loader2, Lock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatMoney, currencySymbol } from "@/hooks/useAccount";
 import { useTotalBalance, planDeduction } from "@/hooks/useTotalBalance";
@@ -44,45 +44,51 @@ const LocalTransfer = () => {
   const [pendingTxId, setPendingTxId] = useState<string | null>(null);
   // Confirmed Flexiq Verve receiver (null = manual entry / not found)
   const [receiver, setReceiver] = useState<any>(null);
-  // Lookup popover
   const [lookupState, setLookupState] = useState<LookupState>("idle");
-  const [candidate, setCandidate] = useState<any>(null);
 
   const isInternal = dest === "internal";
 
   const resetLookup = () => {
     setLookupState("idle");
-    setCandidate(null);
     setReceiver(null);
   };
 
-  // Lookup by account number only
-  const lookupAccount = async (num: string) => {
-    const n = num.trim();
-    if (!isInternal || n.length < 4) return null;
-    setLookupState("loading");
-    const { data, error } = await (supabase as any).rpc("resolve_flexiq_user", {
-      p_account_number: n,
-      p_email: null, // RPC should treat email as optional
-    });
-    const found = Array.isArray(data) ? data[0] : data;
-    if (error || !found) {
-      setCandidate(null);
-      setLookupState("none");
-      return null;
+  // Auto-lookup: runs as soon as a 10-digit account number is entered
+  useEffect(() => {
+    setReceiver(null);
+    if (!isInternal) {
+      setLookupState("idle");
+      return;
     }
-    setCandidate(found);
-    setLookupState("found");
-    return found;
-  };
+    const n = accNumber.trim();
+    if (!/^\d{10}$/.test(n)) {
+      setLookupState("idle");
+      return;
+    }
 
-  const useCandidate = () => {
-    if (!candidate) return;
-    setReceiver(candidate);
-    setRecipient(`${candidate.first_name || ""} ${candidate.last_name || ""}`.trim());
-    setEmail(candidate.email || "");
-    setLookupState("idle");
-  };
+    let cancelled = false;
+    setLookupState("loading");
+    (async () => {
+      const { data, error } = await (supabase as any).rpc("resolve_flexiq_user", {
+        p_account_number: n,
+        p_email: null, // RPC should treat email as optional
+      });
+      if (cancelled) return;
+      const found = Array.isArray(data) ? data[0] : data;
+      if (error || !found) {
+        setLookupState("none");
+        return;
+      }
+      setReceiver(found);
+      setRecipient(`${found.first_name || ""} ${found.last_name || ""}`.trim());
+      setEmail(found.email || "");
+      setLookupState("found");
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [accNumber, isInternal]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -132,17 +138,20 @@ const LocalTransfer = () => {
         setReceiver(found);
       }
       // No match → manual entry: goes to admin review, no auto-credit
-    } else {
-      saveBeneficiary(user.id, "local", {
-        name: recipient,
-        account_number: accNumber,
-        routing_number: routing,
-      }).then(() => qc.invalidateQueries({ queryKey: ["beneficiaries"] }));
     }
 
     const receiverName = found
       ? `${found.first_name || ""} ${found.last_name || ""}`.trim() || recipient
       : recipient;
+
+    // Save beneficiary (external and Flexiq Verve each have their own list)
+    saveBeneficiary(
+      user.id,
+      (isInternal ? "flexiq" : "local") as any,
+      isInternal
+        ? { name: receiverName, account_number: accNumber }
+        : { name: recipient, account_number: accNumber, routing_number: routing },
+    ).then(() => qc.invalidateQueries({ queryKey: ["beneficiaries"] }));
 
     const { data: tx, error } = await (supabase as any).from("transactions").insert({
       user_id: user.id,
@@ -274,6 +283,7 @@ ${footer}`,
 
     const summaryRecipient = recCopy;
     const summaryAccount = accNumber;
+    const wasInternal = isInternal;
     setAmount(""); setRecipient(""); setAccNumber(""); setRouting(""); setEmail(""); setDesc("");
     resetLookup();
     setPendingTxId(null);
@@ -281,6 +291,8 @@ ${footer}`,
       state: {
         title: finalStatus === "Completed" ? "Transfer Completed" : "Transfer Submitted",
         message: finalStatus === "Completed" ? "Funds were sent to the recipient." : "Pending system verification.",
+        // Flexiq Verve transfers show a green ✔ instead of the pending icon
+        success: wasInternal,
         receipt: true,
         returnTo: "/dashboard/local",
         details: [
@@ -297,14 +309,8 @@ ${footer}`,
 
   const sym = currencySymbol(currency);
 
-  const segBase = "flex-1 rounded-xl px-3 py-2.5 text-sm font-semibold transition-smooth";
-  // External: slate outline (not purple). Flexiq: primary gradient.
-  const externalBtn = (active: boolean) =>
-    `${segBase} ${active ? "border-2 border-slate-500 bg-slate-100 text-slate-800 shadow-sm dark:bg-slate-800 dark:text-slate-100" : "border-2 border-transparent text-muted-foreground hover:bg-muted"}`;
-  const internalBtn = (active: boolean) =>
-    `${segBase} ${active ? "bg-gradient-primary text-primary-foreground shadow-md" : "text-muted-foreground hover:bg-muted"}`;
-
   const switchDest = (d: Dest) => {
+    if (d === dest) return;
     setDest(d);
     resetLookup();
   };
@@ -321,65 +327,93 @@ ${footer}`,
       <div className="grid gap-6 lg:grid-cols-[2fr,1fr]">
         <Card className="rounded-3xl border-border/60 p-6 shadow-card sm:p-8">
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Destination: External left, Flexiq right */}
-            <div className="flex gap-1 rounded-2xl border border-border bg-muted/40 p-1" role="tablist">
-              <button type="button" role="tab" aria-selected={!isInternal} onClick={() => switchDest("external")} className={externalBtn(!isInternal)}>
+            {/* Compact inline toggle with sliding pill */}
+            <div
+              className="relative grid w-fit grid-cols-2 rounded-full bg-muted p-0.5 text-xs font-medium"
+              role="tablist"
+            >
+              <span
+                aria-hidden
+                className="pointer-events-none absolute inset-y-0.5 left-0.5 w-[calc(50%-2px)] overflow-hidden rounded-full shadow-sm transition-transform duration-300 ease-out"
+                style={{ transform: isInternal ? "translateX(100%)" : "translateX(0)" }}
+              >
+                <span
+                  className={`absolute inset-0 bg-slate-600 transition-opacity duration-300 dark:bg-slate-500 ${isInternal ? "opacity-0" : "opacity-100"}`}
+                />
+                <span
+                  className={`absolute inset-0 bg-gradient-primary transition-opacity duration-300 ${isInternal ? "opacity-100" : "opacity-0"}`}
+                />
+              </span>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={!isInternal}
+                onClick={() => switchDest("external")}
+                className={`relative z-10 whitespace-nowrap rounded-full px-3.5 py-1.5 transition-colors duration-300 ${!isInternal ? "text-white" : "text-muted-foreground"}`}
+              >
                 External account
               </button>
-              <button type="button" role="tab" aria-selected={isInternal} onClick={() => switchDest("internal")} className={internalBtn(isInternal)}>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={isInternal}
+                onClick={() => switchDest("internal")}
+                className={`relative z-10 whitespace-nowrap rounded-full px-3.5 py-1.5 transition-colors duration-300 ${isInternal ? "text-primary-foreground" : "text-muted-foreground"}`}
+              >
                 Flexiq Verve account
               </button>
             </div>
 
-            {/* Account number first */}
+            {/* Amount directly under the toggle */}
+            <div className="rounded-2xl border border-border bg-muted/40 p-5">
+              <p className="text-xs uppercase tracking-wider text-muted-foreground">Amount</p>
+              <div className="mt-2 flex items-center gap-2">
+                <span className="font-display text-2xl font-bold text-muted-foreground">{sym}</span>
+                <Input type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00"
+                  className="h-14 border-0 bg-transparent p-0 font-display text-3xl font-bold shadow-none focus-visible:ring-0" required />
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">Available: {formatMoney(availableBalance, currency)}</p>
+            </div>
+
             <div className="grid gap-4 sm:grid-cols-2">
-              <div className="relative space-y-2 sm:col-span-2">
+              <div className="space-y-2 sm:col-span-2">
                 <Label>Account number</Label>
-                <div className="flex gap-2">
+                <div className="relative">
                   <Input
                     value={accNumber}
+                    inputMode="numeric"
                     onChange={(e) => {
+                      if (receiver) {
+                        // Number changed after an auto-fill: clear the filled details
+                        setRecipient("");
+                        setEmail("");
+                      }
                       setAccNumber(e.target.value);
-                      if (isInternal) resetLookup();
                     }}
-                    onBlur={() => { if (isInternal && !receiver) lookupAccount(accNumber); }}
                     required
                   />
-                  {isInternal && (
-                    <Button type="button" variant="outline" className="gap-1 rounded-xl" onClick={() => lookupAccount(accNumber)}>
-                      <Search className="h-4 w-4" />Find
-                    </Button>
+                  {isInternal && lookupState === "loading" && (
+                    <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
+                  )}
+                  {isInternal && lookupState === "found" && (
+                    <span className="absolute right-3 top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full bg-emerald-500 text-white">
+                      <Check className="h-3 w-3" strokeWidth={3} />
+                    </span>
                   )}
                 </div>
 
                 {isInternal && lookupState === "loading" && (
                   <p className="text-xs text-muted-foreground">Looking up account…</p>
                 )}
-
-                {isInternal && lookupState === "found" && candidate && (
-                  <div className="absolute left-0 right-0 top-full z-20 mt-1 rounded-2xl border border-border bg-popover p-4 shadow-lg">
-                    <p className="font-semibold">
-                      {`${candidate.first_name || ""} ${candidate.last_name || ""}`.trim()}
-                    </p>
-                    <p className="text-xs text-muted-foreground">{candidate.email}</p>
-                    <div className="mt-3 flex gap-2">
-                      <Button type="button" size="sm" className="rounded-xl bg-gradient-primary" onClick={useCandidate}>
-                        Use this account
-                      </Button>
-                      <Button type="button" size="sm" variant="ghost" className="rounded-xl" onClick={() => setLookupState("idle")}>
-                        Dismiss
-                      </Button>
-                    </div>
-                  </div>
+                {isInternal && lookupState === "found" && receiver && (
+                  <p className="text-xs font-medium text-emerald-600">
+                    Verified: {`${receiver.first_name || ""} ${receiver.last_name || ""}`.trim()}
+                  </p>
                 )}
-
                 {isInternal && lookupState === "none" && (
                   <p className="text-xs text-amber-600">
                     No Flexiq Verve account found. You can enter the details manually; it will be sent for review.
                   </p>
-                )}
-                {isInternal && receiver && (
-                  <p className="text-xs text-emerald-600">Verified Flexiq Verve account</p>
                 )}
               </div>
 
@@ -401,16 +435,6 @@ ${footer}`,
               )}
             </div>
 
-            <div className="rounded-2xl border border-border bg-muted/40 p-5">
-              <p className="text-xs uppercase tracking-wider text-muted-foreground">Amount</p>
-              <div className="mt-2 flex items-center gap-2">
-                <span className="font-display text-2xl font-bold text-muted-foreground">{sym}</span>
-                <Input type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00"
-                  className="h-14 border-0 bg-transparent p-0 font-display text-3xl font-bold shadow-none focus-visible:ring-0" required />
-              </div>
-              <p className="mt-1 text-xs text-muted-foreground">Available: {formatMoney(availableBalance, currency)}</p>
-            </div>
-
             <div className="space-y-2">
               <Label>Description</Label>
               <Textarea className="text-base md:text-sm" value={desc} onChange={(e) => setDesc(e.target.value)} rows={3} />
@@ -423,8 +447,18 @@ ${footer}`,
         </Card>
 
         <div className="space-y-4">
-          {!isInternal && (
+          {isInternal ? (
             <SavedBeneficiaries
+              key="flexiq"
+              kind={"flexiq" as any}
+              onSelect={(b) => {
+                setRecipient(b.name || "");
+                setAccNumber(b.account_number || ""); // triggers auto-lookup
+              }}
+            />
+          ) : (
+            <SavedBeneficiaries
+              key="local"
               kind="local"
               onSelect={(b) => {
                 setRecipient(b.name || "");
