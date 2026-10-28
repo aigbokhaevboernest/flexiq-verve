@@ -125,7 +125,7 @@ const CurrencyWallets = () => {
               </div>
               <button
                 onClick={() => navigate(`/dashboard/wallets/${w.currency}/deposit`)}
-                className="inline-flex items-center gap-1.5 rounded-2xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground"
+                className="inline-flex items-center gap-1.5 rounded-2xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-700"
               >
                 <Plus className="h-4 w-4" /> Add funds
               </button>
