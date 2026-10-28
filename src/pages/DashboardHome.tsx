@@ -460,23 +460,27 @@ const DashboardHome = () => {
                   })}
                 </div>
 
-                {/* View currency wallets */}
-                <button
-                  type="button"
-                  onClick={() =>
-                    isFrozen ? handleFrozenAction() : navigate("/dashboard/wallets")
-                  }
-                  className="relative mt-3 flex w-full items-center justify-between rounded-2xl bg-white/15 px-4 py-3 text-sm font-semibold backdrop-blur transition-smooth hover:bg-white/25"
-                >
-                  <span className="flex items-center gap-2">
-                    <Globe className="h-4 w-4" /> View currency wallets
-                  </span>
-                  <ArrowRight className="h-4 w-4" />
-                </button>
-              </div>
-            }
-          />
-        </div>
+                {/* Switch currency wallet: plain text pinned to the card's bottom edge */}
+<div
+  role="link"
+  tabIndex={0}
+  onClick={() => (isFrozen ? handleFrozenAction() : navigate("/dashboard/wallets"))}
+  onKeyDown={(e) => {
+    if (e.key === "Enter") isFrozen ? handleFrozenAction() : navigate("/dashboard/wallets");
+  }}
+  className="absolute inset-x-0 bottom-3 flex cursor-pointer items-center justify-center gap-2 text-sm font-medium opacity-90 transition-opacity hover:opacity-100"
+>
+  <ArrowLeftRight className="h-4 w-4" />
+  <span>Switch currency wallet</span>
+  <motion.span
+    className="flex"
+    animate={{ x: [0, 4, 0] }}
+    transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
+  >
+    <ChevronRight className="h-4 w-4" />
+  </motion.span>
+</div>
+
 
         <Card className="rounded-3xl border-border/60 p-6 shadow-card">
           <div className="flex items-center justify-between">
