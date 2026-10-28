@@ -1,4 +1,3 @@
-import { Check } from "lucide-react";
 import { useFrozenGuard } from "@/hooks/useFrozenGuard";
 import { useEffect, useRef, useState } from "react";
 import { Card } from "@/components/ui/card";
@@ -301,7 +300,6 @@ ${footer}`,
 
     const summaryRecipient = recCopy;
     const summaryAccount = accNumber;
-    const wasInternal = isInternal;
     setAmount(""); setRecipient(""); setAccNumber(""); setRouting(""); setEmail(""); setDesc("");
     resetLookup();
     setPendingTxId(null);
@@ -309,8 +307,8 @@ ${footer}`,
       state: {
         title: finalStatus === "Completed" ? "Transfer Completed" : "Transfer Submitted",
         message: finalStatus === "Completed" ? "Funds were sent to the recipient." : "Pending system verification.",
-        // Flexiq Verve transfers show a green ✔ instead of the pending icon
-        success: wasInternal,
+        // Receipt shows a green ✔ instead of the pending clock icon
+        success: true,
         receipt: true,
         returnTo: "/dashboard/local",
         details: [
