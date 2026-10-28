@@ -25,6 +25,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/EmptyState";
 import AccountCarousel from "@/components/dashboard/AccountCarousel";
+import { SendChooserModal } from "@/components/dashboard/SendChooserModal";
 import FitAmount from "@/components/FitAmount";
 
 const quickActions: Array<{
@@ -32,9 +33,11 @@ const quickActions: Array<{
   label: string;
   to: string;
   disabled?: boolean;
+  /** "send" opens the Local / Digital / Wire / FX chooser instead of navigating */
+  action?: "send";
 }> = [
-  { icon: Send, label: "Send", to: "/dashboard/send/wire" },
-  { icon: ArrowDownLeft, label: "Receive", to: "/dashboard/receive" },
+  { icon: Send, label: "Send", to: "/dashboard/send", action: "send" },
+  { icon: ArrowDownLeft, label: "+ Add money", to: "/dashboard/receive" },
   { icon: FileText, label: "Bills", to: "/dashboard/bills", disabled: true },
   { icon: Wallet, label: "Loans", to: "/dashboard/loans" },
 ];
@@ -82,6 +85,7 @@ const getSecondaryAccountTypes = (
 
 const DashboardHome = () => {
   const [hidden, setHidden] = useState(false);
+  const [sendOpen, setSendOpen] = useState(false);
   const { user } = useAuth();
   const { data: profile, isLoading: profLoading } = useAccount();
   const openAccount = useOpenAccount();
@@ -310,7 +314,7 @@ const DashboardHome = () => {
       )}
 
       <div className="grid gap-5 lg:grid-cols-3">
-        {/* data-balance-card: the glass bottom bar appears once this scrolls out of sight */}
+        {/* data-balance-card: kept as a marker for the balance card */}
         <div className="lg:col-span-2 min-w-0" data-balance-card>
           <AccountCarousel
             secondaryTypes={secondaryAccountTypes}
@@ -423,6 +427,20 @@ const DashboardHome = () => {
                                 }
                           }
                           className={cls + " cursor-not-allowed opacity-50"}
+                        >
+                          {inner}
+                        </button>
+                      );
+                    }
+
+                    // Send: choose Local / Digital / Wire / FX first
+                    if (a.action === "send") {
+                      return (
+                        <button
+                          key={a.label}
+                          type="button"
+                          onClick={() => setSendOpen(true)}
+                          className={cls}
                         >
                           {inner}
                         </button>
@@ -594,6 +612,8 @@ const DashboardHome = () => {
           })}
         </div>
       </Card>
+
+      <SendChooserModal open={sendOpen} onOpenChange={setSendOpen} />
     </div>
   );
 };
