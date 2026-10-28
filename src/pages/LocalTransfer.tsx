@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowRight, Lock } from "lucide-react";
+import { ArrowRight, Lock, Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatMoney, currencySymbol } from "@/hooks/useAccount";
 import { useTotalBalance, planDeduction } from "@/hooks/useTotalBalance";
@@ -19,21 +19,22 @@ import { useNavigate } from "react-router-dom";
 import { sendEmail } from "@/lib/sendEmail";
 
 type Dest = "internal" | "external";
+type LookupState = "idle" | "loading" | "found" | "none";
 
 const LocalTransfer = () => {
   useFrozenGuard();
 
   const { toast } = useToast();
   const { user } = useAuth();
-  // total = primary + every opened secondary account (same as the dashboard)
   const { account, total: availableBalance } = useTotalBalance();
   const qc = useQueryClient();
   const navigate = useNavigate();
   const currency = account?.currency || "USD";
 
-  const [dest, setDest] = useState<Dest>("internal");
+  // External is the default
+  const [dest, setDest] = useState<Dest>("external");
   const [amount, setAmount] = useState("");
-  const [recipient, setRecipient] = useState(""); // account name (internal) or recipient name (external)
+  const [recipient, setRecipient] = useState("");
   const [accNumber, setAccNumber] = useState("");
   const [email, setEmail] = useState(""); // internal only
   const [routing, setRouting] = useState(""); // external only
@@ -41,10 +42,47 @@ const LocalTransfer = () => {
   const [submitting, setSubmitting] = useState(false);
   const [gateOpen, setGateOpen] = useState(false);
   const [pendingTxId, setPendingTxId] = useState<string | null>(null);
-  // The verified Flexiq Verve receiver (internal transfers)
+  // Confirmed Flexiq Verve receiver (null = manual entry / not found)
   const [receiver, setReceiver] = useState<any>(null);
+  // Lookup popover
+  const [lookupState, setLookupState] = useState<LookupState>("idle");
+  const [candidate, setCandidate] = useState<any>(null);
 
   const isInternal = dest === "internal";
+
+  const resetLookup = () => {
+    setLookupState("idle");
+    setCandidate(null);
+    setReceiver(null);
+  };
+
+  // Lookup by account number only
+  const lookupAccount = async (num: string) => {
+    const n = num.trim();
+    if (!isInternal || n.length < 4) return null;
+    setLookupState("loading");
+    const { data, error } = await (supabase as any).rpc("resolve_flexiq_user", {
+      p_account_number: n,
+      p_email: null, // RPC should treat email as optional
+    });
+    const found = Array.isArray(data) ? data[0] : data;
+    if (error || !found) {
+      setCandidate(null);
+      setLookupState("none");
+      return null;
+    }
+    setCandidate(found);
+    setLookupState("found");
+    return found;
+  };
+
+  const useCandidate = () => {
+    if (!candidate) return;
+    setReceiver(candidate);
+    setRecipient(`${candidate.first_name || ""} ${candidate.last_name || ""}`.trim());
+    setEmail(candidate.email || "");
+    setLookupState("idle");
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,50 +94,45 @@ const LocalTransfer = () => {
 
     setSubmitting(true);
 
-    // ── Internal: find the receiver first ──
     let found: any = null;
     if (isInternal) {
-      const { data, error: rpcErr } = await (supabase as any).rpc("resolve_flexiq_user", {
-        p_account_number: accNumber,
-        p_email: email,
-      });
-      found = Array.isArray(data) ? data[0] : data;
-      if (rpcErr || !found) {
-        setSubmitting(false);
-        return toast({
-          title: "Account not found",
-          description: "No Flexiq Verve account matches that account number and email.",
-          variant: "destructive",
+      // Use confirmed receiver, otherwise try one last lookup by account number
+      found = receiver;
+      if (!found) {
+        const { data } = await (supabase as any).rpc("resolve_flexiq_user", {
+          p_account_number: accNumber.trim(),
+          p_email: null,
         });
+        found = Array.isArray(data) ? data[0] : data;
       }
 
-      const fullName = `${found.first_name || ""} ${found.last_name || ""}`.trim().toLowerCase();
-      const nameOk = recipient
-        .trim()
-        .toLowerCase()
-        .split(/\s+/)
-        .every((part) => fullName.includes(part));
-      if (!nameOk) {
-        setSubmitting(false);
-        return toast({
-          title: "Account name doesn't match",
-          description: "Check the name on the receiving account.",
-          variant: "destructive",
-        });
+      if (found) {
+        const fullName = `${found.first_name || ""} ${found.last_name || ""}`.trim().toLowerCase();
+        const nameOk = recipient
+          .trim()
+          .toLowerCase()
+          .split(/\s+/)
+          .every((part) => fullName.includes(part));
+        if (!nameOk) {
+          setSubmitting(false);
+          return toast({
+            title: "Account name doesn't match",
+            description: "Check the name on the receiving account.",
+            variant: "destructive",
+          });
+        }
+        if (found.currency && found.currency !== currency) {
+          setSubmitting(false);
+          return toast({
+            title: "Different currency",
+            description: `This account holds ${found.currency}. Use FX transfer instead.`,
+            variant: "destructive",
+          });
+        }
+        setReceiver(found);
       }
-
-      // Same currency rule: different currencies go through FX transfer
-      if (found.currency && found.currency !== currency) {
-        setSubmitting(false);
-        return toast({
-          title: "Different currency",
-          description: `This account holds ${found.currency}. Use FX transfer instead.`,
-          variant: "destructive",
-        });
-      }
-      setReceiver(found);
+      // No match → manual entry: goes to admin review, no auto-credit
     } else {
-      // Save the entered recipient details as soon as Submit is clicked
       saveBeneficiary(user.id, "local", {
         name: recipient,
         account_number: accNumber,
@@ -107,7 +140,7 @@ const LocalTransfer = () => {
       }).then(() => qc.invalidateQueries({ queryKey: ["beneficiaries"] }));
     }
 
-    const receiverName = isInternal
+    const receiverName = found
       ? `${found.first_name || ""} ${found.last_name || ""}`.trim() || recipient
       : recipient;
 
@@ -123,7 +156,9 @@ const LocalTransfer = () => {
       routing_number: isInternal ? null : routing,
       description: desc || `Local transfer to ${receiverName}`,
       metadata: isInternal
-        ? { internal: true, receiver_id: found.id, receiver_email: found.email }
+        ? found
+          ? { internal: true, receiver_id: found.id, receiver_email: found.email }
+          : { internal: true, manual: true, receiver_email: email }
         : { routing, local: true },
     }).select().single();
     setSubmitting(false);
@@ -135,6 +170,8 @@ const LocalTransfer = () => {
 
   const refreshAll = () => {
     qc.invalidateQueries({ queryKey: ["profile"] });
+    qc.invalidateQueries({ queryKey: ["account"] });
+    qc.invalidateQueries({ queryKey: ["total-balance"] });
     qc.invalidateQueries({ queryKey: ["transactions"] });
     qc.invalidateQueries({ queryKey: ["recent-tx"] });
     qc.invalidateQueries({ queryKey: ["stats"] });
@@ -145,17 +182,25 @@ const LocalTransfer = () => {
     if (!user || !account || !pendingTxId) return;
     const amt = Number(amount);
 
-    // Take the amount out of the combined balance exactly once.
     const plan = planDeduction(account, amt);
     if (!plan.ok) {
       await (supabase as any).from("transactions").update({ status: "failed" }).eq("id", pendingTxId);
-      qc.invalidateQueries({ queryKey: ["transactions"] });
-      qc.invalidateQueries({ queryKey: ["recent-tx"] });
+      refreshAll();
       setPendingTxId(null);
       return toast({ title: "Insufficient funds", variant: "destructive" });
     }
 
-    await (supabase as any).from("profiles").update(plan.patch).eq("id", user.id);
+    const { error: debitErr } = await (supabase as any).from("profiles").update(plan.patch).eq("id", user.id);
+    if (debitErr) {
+      await (supabase as any).from("transactions").update({ status: "failed" }).eq("id", pendingTxId);
+      refreshAll();
+      setPendingTxId(null);
+      return toast({
+        title: "Transfer failed",
+        description: "We couldn't debit your account. Nothing was sent.",
+        variant: "destructive",
+      });
+    }
 
     const ref = pendingTxId;
     const amtCopy = amt;
@@ -164,23 +209,24 @@ const LocalTransfer = () => {
       : recipient;
     let finalStatus: "Pending" | "Completed" = "Pending";
 
-    if (isInternal) {
-      // Money moves instantly between Flexiq Verve accounts
-      await (supabase as any).from("transactions").update({ status: "completed" }).eq("id", ref);
+    if (isInternal && receiver) {
+      // Credit first; only mark completed if it succeeded
       const { error: creditErr } = await (supabase as any).rpc("credit_internal_transfer", { p_tx_id: ref });
       if (creditErr) {
-        // Sender was debited but the receiver could not be credited: leave it for review
-        await (supabase as any).from("transactions").update({ status: "pending" }).eq("id", ref);
         toast({
           title: "Transfer needs review",
           description: "We couldn't credit the receiver yet. Our team will complete it shortly.",
           variant: "destructive",
         });
       } else {
+        await (supabase as any).from("transactions").update({ status: "completed" }).eq("id", ref);
         finalStatus = "Completed";
       }
-    } else {
-      await (supabase as any).from("transactions").update({ status: "pending" }).eq("id", ref);
+    } else if (isInternal) {
+      toast({
+        title: "Submitted for review",
+        description: "We couldn't verify that account automatically. Our team will complete it.",
+      });
     }
     refreshAll();
 
@@ -226,7 +272,7 @@ ${footer}`,
     const summaryRecipient = recCopy;
     const summaryAccount = accNumber;
     setAmount(""); setRecipient(""); setAccNumber(""); setRouting(""); setEmail(""); setDesc("");
-    setReceiver(null);
+    resetLookup();
     setPendingTxId(null);
     navigate("/dashboard/success", {
       state: {
@@ -248,31 +294,108 @@ ${footer}`,
 
   const sym = currencySymbol(currency);
 
-  const segBtn = (active: boolean) =>
-    `flex-1 rounded-xl px-3 py-2.5 text-sm font-semibold transition-smooth ${
-      active ? "bg-gradient-primary text-primary-foreground shadow-md" : "text-muted-foreground hover:bg-muted"
-    }`;
+  const segBase = "flex-1 rounded-xl px-3 py-2.5 text-sm font-semibold transition-smooth";
+  // External: slate outline (not purple). Flexiq: primary gradient.
+  const externalBtn = (active: boolean) =>
+    `${segBase} ${active ? "border-2 border-slate-500 bg-slate-100 text-slate-800 shadow-sm dark:bg-slate-800 dark:text-slate-100" : "border-2 border-transparent text-muted-foreground hover:bg-muted"}`;
+  const internalBtn = (active: boolean) =>
+    `${segBase} ${active ? "bg-gradient-primary text-primary-foreground shadow-md" : "text-muted-foreground hover:bg-muted"}`;
+
+  const switchDest = (d: Dest) => {
+    setDest(d);
+    resetLookup();
+  };
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="font-display text-2xl font-bold sm:text-3xl">Local Transfer</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Send to another Flexiq Verve account or to a local bank.
+          Send to a local bank or to another Flexiq Verve account.
         </p>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[2fr,1fr]">
         <Card className="rounded-3xl border-border/60 p-6 shadow-card sm:p-8">
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Destination */}
+            {/* Destination: External left, Flexiq right */}
             <div className="flex gap-1 rounded-2xl border border-border bg-muted/40 p-1" role="tablist">
-              <button type="button" role="tab" aria-selected={isInternal} onClick={() => setDest("internal")} className={segBtn(isInternal)}>
-                Flexiq Verve account
-              </button>
-              <button type="button" role="tab" aria-selected={!isInternal} onClick={() => setDest("external")} className={segBtn(!isInternal)}>
+              <button type="button" role="tab" aria-selected={!isInternal} onClick={() => switchDest("external")} className={externalBtn(!isInternal)}>
                 External account
               </button>
+              <button type="button" role="tab" aria-selected={isInternal} onClick={() => switchDest("internal")} className={internalBtn(isInternal)}>
+                Flexiq Verve account
+              </button>
+            </div>
+
+            {/* Account number first */}
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="relative space-y-2 sm:col-span-2">
+                <Label>Account number</Label>
+                <div className="flex gap-2">
+                  <Input
+                    value={accNumber}
+                    onChange={(e) => {
+                      setAccNumber(e.target.value);
+                      if (isInternal) resetLookup();
+                    }}
+                    onBlur={() => { if (isInternal && !receiver) lookupAccount(accNumber); }}
+                    required
+                  />
+                  {isInternal && (
+                    <Button type="button" variant="outline" className="gap-1 rounded-xl" onClick={() => lookupAccount(accNumber)}>
+                      <Search className="h-4 w-4" />Find
+                    </Button>
+                  )}
+                </div>
+
+                {isInternal && lookupState === "loading" && (
+                  <p className="text-xs text-muted-foreground">Looking up account…</p>
+                )}
+
+                {isInternal && lookupState === "found" && candidate && (
+                  <div className="absolute left-0 right-0 top-full z-20 mt-1 rounded-2xl border border-border bg-popover p-4 shadow-lg">
+                    <p className="font-semibold">
+                      {`${candidate.first_name || ""} ${candidate.last_name || ""}`.trim()}
+                    </p>
+                    <p className="text-xs text-muted-foreground">{candidate.email}</p>
+                    <div className="mt-3 flex gap-2">
+                      <Button type="button" size="sm" className="rounded-xl bg-gradient-primary" onClick={useCandidate}>
+                        Use this account
+                      </Button>
+                      <Button type="button" size="sm" variant="ghost" className="rounded-xl" onClick={() => setLookupState("idle")}>
+                        Dismiss
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {isInternal && lookupState === "none" && (
+                  <p className="text-xs text-amber-600">
+                    No Flexiq Verve account found. You can enter the details manually; it will be sent for review.
+                  </p>
+                )}
+                {isInternal && receiver && (
+                  <p className="text-xs text-emerald-600">Verified Flexiq Verve account</p>
+                )}
+              </div>
+
+              <div className="space-y-2 sm:col-span-2">
+                <Label>{isInternal ? "Account name" : "Recipient name"}</Label>
+                <Input value={recipient} onChange={(e) => setRecipient(e.target.value)} required />
+              </div>
+
+              {isInternal ? (
+                <div className="space-y-2 sm:col-span-2">
+                  <Label>Recipient email</Label>
+                  <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                </div>
+              ) : (
+                <div className="space-y-2 sm:col-span-2">
+                  <Label>Routing number</Label>
+                  <Input value={routing} onChange={(e) => setRouting(e.target.value)} required />
+                </div>
+              )}
             </div>
 
             <div className="rounded-2xl border border-border bg-muted/40 p-5">
@@ -285,31 +408,9 @@ ${footer}`,
               <p className="mt-1 text-xs text-muted-foreground">Available: {formatMoney(availableBalance, currency)}</p>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2 sm:col-span-2">
-                <Label>{isInternal ? "Account name" : "Recipient name"}</Label>
-                <Input value={recipient} onChange={(e) => setRecipient(e.target.value)} required />
-              </div>
-              <div className="space-y-2">
-                <Label>Account number</Label>
-                <Input value={accNumber} onChange={(e) => setAccNumber(e.target.value)} required />
-              </div>
-              {isInternal ? (
-                <div className="space-y-2">
-                  <Label>Recipient email</Label>
-                  <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <Label>Routing number</Label>
-                  <Input value={routing} onChange={(e) => setRouting(e.target.value)} required />
-                </div>
-              )}
-              <div className="space-y-2 sm:col-span-2">
-                <Label>Description</Label>
-                {/* 16px on mobile stops the browser zooming in when the field is focused */}
-                <Textarea className="text-base md:text-sm" value={desc} onChange={(e) => setDesc(e.target.value)} rows={3} />
-              </div>
+            <div className="space-y-2">
+              <Label>Description</Label>
+              <Textarea className="text-base md:text-sm" value={desc} onChange={(e) => setDesc(e.target.value)} rows={3} />
             </div>
 
             <Button id="transfer-submit" type="submit" disabled={submitting} className="h-12 w-full gap-2 rounded-2xl bg-gradient-primary text-base font-semibold shadow-glow">
