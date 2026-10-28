@@ -7,7 +7,28 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Skeleton } from "@/components/ui/skeleton";
 
-const CURRENCIES = ["USD", "EUR", "GBP", "CAD", "AUD", "JPY", "CHF", "NGN"];
+const CURRENCIES = ["USD", "EUR", "GBP", "CAD", "AUD", "JPY", "CHF", "CNY"];
+
+// ISO currency -> flag country code (EUR uses the EU flag)
+const FLAG_CODES: Record<string, string> = {
+  USD: "us",
+  EUR: "eu",
+  GBP: "gb",
+  CAD: "ca",
+  AUD: "au",
+  JPY: "jp",
+  CHF: "ch",
+  CNY: "cn",
+};
+
+const Flag = ({ currency, className = "h-5 w-5" }: { currency: string; className?: string }) => (
+  <img
+    src={`https://flagcdn.com/w40/${FLAG_CODES[currency] ?? "un"}.png`}
+    alt={`${currency} flag`}
+    loading="lazy"
+    className={`${className} shrink-0 rounded-full object-cover ring-1 ring-border`}
+  />
+);
 
 type WalletRow = { id: string; currency: string; balance: number };
 
@@ -93,11 +114,14 @@ const CurrencyWallets = () => {
         <div className="space-y-3">
           {wallets.map((w) => (
             <div key={w.id} className="flex items-center justify-between rounded-3xl bg-card p-5 shadow-elev">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{w.currency}</p>
-                <p className="mt-1 text-2xl font-bold">
-                  {new Intl.NumberFormat("en-US", { style: "currency", currency: w.currency }).format(w.balance)}
-                </p>
+              <div className="flex items-center gap-3">
+                <Flag currency={w.currency} className="h-10 w-10" />
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{w.currency}</p>
+                  <p className="mt-1 text-2xl font-bold">
+                    {new Intl.NumberFormat("en-US", { style: "currency", currency: w.currency }).format(w.balance)}
+                  </p>
+                </div>
               </div>
               <button
                 onClick={() => navigate(`/dashboard/wallets/${w.currency}/deposit`)}
@@ -125,8 +149,9 @@ const CurrencyWallets = () => {
                   key={c}
                   disabled={addWallet.isPending}
                   onClick={() => addWallet.mutate(c)}
-                  className="rounded-2xl border border-border/60 px-4 py-3 text-sm font-medium transition-colors hover:bg-muted"
+                  className="flex items-center gap-2 rounded-2xl border border-border/60 px-4 py-3 text-sm font-medium transition-colors hover:bg-muted"
                 >
+                  <Flag currency={c} />
                   {c}
                 </button>
               ))}
