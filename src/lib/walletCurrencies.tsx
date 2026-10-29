@@ -1,4 +1,4 @@
-// Save as src/lib/currencies.tsx
+// Save as src/lib/walletCurrencies.tsx
 // Shared by CurrencyWallets.tsx and CurrencyWalletDetail.tsx
 
 export const QUICK_CURRENCIES = ["USD", "EUR", "GBP", "CAD", "AUD", "JPY", "CHF", "CNY"];
