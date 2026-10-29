@@ -34,11 +34,11 @@ declare global {
 }
 
 const nativeSelectClass =
-  "mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring";
+  "mt-1 h-10 w-full rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring";
 
 // Theme-aware native date field: follows light/dark instead of staying white.
 const dateInputClass =
-  "mt-1 block h-11 w-full max-w-full rounded-md border bg-background px-3 text-sm text-foreground [color-scheme:light] dark:[color-scheme:dark] focus:outline-none focus:ring-2 focus:ring-ring";
+  "mt-1 block h-10 w-full max-w-full rounded-md border bg-background px-3 text-sm text-foreground [color-scheme:light] dark:[color-scheme:dark] focus:outline-none focus:ring-2 focus:ring-ring";
 
 const ERROR_RING = "border-red-500 focus-visible:ring-red-500 focus:ring-red-500";
 
@@ -244,12 +244,7 @@ const Signup = () => {
         clearTimeout(releaseTimeout);
         setSubmitting(false);
         resetCaptcha();
-        setError("captcha", "Security check failed. Please try again.");
-        toast({
-          title: "Security check failed",
-          description: "Please complete the check and try again.",
-          variant: "destructive",
-        });
+        setError("captcha", "Security check failed. Please complete the check and try again.");
         document.getElementById("captcha")?.scrollIntoView({ behavior: "smooth", block: "center" });
         return;
       }
@@ -370,7 +365,7 @@ Flexiq Verve Support Team`,
   };
 
   return (
-    <div className="page-enter relative min-h-screen bg-navy-blue-mesh px-4 py-10">
+    <div className="page-enter relative min-h-screen bg-navy-blue-mesh px-4 py-5">
       {/* Full-screen cover while the account is created, so nothing else paints before /pin */}
       {submitting && (
         <div className="fixed inset-0 z-[60] flex flex-col items-center justify-center gap-3 bg-background/95 backdrop-blur-sm">
@@ -380,20 +375,20 @@ Flexiq Verve Support Team`,
       )}
 
       <div className="mx-auto w-full max-w-2xl overflow-hidden rounded-3xl border border-white/10 bg-white shadow-elev animate-fade-in">
-        <div className="bg-gradient-to-br from-[#7C3AED] via-[#8B5CF6] to-[#A78BFA] px-8 pb-8 pt-10 text-center sm:px-10">
+        <div className="bg-gradient-to-br from-[#7C3AED] via-[#8B5CF6] to-[#A78BFA] px-6 pb-4 pt-5 text-center sm:px-10">
           <Link to="/" className="flex flex-col items-center justify-center">
-            <BrandLogo className="h-10 w-auto object-contain drop-shadow-lg sm:h-12" />
+            <BrandLogo className="h-8 w-auto object-contain drop-shadow-lg sm:h-9" />
           </Link>
-          <h1 className="mt-4 font-display text-3xl font-bold tracking-tight text-white">
+          <h1 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">
             Create Your Account
           </h1>
-          <p className="mt-2 text-sm text-white/80">Start banking smarter — safe, secure, and ready in minutes.</p>
+          <p className="mt-1 text-sm text-white/80">Start banking smarter — safe, secure, and ready in minutes.</p>
         </div>
 
-        <div className="p-8 sm:p-10">
+        <div className="px-6 py-5 sm:px-10">
           {/* noValidate: we show our own inline errors instead of the browser's pop-ups */}
-          <form className="mt-8 space-y-5" onSubmit={handleSubmit} noValidate>
-            <div className="grid gap-4 sm:grid-cols-2">
+          <form className="space-y-3" onSubmit={handleSubmit} noValidate>
+            <div className="grid grid-cols-2 gap-x-3 gap-y-3">
               <div>
                 <Label htmlFor="first_name">First name</Label>
                 <Input id="first_name" className={`mt-1 ${inputCls("first_name")}`} placeholder="John" value={form.first_name} onChange={(e) => update("first_name")(e.target.value)} onBlur={onBlur("first_name")} />
@@ -404,22 +399,22 @@ Flexiq Verve Support Team`,
                 <Input id="last_name" className={`mt-1 ${inputCls("last_name")}`} placeholder="Doe" value={form.last_name} onChange={(e) => update("last_name")(e.target.value)} onBlur={onBlur("last_name")} />
                 <FieldError msg={errors.last_name} />
               </div>
-              <div>
+              <div className="col-span-2 sm:col-span-1">
                 <Label htmlFor="username">User ID</Label>
                 <Input id="username" className={`mt-1 ${inputCls("username")}`} placeholder="Johndoe" value={form.username} onChange={(e) => update("username")(e.target.value.replace(/\s+/g, ""))} onBlur={onBlur("username")} />
                 <FieldError msg={errors.username} />
               </div>
-              <div>
+              <div className="col-span-2 sm:col-span-1">
                 <Label htmlFor="email">Email</Label>
                 <Input id="email" type="email" className={`mt-1 ${inputCls("email")}`} placeholder="john@example.com" value={form.email} onChange={(e) => update("email")(e.target.value)} onBlur={onBlur("email")} />
                 <FieldError msg={errors.email} />
               </div>
-              <div>
+              <div className="col-span-2 sm:col-span-1">
                 <Label htmlFor="phone">Phone</Label>
                 <Input id="phone" type="tel" className={`mt-1 ${inputCls("phone")}`} placeholder="+__ ___ ___ ____ ____" value={form.phone} onChange={(e) => update("phone")(e.target.value)} onBlur={onBlur("phone")} />
                 <FieldError msg={errors.phone} />
               </div>
-              <div>
+              <div className="col-span-2 sm:col-span-1">
                 <Label htmlFor="country">Country</Label>
                 <select id="country" className={selectCls("country")} value={form.country} onChange={(e) => update("country")(e.target.value)} onBlur={onBlur("country")}>
                   <option value="">Select country</option>
@@ -427,7 +422,7 @@ Flexiq Verve Support Team`,
                 </select>
                 <FieldError msg={errors.country} />
               </div>
-              <div>
+              <div className="col-span-2 sm:col-span-1">
                 <Label htmlFor="account_type">Account type</Label>
                 <select id="account_type" className={selectCls("account_type")} value={form.account_type} onChange={(e) => update("account_type")(e.target.value)} onBlur={onBlur("account_type")}>
                   <option value="">Choose account</option>
@@ -438,7 +433,7 @@ Flexiq Verve Support Team`,
                 </select>
                 <FieldError msg={errors.account_type} />
               </div>
-              <div>
+              <div className="col-span-2 sm:col-span-1">
                 <Label htmlFor="currency">Currency</Label>
                 <select id="currency" className={selectCls("currency")} value={form.currency} onChange={(e) => update("currency")(e.target.value)} onBlur={onBlur("currency")}>
                   <option value="">Currency</option>
@@ -446,12 +441,12 @@ Flexiq Verve Support Team`,
                 </select>
                 <FieldError msg={errors.currency} />
               </div>
-              <div>
+              <div className="col-span-2 sm:col-span-1">
                 <Label htmlFor="city">City</Label>
                 <Input id="city" className={`mt-1 ${inputCls("city")}`} placeholder="London" value={form.city} onChange={(e) => update("city")(e.target.value)} onBlur={onBlur("city")} />
                 <FieldError msg={errors.city} />
               </div>
-              <div>
+              <div className="col-span-2 sm:col-span-1">
                 <div className="flex items-center gap-2">
                   <Label htmlFor="date_of_birth">Date of birth</Label>
                   <span className="text-xs text-muted-foreground">(click to select)</span>
@@ -468,17 +463,17 @@ Flexiq Verve Support Team`,
                 <FieldError msg={errors.date_of_birth} />
               </div>
 
-              <div className="sm:col-span-2">
+              <div className="col-span-2">
                 <Label htmlFor="address">Address</Label>
                 <Input id="address" className={`mt-1 ${inputCls("address")}`} placeholder="123 Main Street" value={form.address} onChange={(e) => update("address")(e.target.value)} onBlur={onBlur("address")} />
                 <FieldError msg={errors.address} />
               </div>
-              <div>
+              <div className="col-span-2 sm:col-span-1">
                 <Label htmlFor="password">Password</Label>
                 <Input id="password" type="password" className={`mt-1 ${inputCls("password")}`} placeholder="At least 8 characters" value={form.password} onChange={(e) => update("password")(e.target.value)} onBlur={onBlur("password")} />
                 <FieldError msg={errors.password} />
               </div>
-              <div>
+              <div className="col-span-2 sm:col-span-1">
                 <Label htmlFor="confirm_password">Confirm password</Label>
                 <Input id="confirm_password" type="password" className={`mt-1 ${inputCls("confirm_password")}`} placeholder="Repeat password" value={form.confirm_password} onChange={(e) => update("confirm_password")(e.target.value)} onBlur={onBlur("confirm_password")} />
                 <FieldError msg={errors.confirm_password} />
@@ -529,7 +524,7 @@ Flexiq Verve Support Team`,
             </Button>
           </form>
 
-          <p className="mt-6 text-center text-sm text-muted-foreground">
+          <p className="mt-3 text-center text-sm text-muted-foreground">
             Already have an account?{" "}
             <Link to="/login" className="font-medium text-primary hover:underline">Login</Link>
           </p>
