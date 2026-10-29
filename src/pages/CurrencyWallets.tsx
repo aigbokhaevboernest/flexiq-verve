@@ -1,55 +1,32 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Wallet, Plus, X, ChevronRight } from "lucide-react";
+import { Wallet, Plus, X, ChevronRight, ArrowLeft, Search } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { sendEmail } from "@/lib/sendEmail";
 import { Skeleton } from "@/components/ui/skeleton";
-
-const CURRENCIES = ["USD", "EUR", "GBP", "CAD", "AUD", "JPY", "CHF", "CNY"];
-
-const CURRENCY_NAMES: Record<string, string> = {
-  USD: "US Dollar",
-  EUR: "Euro",
-  GBP: "British Pound",
-  CAD: "Canadian Dollar",
-  AUD: "Australian Dollar",
-  JPY: "Japanese Yen",
-  CHF: "Swiss Franc",
-  CNY: "Chinese Yuan",
-};
-
-// ISO currency -> flag country code (EUR uses the EU flag)
-const FLAG_CODES: Record<string, string> = {
-  USD: "us",
-  EUR: "eu",
-  GBP: "gb",
-  CAD: "ca",
-  AUD: "au",
-  JPY: "jp",
-  CHF: "ch",
-  CNY: "cn",
-};
-
-const Flag = ({ currency, className = "h-5 w-5" }: { currency: string; className?: string }) => (
-  <img
-    src={`https://flagcdn.com/w40/${FLAG_CODES[currency] ?? "un"}.png`}
-    alt={`${currency} flag`}
-    loading="lazy"
-    className={`${className} shrink-0 rounded-full object-cover ring-1 ring-border`}
-  />
-);
+import {
+  Flag,
+  PrimaryBadge,
+  QUICK_CURRENCIES,
+  ISO_CURRENCIES,
+  currencyName,
+  formatMoney,
+} from "@/lib/currencies";
 
 type WalletRow = { id: string; currency: string; balance: number };
+type ProfileRow = { first_name: string | null; email: string | null; currency: string | null; balance: number | null };
 
 const CurrencyWallets = () => {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { user } = useAuth();
-  // Step 1: currency picker modal
+  // Step 1: currency picker modal ("quick" grid or the "others" searchable list)
   const [adding, setAdding] = useState(false);
+  const [view, setView] = useState<"quick" | "others">("quick");
+  const [query, setQuery] = useState("");
   // Step 2: confirm modal (currency chosen, nothing inserted yet)
   const [pending, setPending] = useState<string | null>(null);
 
@@ -58,7 +35,7 @@ const CurrencyWallets = () => {
   const { data: wallets = [], isLoading } = useQuery<WalletRow[]>({
     queryKey,
     enabled: !!user,
-    staleTime: 60_000, // revisits show instantly from cache
+    staleTime: 60_000,
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("currency_wallets")
@@ -70,6 +47,25 @@ const CurrencyWallets = () => {
     },
   });
 
+  // Account profile: primary currency + real account balance
+  const { data: profile, isLoading: profileLoading } = useQuery<ProfileRow | null>({
+    queryKey: ["profile-primary", user?.id],
+    enabled: !!user,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("profiles")
+        .select("first_name,email,currency,balance")
+        .eq("id", user!.id)
+        .maybeSingle();
+      if (error) throw error;
+      return (data || null) as ProfileRow | null;
+    },
+  });
+
+  const primary = profile?.currency ? profile.currency.toUpperCase() : null;
+  const isPrimary = (c: string) => !!primary && c === primary;
+
   const addWallet = useMutation({
     mutationFn: async (currency: string) => {
       const { error } = await (supabase as any)
@@ -77,20 +73,23 @@ const CurrencyWallets = () => {
         .insert({ user_id: user!.id, currency, balance: 0 });
       if (error) throw error;
 
-      // Email is best-effort: never blocks or fails the wallet creation
+      // Email is best-effort: never blocks or fails adding the wallet
       try {
-        const { data: prof } = await (supabase as any)
-          .from("profiles")
-          .select("first_name,email")
-          .eq("id", user!.id)
-          .maybeSingle();
-        const em = prof?.email || user!.email || "";
+        const em = profile?.email || user!.email || "";
         if (em) {
+          const primaryAdd = isPrimary(currency);
           await sendEmail({
             email: em,
-            first_name: prof?.first_name || "",
-            subject: "Currency wallet created — Flexiq Verve",
-            message: `Your ${currency} wallet has been created. You can fund it from Wallets → Add funds.
+            first_name: profile?.first_name || "",
+            subject: primaryAdd
+              ? "You have added your primary currency to wallet — Flexiq Verve"
+              : "Currency wallet added — Flexiq Verve",
+            message: primaryAdd
+              ? `You have added your primary currency to wallet.
+
+Kind Regards,
+Flexiq Verve Support Team`
+              : `Your ${currency} wallet has been added. You can fund it from Wallets → Fund.
 
 Kind Regards,
 Flexiq Verve Support Team`,
@@ -100,22 +99,41 @@ Flexiq Verve Support Team`,
     },
     onSuccess: (_d, currency) => {
       qc.invalidateQueries({ queryKey });
-      setPending(null);
-      setAdding(false);
-      toast.success(`${currency} wallet created`);
+      closeAll();
+      toast.success(isPrimary(currency) ? "Primary currency added to wallet" : `${currency} wallet added`);
     },
     onError: (e: any) => toast.error(e.message),
   });
 
-  const owned = wallets.map((w) => w.currency);
-  const available = CURRENCIES.filter((c) => !owned.includes(c));
-  const loading = !user || isLoading;
+  const closeAll = () => {
+    setPending(null);
+    setAdding(false);
+    setView("quick");
+    setQuery("");
+  };
+
+  const owned = useMemo(() => wallets.map((w) => w.currency), [wallets]);
+
+  // Primary is pinned on top of the picker (if not owned yet), so keep it out of the other lists
+  const pinnedPrimary = primary && !owned.includes(primary) ? primary : null;
+  const quick = QUICK_CURRENCIES.filter((c) => !owned.includes(c) && c !== pinnedPrimary);
+  const others = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return ISO_CURRENCIES.filter((c) => !QUICK_CURRENCIES.includes(c) && !owned.includes(c) && c !== pinnedPrimary)
+      .map((c) => ({ code: c, name: currencyName(c) }))
+      .filter((c) => !q || c.code.toLowerCase().includes(q) || c.name.toLowerCase().includes(q));
+  }, [owned, pinnedPrimary, query]);
+
+  const loading = !user || isLoading || profileLoading;
+
+  const displayBalance = (w: WalletRow) =>
+    isPrimary(w.currency) ? Number(profile?.balance ?? 0) : Number(w.balance);
 
   return (
     <div className="mx-auto w-full max-w-2xl space-y-4 pb-28">
       <div className="flex items-center justify-between">
         <h1 className="font-display text-xl font-bold">Currency wallets</h1>
-        {!loading && wallets.length > 0 && available.length > 0 && (
+        {!loading && wallets.length > 0 && (
           <button
             onClick={() => setAdding(true)}
             className="inline-flex items-center gap-1.5 rounded-2xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
@@ -138,9 +156,7 @@ Flexiq Verve Support Team`,
             <Wallet className="h-6 w-6" />
           </span>
           <p className="mt-4 font-semibold">No wallets yet</p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Add a currency wallet to hold and receive funds.
-          </p>
+          <p className="mt-1 text-sm text-muted-foreground">Add a currency wallet to hold and receive funds.</p>
           <button
             onClick={() => setAdding(true)}
             className="mt-5 inline-flex items-center gap-2 rounded-2xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground"
@@ -157,16 +173,17 @@ Flexiq Verve Support Team`,
               onClick={() => navigate(`/dashboard/wallets/${w.currency}`)}
               className="flex w-full items-center justify-between rounded-3xl bg-card p-5 text-left shadow-elev transition-colors hover:bg-muted/40"
             >
-              <div className="flex items-center gap-3">
+              <div className="flex min-w-0 items-center gap-3">
                 <Flag currency={w.currency} className="h-10 w-10" />
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{w.currency}</p>
-                  <p className="mt-1 text-2xl font-bold">
-                    {new Intl.NumberFormat("en-US", { style: "currency", currency: w.currency }).format(w.balance)}
-                  </p>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{w.currency}</p>
+                    {isPrimary(w.currency) && <PrimaryBadge />}
+                  </div>
+                  <p className="mt-1 truncate text-2xl font-bold">{formatMoney(displayBalance(w), w.currency)}</p>
                 </div>
               </div>
-              <ChevronRight className="h-5 w-5 text-muted-foreground" />
+              <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground" />
             </button>
           ))}
         </div>
@@ -174,31 +191,106 @@ Flexiq Verve Support Team`,
 
       {/* STEP 1: choose a currency (no insert here) */}
       {adding && !pending && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setAdding(false)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={closeAll}>
           <div className="w-full max-w-sm rounded-3xl bg-card p-6 shadow-elev" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between">
-              <h3 className="font-display text-lg font-bold">Choose a currency</h3>
-              <button onClick={() => setAdding(false)} className="rounded-full p-1.5 hover:bg-muted">
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-            <div className="mt-4 grid grid-cols-2 gap-2">
-              {available.map((c) => (
+            {view === "quick" ? (
+              <>
+                <div className="flex items-center justify-between">
+                  <h3 className="font-display text-lg font-bold">Choose a currency</h3>
+                  <button onClick={closeAll} className="rounded-full p-1.5 hover:bg-muted" aria-label="Close">
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+
+                {pinnedPrimary && (
+                  <button
+                    onClick={() => setPending(pinnedPrimary)}
+                    className="mt-4 flex w-full items-center gap-3 rounded-2xl border border-primary/40 bg-primary/5 px-4 py-3 text-left transition-colors hover:bg-primary/10"
+                  >
+                    <Flag currency={pinnedPrimary} className="h-8 w-8" />
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-semibold">{pinnedPrimary}</span>
+                      <span className="block truncate text-xs text-muted-foreground">{currencyName(pinnedPrimary)}</span>
+                    </span>
+                    <PrimaryBadge />
+                  </button>
+                )}
+
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  {quick.map((c) => (
+                    <button
+                      key={c}
+                      onClick={() => setPending(c)}
+                      className="flex items-center gap-2 rounded-2xl border border-border/60 px-4 py-3 text-sm font-medium transition-colors hover:bg-muted"
+                    >
+                      <Flag currency={c} />
+                      {c}
+                    </button>
+                  ))}
+                </div>
+
                 <button
-                  key={c}
-                  onClick={() => setPending(c)}
-                  className="flex items-center gap-2 rounded-2xl border border-border/60 px-4 py-3 text-sm font-medium transition-colors hover:bg-muted"
+                  onClick={() => setView("others")}
+                  className="mt-3 flex w-full items-center justify-between rounded-2xl border border-border/60 px-4 py-3 text-sm font-medium transition-colors hover:bg-muted"
                 >
-                  <Flag currency={c} />
-                  {c}
+                  Others
+                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
                 </button>
-              ))}
-            </div>
+              </>
+            ) : (
+              <>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      setView("quick");
+                      setQuery("");
+                    }}
+                    className="rounded-full p-1.5 hover:bg-muted"
+                    aria-label="Back"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                  </button>
+                  <h3 className="font-display text-lg font-bold">Other currencies</h3>
+                </div>
+
+                <div className="relative mt-4">
+                  <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <input
+                    type="text"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Search by name or code"
+                    autoComplete="off"
+                    className="h-12 w-full min-w-0 rounded-2xl border border-input bg-background pl-10 pr-4 text-base focus:outline-none focus:ring-2 focus:ring-ring"
+                  />
+                </div>
+
+                <div className="mt-3 max-h-72 space-y-1 overflow-y-auto pr-1">
+                  {others.length === 0 ? (
+                    <p className="py-6 text-center text-sm text-muted-foreground">No currencies found.</p>
+                  ) : (
+                    others.map((c) => (
+                      <button
+                        key={c.code}
+                        onClick={() => setPending(c.code)}
+                        className="flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition-colors hover:bg-muted"
+                      >
+                        <Flag currency={c.code} className="h-7 w-7" />
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-sm font-semibold">{c.code}</span>
+                          <span className="block truncate text-xs text-muted-foreground">{c.name}</span>
+                        </span>
+                      </button>
+                    ))
+                  )}
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
 
-      {/* STEP 2: confirm modal (Cancel / Create). Insert + email happen only on Create */}
+      {/* STEP 2: confirm modal (Cancel / Add). Insert + email happen only on Add */}
       {pending && (
         <div
           className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4"
@@ -209,11 +301,16 @@ Flexiq Verve Support Team`,
             onClick={(e) => e.stopPropagation()}
           >
             <Flag currency={pending} className="mx-auto h-14 w-14" />
-            <h3 className="mt-4 font-display text-lg font-bold">Create {pending} wallet?</h3>
-            <p className="mt-1 text-sm font-medium">{CURRENCY_NAMES[pending]}</p>
-            <p className="mt-2 text-sm text-muted-foreground">
-              You'll be able to hold, receive and fund {pending} from this wallet. We'll email you a confirmation once it's created.
-            </p>
+            <h3 className="mt-4 font-display text-lg font-bold">Add {pending} wallet?</h3>
+            <p className="mt-1 text-sm font-medium">{currencyName(pending)}</p>
+            {isPrimary(pending) ? (
+              <p className="mt-2 text-sm text-muted-foreground">This is your primary currency. Add to wallet?</p>
+            ) : (
+              <p className="mt-2 text-sm text-muted-foreground">
+                You'll be able to hold, receive and fund {pending} from this wallet. We'll email you a confirmation once
+                it's added.
+              </p>
+            )}
             <div className="mt-6 grid grid-cols-2 gap-3">
               <button
                 type="button"
@@ -229,7 +326,7 @@ Flexiq Verve Support Team`,
                 onClick={() => addWallet.mutate(pending)}
                 className="rounded-2xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-50"
               >
-                {addWallet.isPending ? "Creating…" : "Create"}
+                {addWallet.isPending ? "Adding…" : "Add"}
               </button>
             </div>
           </div>
