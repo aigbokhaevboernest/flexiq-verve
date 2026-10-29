@@ -14,32 +14,12 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { Flag, PrimaryBadge, currencyName, formatMoney } from "@/lib/currencies";
 
 const SUPPORT_EMAIL = "support@flexiqverve.com";
 
-const FLAG_CODES: Record<string, string> = {
-  USD: "us",
-  EUR: "eu",
-  GBP: "gb",
-  CAD: "ca",
-  AUD: "au",
-  JPY: "jp",
-  CHF: "ch",
-  CNY: "cn",
-};
-
-const CURRENCY_NAMES: Record<string, string> = {
-  USD: "US Dollar",
-  EUR: "Euro",
-  GBP: "British Pound",
-  CAD: "Canadian Dollar",
-  AUD: "Australian Dollar",
-  JPY: "Japanese Yen",
-  CHF: "Swiss Franc",
-  CNY: "Chinese Yuan",
-};
-
 type WalletRow = { id: string; currency: string; balance: number };
+type ProfileRow = { currency: string | null; balance: number | null };
 
 const CurrencyWalletDetail = () => {
   const { currency: currencyParam } = useParams<{ currency: string }>();
@@ -64,8 +44,26 @@ const CurrencyWalletDetail = () => {
     },
   });
 
-  const loading = !user || isLoading;
+  // Primary currency + real account balance
+  const { data: profile, isLoading: profileLoading } = useQuery<ProfileRow | null>({
+    queryKey: ["profile-primary-detail", user?.id],
+    enabled: !!user,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("profiles")
+        .select("currency,balance")
+        .eq("id", user!.id)
+        .maybeSingle();
+      if (error) throw error;
+      return (data || null) as ProfileRow | null;
+    },
+  });
+
+  const loading = !user || isLoading || profileLoading;
   const wallet = wallets?.find((w) => w.currency === currency);
+  const isPrimary = !!profile?.currency && profile.currency.toUpperCase() === currency;
+  const balance = isPrimary ? Number(profile?.balance ?? 0) : Number(wallet?.balance ?? 0);
 
   if (loading) {
     return (
@@ -103,20 +101,20 @@ const CurrencyWalletDetail = () => {
       </button>
 
       <div className="rounded-3xl bg-card p-6 text-center shadow-elev">
-        <img
-          src={`https://flagcdn.com/w80/${FLAG_CODES[currency] ?? "un"}.png`}
-          alt={`${currency} flag`}
-          className="mx-auto h-16 w-16 rounded-full object-cover ring-1 ring-border"
-        />
-        <p className="mt-3 text-xs font-bold uppercase tracking-widest text-muted-foreground">
-          {currency} · {CURRENCY_NAMES[currency]}
+        <Flag currency={currency} size={80} className="mx-auto h-16 w-16" />
+        <div className="mt-3 flex items-center justify-center gap-2">
+          <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+            {currency} · {currencyName(currency)}
+          </p>
+          {isPrimary && <PrimaryBadge />}
+        </div>
+        <p className="mt-2 text-4xl font-bold">{formatMoney(balance, currency)}</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {isPrimary ? "Account balance" : "Available balance"}
         </p>
-        <p className="mt-2 text-4xl font-bold">
-          {new Intl.NumberFormat("en-US", { style: "currency", currency }).format(wallet.balance)}
-        </p>
-        <p className="mt-1 text-sm text-muted-foreground">Available balance</p>
 
-        <div className="mt-6 grid grid-cols-2 gap-3">
+        {/* Primary currency: Fund only, no Withdraw */}
+        <div className={`mt-6 grid gap-3 ${isPrimary ? "grid-cols-1" : "grid-cols-2"}`}>
           <button
             type="button"
             onClick={() => navigate(`/dashboard/wallets/${currency}/deposit`)}
@@ -124,43 +122,47 @@ const CurrencyWalletDetail = () => {
           >
             <Plus className="h-4 w-4" /> Fund
           </button>
-          <button
-            type="button"
-            onClick={() => setWithdrawOpen(true)}
-            className="inline-flex items-center justify-center gap-1.5 rounded-2xl border border-border/60 px-4 py-3 text-sm font-semibold transition-colors hover:bg-muted"
-          >
-            <ArrowUpRight className="h-4 w-4" /> Withdraw
-          </button>
+          {!isPrimary && (
+            <button
+              type="button"
+              onClick={() => setWithdrawOpen(true)}
+              className="inline-flex items-center justify-center gap-1.5 rounded-2xl border border-border/60 px-4 py-3 text-sm font-semibold transition-colors hover:bg-muted"
+            >
+              <ArrowUpRight className="h-4 w-4" /> Withdraw
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Withdraw placeholder: swap for a real withdraw page/flow later */}
-      <Dialog open={withdrawOpen} onOpenChange={setWithdrawOpen}>
-        <DialogContent className="font-sans sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Withdraw {currency}</DialogTitle>
-            <DialogDescription>
-              Contact support to withdraw from your {currency} wallet. Our team will guide you through the process.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3">
-            <a
-              href={`mailto:${SUPPORT_EMAIL}`}
-              className="flex items-center justify-center gap-2 rounded-2xl border border-border/60 bg-muted/30 px-4 py-3 text-sm font-medium hover:bg-muted"
-            >
-              <Mail className="h-4 w-4" /> {SUPPORT_EMAIL}
-            </a>
-            <div className="flex items-center justify-center gap-2 rounded-2xl border border-border/60 bg-muted/30 px-4 py-3 text-sm font-medium">
-              <MessageCircle className="h-4 w-4" /> Use the Live Chat on your dashboard
+      {/* Withdraw placeholder (non-primary only): swap for the real flow later */}
+      {!isPrimary && (
+        <Dialog open={withdrawOpen} onOpenChange={setWithdrawOpen}>
+          <DialogContent className="font-sans sm:max-w-sm">
+            <DialogHeader>
+              <DialogTitle>Withdraw {currency}</DialogTitle>
+              <DialogDescription>
+                Contact support to withdraw from your {currency} wallet. Our team will guide you through the process.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3">
+              <a
+                href={`mailto:${SUPPORT_EMAIL}`}
+                className="flex items-center justify-center gap-2 rounded-2xl border border-border/60 bg-muted/30 px-4 py-3 text-sm font-medium hover:bg-muted"
+              >
+                <Mail className="h-4 w-4" /> {SUPPORT_EMAIL}
+              </a>
+              <div className="flex items-center justify-center gap-2 rounded-2xl border border-border/60 bg-muted/30 px-4 py-3 text-sm font-medium">
+                <MessageCircle className="h-4 w-4" /> Use the Live Chat on your dashboard
+              </div>
             </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setWithdrawOpen(false)}>
-              Close
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setWithdrawOpen(false)}>
+                Close
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 };
