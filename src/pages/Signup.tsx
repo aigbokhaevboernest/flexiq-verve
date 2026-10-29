@@ -366,14 +366,6 @@ Flexiq Verve Support Team`,
 
   return (
     <div className="page-enter relative min-h-screen bg-navy-blue-mesh px-4 py-5">
-      {/* Full-screen cover while the account is created, so nothing else paints before /pin */}
-      {submitting && (
-        <div className="fixed inset-0 z-[60] flex flex-col items-center justify-center gap-3 bg-background/95 backdrop-blur-sm">
-          <Loader2 className="h-7 w-7 animate-spin text-primary" />
-          <p className="text-sm font-medium text-foreground">Creating your account…</p>
-        </div>
-      )}
-
       <div className="mx-auto w-full max-w-2xl overflow-hidden rounded-3xl border border-white/10 bg-white shadow-elev animate-fade-in">
         <div className="bg-gradient-to-br from-[#7C3AED] via-[#8B5CF6] to-[#A78BFA] px-6 pb-4 pt-5 text-center sm:px-10">
           <Link to="/" className="flex flex-col items-center justify-center">
@@ -520,7 +512,13 @@ Flexiq Verve Support Team`,
               disabled={submitting || !recaptchaToken}
               className="w-full bg-gradient-primary text-primary-foreground shadow-md hover:opacity-95"
             >
-              {submitting ? "Creating account…" : "Create account"}
+              {submitting ? (
+                <span className="inline-flex items-center justify-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" /> Creating account…
+                </span>
+              ) : (
+                "Create account"
+              )}
             </Button>
           </form>
 
