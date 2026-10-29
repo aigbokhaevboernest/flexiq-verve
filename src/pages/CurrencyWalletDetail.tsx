@@ -14,7 +14,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Flag, PrimaryBadge, currencyName, formatMoney } from "@/lib/currencies";
+import { Flag, PrimaryBadge, currencyName, formatMoney } from "@/lib/walletCurrencies";
 
 const SUPPORT_EMAIL = "support@flexiqverve.com";
 
