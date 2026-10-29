@@ -387,27 +387,27 @@ Flexiq Verve Support Team`,
             <div className="grid grid-cols-2 gap-x-3 gap-y-3">
               <div>
                 <Label htmlFor="first_name">First name</Label>
-                <Input id="first_name" className={`mt-1 ${inputCls("first_name")}`} placeholder="John" value={form.first_name} onChange={(e) => update("first_name")(e.target.value)} onBlur={onBlur("first_name")} />
+                <Input id="first_name" className={`mt-1 ${inputCls("first_name")}`} placeholder="First name" value={form.first_name} onChange={(e) => update("first_name")(e.target.value)} onBlur={onBlur("first_name")} />
                 <FieldError msg={errors.first_name} />
               </div>
               <div>
                 <Label htmlFor="last_name">Last name</Label>
-                <Input id="last_name" className={`mt-1 ${inputCls("last_name")}`} placeholder="Doe" value={form.last_name} onChange={(e) => update("last_name")(e.target.value)} onBlur={onBlur("last_name")} />
+                <Input id="last_name" className={`mt-1 ${inputCls("last_name")}`} placeholder="Last name" value={form.last_name} onChange={(e) => update("last_name")(e.target.value)} onBlur={onBlur("last_name")} />
                 <FieldError msg={errors.last_name} />
               </div>
               <div className="col-span-2 sm:col-span-1">
                 <Label htmlFor="username">User ID</Label>
-                <Input id="username" className={`mt-1 ${inputCls("username")}`} placeholder="Johndoe" value={form.username} onChange={(e) => update("username")(e.target.value.replace(/\s+/g, ""))} onBlur={onBlur("username")} />
+                <Input id="username" className={`mt-1 ${inputCls("username")}`} placeholder="Enter User ID" value={form.username} onChange={(e) => update("username")(e.target.value.replace(/\s+/g, ""))} onBlur={onBlur("username")} />
                 <FieldError msg={errors.username} />
               </div>
               <div className="col-span-2 sm:col-span-1">
                 <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" className={`mt-1 ${inputCls("email")}`} placeholder="john@example.com" value={form.email} onChange={(e) => update("email")(e.target.value)} onBlur={onBlur("email")} />
+                <Input id="email" type="email" className={`mt-1 ${inputCls("email")}`} placeholder="Enter email" value={form.email} onChange={(e) => update("email")(e.target.value)} onBlur={onBlur("email")} />
                 <FieldError msg={errors.email} />
               </div>
               <div className="col-span-2 sm:col-span-1">
                 <Label htmlFor="phone">Phone</Label>
-                <Input id="phone" type="tel" className={`mt-1 ${inputCls("phone")}`} placeholder="+__ ___ ___ ____ ____" value={form.phone} onChange={(e) => update("phone")(e.target.value)} onBlur={onBlur("phone")} />
+                <Input id="phone" type="tel" className={`mt-1 ${inputCls("phone")}`} placeholder="Enter phone number" value={form.phone} onChange={(e) => update("phone")(e.target.value)} onBlur={onBlur("phone")} />
                 <FieldError msg={errors.phone} />
               </div>
               <div className="col-span-2 sm:col-span-1">
@@ -439,7 +439,7 @@ Flexiq Verve Support Team`,
               </div>
               <div className="col-span-2 sm:col-span-1">
                 <Label htmlFor="city">City</Label>
-                <Input id="city" className={`mt-1 ${inputCls("city")}`} placeholder="London" value={form.city} onChange={(e) => update("city")(e.target.value)} onBlur={onBlur("city")} />
+                <Input id="city" className={`mt-1 ${inputCls("city")}`} placeholder="Enter City" value={form.city} onChange={(e) => update("city")(e.target.value)} onBlur={onBlur("city")} />
                 <FieldError msg={errors.city} />
               </div>
               <div className="col-span-2 sm:col-span-1">
@@ -461,7 +461,7 @@ Flexiq Verve Support Team`,
 
               <div className="col-span-2">
                 <Label htmlFor="address">Address</Label>
-                <Input id="address" className={`mt-1 ${inputCls("address")}`} placeholder="123 Main Street" value={form.address} onChange={(e) => update("address")(e.target.value)} onBlur={onBlur("address")} />
+                <Input id="address" className={`mt-1 ${inputCls("address")}`} placeholder="Enter address" value={form.address} onChange={(e) => update("address")(e.target.value)} onBlur={onBlur("address")} />
                 <FieldError msg={errors.address} />
               </div>
               <div className="col-span-2 sm:col-span-1">
