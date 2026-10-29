@@ -300,6 +300,10 @@ const Signup = () => {
 
       // Go to the PIN screen right away (replace: Back never returns to signup).
       // The profile setup below keeps running in the background.
+      // New accounts always need to create a PIN: cache that so /pin paints the right form instantly
+      try {
+        if (data.user) localStorage.setItem(`hasPinSetup:${data.user.id}`, "0");
+      } catch {}
       navigate("/pin", { replace: true });
 
       if (data.user) {
