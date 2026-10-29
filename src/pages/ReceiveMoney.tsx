@@ -1,34 +1,30 @@
 import { useEffect, useState } from "react";
-import { Card } from "@/components/ui/card";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Copy, Upload, Wallet } from "lucide-react";
-import { QRCodeSVG } from "qrcode.react";
-import { useAppSettings } from "@/hooks/useAppSettings";
-import { useToast } from "@/hooks/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { Skeleton } from "@/components/ui/skeleton";
-import { useNavigate } from "react-router-dom";
 import { sendEmail } from "@/lib/sendEmail";
+import DepositFlow, { DepositSubmit } from "@/components/DepositFlow";
 
 const ADMIN_NOTIFY_EMAIL = "support@flexiqverve.com";
 
 const ReceiveMoney = () => {
-  const { data: settings, isLoading } = useAppSettings();
-  const { toast } = useToast();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [amount, setAmount] = useState("");
-  const [crypto, setCrypto] = useState("BTC");
-  const [file, setFile] = useState<File | null>(null);
-  const [submitting, setSubmitting] = useState(false);
 
   // Per-user deposit access. null = still checking. Off unless the admin
   // turned it on for this specific user (profiles.receive_enabled).
   const [userEnabled, setUserEnabled] = useState<boolean | null>(null);
+  const [cur, setCur] = useState("USD");
 
   useEffect(() => {
     if (!user?.id) return;
@@ -36,10 +32,11 @@ const ReceiveMoney = () => {
     (async () => {
       const { data, error } = await (supabase as any)
         .from("profiles")
-        .select("receive_enabled")
+        .select("receive_enabled,currency")
         .eq("id", user.id)
         .maybeSingle();
       if (cancelled) return;
+      if (data?.currency) setCur(String(data.currency).toUpperCase());
       // Any error or missing value means off.
       setUserEnabled(error ? false : !!data?.receive_enabled);
     })();
@@ -48,12 +45,13 @@ const ReceiveMoney = () => {
     };
   }, [user?.id]);
 
-  if (isLoading || userEnabled === null) return (
-    <div className="space-y-4">
-      <Skeleton className="h-10 w-60" />
-      <Skeleton className="h-72 w-full rounded-3xl" />
-    </div>
-  );
+  if (userEnabled === null)
+    return (
+      <div className="mx-auto w-full max-w-md space-y-4">
+        <Skeleton className="h-10 w-60" />
+        <Skeleton className="h-72 w-full rounded-3xl" />
+      </div>
+    );
 
   if (!userEnabled) {
     return (
@@ -63,63 +61,41 @@ const ReceiveMoney = () => {
             <DialogTitle>Feature unavailable</DialogTitle>
             <DialogDescription>This feature is currently unavailable. Please check back later.</DialogDescription>
           </DialogHeader>
-          <DialogFooter><Button onClick={() => navigate("/dashboard")}>Close</Button></DialogFooter>
+          <DialogFooter>
+            <Button onClick={() => navigate("/dashboard")}>Close</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     );
   }
 
-  const walletMap: Record<string, string> = {
-    BTC: (settings as any)?.btc_wallet_address || "—",
-    ETH: (settings as any)?.eth_wallet_address || "—",
-    USDT: (settings as any)?.usdt_wallet_address || "—",
-  };
+  const handleSubmit = async ({ crypto, methodName, amount, proofUrl }: DepositSubmit): Promise<string | null> => {
+    if (!user) return "You are not signed in.";
 
-  const wallet = walletMap[crypto] || "—";
-  const isUsdt = crypto === "USDT";
-
-  // Plain text version (used in emails / success screen) and a styled version
-  // where "TRON" is shown in red (a native <option> can't be partly coloured,
-  // so the red label appears next to the address instead).
-  const cryptoName = isUsdt ? "USDT (TRON)" : crypto;
-  const cryptoLabel = isUsdt ? (
-    <>USDT (<span className="font-semibold text-red-500">TRON</span>)</>
-  ) : (
-    <>{crypto}</>
-  );
-
-  const copy = () => { navigator.clipboard.writeText(wallet); toast({ title: "Wallet address copied" }); };
-
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user) return;
-    if (!amount || Number(amount) <= 0) return toast({ title: "Enter an amount", variant: "destructive" });
-    setSubmitting(true);
-    let proofUrl: string | null = null;
-    if (file) {
-      const path = `${user.id}/${Date.now()}-${file.name}`;
-      const up = await supabase.storage.from("id-verification").upload(path, file);
-      if (!up.error) proofUrl = path;
-    }
     const { error } = await (supabase as any).from("deposit_requests").insert({
-      user_id: user.id, crypto, amount: Number(amount), proof_url: proofUrl, status: "pending",
+      user_id: user.id,
+      crypto, // "BANK" for bank transfers
+      amount,
+      proof_url: proofUrl,
+      status: "pending",
     });
-    setSubmitting(false);
-    if (error) return toast({ title: "Failed to submit", description: error.message, variant: "destructive" });
+    if (error) return error.message;
 
     try {
       const { data: prof } = await (supabase as any)
-        .from("profiles").select("first_name,last_name,email,currency").eq("id", user.id).maybeSingle();
+        .from("profiles")
+        .select("first_name,last_name,email")
+        .eq("id", user.id)
+        .maybeSingle();
       const fn = prof?.first_name || "";
       const ln = prof?.last_name || "";
       const em = prof?.email || user.email || "";
-      const cur = prof?.currency || "USD";
       if (em) {
         await sendEmail({
-          email: em, first_name: fn,
+          email: em,
+          first_name: fn,
           subject: "Deposit Request Submitted — Flexiq Verve",
-          message:
-`This is to inform you that your deposit request of ${amount} ${cryptoName} has been successfully submitted and is pending review.
+          message: `This is to inform you that your deposit request of ${cur} ${amount} via ${methodName} has been successfully submitted and is pending review.
 
 You will receive a notification once your deposit has been confirmed.
 
@@ -135,97 +111,35 @@ Flexiq Verve Support Team`,
           email: ADMIN_NOTIFY_EMAIL,
           first_name: "Admin",
           subject: "New Deposit Request — Flexiq Verve",
-          message:
-`${fn} ${ln} has submitted a deposit request of ${cur} ${amount} and it is pending review.
+          message: `${fn} ${ln} has submitted a deposit request of ${cur} ${amount} via ${methodName} and it is pending review.
 
 Please verify if the deposit was actually received and log in to the admin dashboard to either approve or decline.`,
         });
       } catch {}
     } catch {}
 
-
     navigate("/dashboard/success", {
       state: {
         title: "Deposit submitted",
         message: "Upon confirmation of your payment, we will promptly process your service request.",
         details: [
-          { label: "Crypto", value: cryptoName },
-          { label: "Amount", value: amount },
+          { label: "Method", value: methodName },
+          { label: "Amount", value: `${cur} ${amount}` },
           { label: "Status", value: "Pending review" },
         ],
       },
     });
+    return null;
   };
 
   return (
-    <div className="space-y-6 max-w-full overflow-x-hidden">
-      <div>
-        <h1 className="font-display text-2xl font-bold sm:text-3xl">Make Payment</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Send crypto to the address below to make payment.</p>
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-[1.4fr,1fr]">
-        <Card className="rounded-3xl border-border/60 p-4 shadow-card sm:p-8 min-w-0">
-          <form onSubmit={submit} className="space-y-5">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label>Payment method</Label>
-                <select
-                  value={crypto}
-                  onChange={(e) => setCrypto(e.target.value)}
-                  className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                >
-                  <option value="BTC">BTC — Bitcoin</option>
-                  <option value="ETH">ETH — Ethereum</option>
-                  <option value="USDT">USDT (TRON) — Tether</option>
-                </select>
-                {isUsdt && (
-                  <p className="text-xs text-muted-foreground">
-                    Network: TRC-20 (<span className="font-semibold text-red-500">TRON</span>)
-                  </p>
-                )}
-              </div>
-              <div className="space-y-2"><Label>Amount</Label><Input type="number" step="0.0001" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" required /></div>
-            </div>
-
-            <div className="rounded-2xl border border-border/60 bg-muted/30 p-4 min-w-0">
-              <p className="text-xs uppercase tracking-wider text-muted-foreground">Wallet address ({cryptoLabel})</p>
-              <div className="mt-2 flex items-center gap-2 min-w-0">
-                <code className="flex-1 min-w-0 truncate rounded-lg bg-background px-3 py-2 font-mono text-xs">{wallet}</code>
-                <Button type="button" variant="outline" size="icon" onClick={copy} className="shrink-0"><Copy className="h-4 w-4" /></Button>
-              </div>
-              {isUsdt && (
-                <p className="mt-2 text-xs text-muted-foreground">
-                  Send USDT only on the <span className="font-semibold text-red-500">TRON</span> (TRC-20) network. Other networks may result in lost funds.
-                </p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label>Upload payment proof (optional)</Label>
-              <div className="flex items-center gap-3">
-                <label className="flex h-11 flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border bg-muted/20 text-sm text-muted-foreground hover:bg-muted/40">
-                  <Upload className="h-4 w-4" /> {file?.name || "Choose file…"}
-                  <input type="file" accept="image/*" className="hidden" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
-                </label>
-              </div>
-            </div>
-
-            <Button type="submit" disabled={submitting} className="h-12 w-full rounded-2xl bg-gradient-primary text-base font-semibold shadow-glow">
-              <Wallet className="mr-2 h-4 w-4" /> {submitting ? "Submitting…" : "Submit payment"}
-            </Button>
-          </form>
-        </Card>
-
-        <Card className="flex flex-col items-center rounded-3xl border-border/60 p-6 shadow-card text-center min-w-0">
-          <p className="text-xs uppercase tracking-wider text-muted-foreground">Scan to pay</p>
-          <div className="mt-3 rounded-2xl bg-white p-3 ring-1 ring-border">
-            {wallet && wallet !== "—" ? <QRCodeSVG value={wallet} size={180} /> : <div className="h-44 w-44 bg-muted" />}
-          </div>
-          <p className="mt-3 text-xs text-muted-foreground">Open your crypto wallet, tap scan, and send {cryptoLabel}.</p>
-        </Card>
-      </div>
-    </div>
+    <DepositFlow
+      title="Make Payment"
+      currency={cur}
+      fundTarget="account"
+      onExit={() => navigate("/dashboard")}
+      onSubmit={handleSubmit}
+    />
   );
 };
 
