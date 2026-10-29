@@ -14,7 +14,7 @@ import {
   ISO_CURRENCIES,
   currencyName,
   formatMoney,
-} from "@/lib/currencies";
+} from "@/lib/walletCurrencies";
 
 type WalletRow = { id: string; currency: string; balance: number };
 type ProfileRow = { first_name: string | null; email: string | null; currency: string | null; balance: number | null };
