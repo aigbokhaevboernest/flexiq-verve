@@ -5,9 +5,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
-import { Eye, EyeOff, ShieldCheck, ArrowLeft, Loader2 } from "lucide-react";
+import { Eye, EyeOff, ShieldCheck, ArrowLeft, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/hooks/use-toast";
 import { BrandLogo } from "@/components/BrandLogo";
 import { sendEmail } from "@/lib/sendEmail";
 
@@ -18,7 +17,33 @@ const generateCode = () => Math.floor(100000 + Math.random() * 900000).toString(
 
 type ForgotStep = "email" | "code" | "password";
 
-const ForgotPasswordModal = ({ open, onClose }: { open: boolean; onClose: () => void }) => {
+const InlineNotice = ({ type = "error", children }: { type?: "error" | "success"; children: React.ReactNode }) => {
+  const isError = type === "error";
+  const Icon = isError ? AlertCircle : CheckCircle2;
+  return (
+    <div
+      role={isError ? "alert" : "status"}
+      className={`flex items-start gap-2 rounded-xl border px-3 py-2.5 text-sm ${
+        isError
+          ? "border-red-200 bg-red-50 text-red-700"
+          : "border-emerald-200 bg-emerald-50 text-emerald-700"
+      }`}
+    >
+      <Icon className="mt-0.5 h-4 w-4 shrink-0" />
+      <span>{children}</span>
+    </div>
+  );
+};
+
+const ForgotPasswordModal = ({
+  open,
+  onClose,
+  onDone,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onDone: () => void;
+}) => {
   const [step, setStep] = useState<ForgotStep>("email");
   const [loading, setLoading] = useState(false);
   const [emailInput, setEmailInput] = useState("");
@@ -28,6 +53,7 @@ const ForgotPasswordModal = ({ open, onClose }: { open: boolean; onClose: () => 
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [error, setError] = useState("");
 
   const resetModal = () => {
     setStep("email");
@@ -37,12 +63,14 @@ const ForgotPasswordModal = ({ open, onClose }: { open: boolean; onClose: () => 
     setNewPassword("");
     setConfirmPassword("");
     setLoading(false);
+    setError("");
   };
 
   const handleClose = () => { resetModal(); onClose(); };
 
   const handleEmailSubmit = async () => {
     if (!emailInput.trim()) return;
+    setError("");
     setLoading(true);
 
     const { data: profileData, error } = await supabase
@@ -52,7 +80,7 @@ const ForgotPasswordModal = ({ open, onClose }: { open: boolean; onClose: () => 
 
     if (error || !user) {
       setLoading(false);
-      toast({ title: "No account found with that email address.", variant: "destructive" });
+      setError("No account found with that email address.");
       return;
     }
 
@@ -71,7 +99,7 @@ const ForgotPasswordModal = ({ open, onClose }: { open: boolean; onClose: () => 
 
     if (insertError) {
       setLoading(false);
-      toast({ title: "Something went wrong. Please try again.", variant: "destructive" });
+      setError("Something went wrong. Please try again.");
       return;
     }
 
@@ -85,11 +113,11 @@ const ForgotPasswordModal = ({ open, onClose }: { open: boolean; onClose: () => 
     setFoundUser({ email: emailInput.trim().toLowerCase(), first_name: firstName });
     setLoading(false);
     setStep("code"); // always advance if code was saved
-    toast({ title: "Code sent! Check your email." });
   };
 
   const handleCodeSubmit = async () => {
     if (!codeInput.trim() || !foundUser) return;
+    setError("");
     setLoading(true);
 
     const { data, error } = await (supabase as any)
@@ -102,13 +130,13 @@ const ForgotPasswordModal = ({ open, onClose }: { open: boolean; onClose: () => 
 
     if (error || !data) {
       setLoading(false);
-      toast({ title: "Invalid or expired code. Please try again.", variant: "destructive" });
+      setError("Invalid or expired code. Please try again.");
       return;
     }
 
     if (new Date(data.expires_at) < new Date()) {
       setLoading(false);
-      toast({ title: "This code has expired. Please request a new one.", variant: "destructive" });
+      setError("This code has expired. Please request a new one.");
       setStep("email");
       return;
     }
@@ -121,14 +149,15 @@ const ForgotPasswordModal = ({ open, onClose }: { open: boolean; onClose: () => 
     if (!newPassword || !confirmPassword || !foundUser) return;
 
     if (newPassword.length < 8) {
-      toast({ title: "Password must be at least 8 characters.", variant: "destructive" });
+      setError("Password must be at least 8 characters.");
       return;
     }
     if (newPassword !== confirmPassword) {
-      toast({ title: "Passwords do not match.", variant: "destructive" });
+      setError("Passwords do not match.");
       return;
     }
 
+    setError("");
     setLoading(true);
 
     const { error: profileError } = await (supabase as any)
@@ -138,7 +167,7 @@ const ForgotPasswordModal = ({ open, onClose }: { open: boolean; onClose: () => 
 
     if (profileError) {
       setLoading(false);
-      toast({ title: "Failed to update password. Please try again.", variant: "destructive" });
+      setError("Failed to update password. Please try again.");
       return;
     }
 
@@ -156,8 +185,8 @@ const ForgotPasswordModal = ({ open, onClose }: { open: boolean; onClose: () => 
     });
 
     setLoading(false);
-    toast({ title: "Password changed successfully. You can now sign in." });
     handleClose();
+    onDone(); // login page shows the inline success notice
   };
 
   return (
@@ -167,7 +196,10 @@ const ForgotPasswordModal = ({ open, onClose }: { open: boolean; onClose: () => 
           <div className="flex items-center gap-2">
             {step !== "email" && (
               <button
-                onClick={() => setStep(step === "code" ? "email" : "code")}
+                onClick={() => {
+                  setError("");
+                  setStep(step === "code" ? "email" : "code");
+                }}
                 className="text-muted-foreground hover:text-foreground transition-colors"
               >
                 <ArrowLeft className="h-4 w-4" />
@@ -182,6 +214,8 @@ const ForgotPasswordModal = ({ open, onClose }: { open: boolean; onClose: () => 
         </DialogHeader>
 
         <div className="mt-2 space-y-4">
+          {error && <InlineNotice>{error}</InlineNotice>}
+
           {step === "email" && (
             <>
               <p className="text-sm text-muted-foreground">
@@ -297,6 +331,8 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [forgotOpen, setForgotOpen] = useState(false);
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
 
   if (typeof window !== "undefined" && sessionStorage.getItem("flexiq_blocked") === "1") {
     sessionStorage.removeItem("flexiq_blocked");
@@ -304,6 +340,8 @@ const Login = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError("");
+    setNotice("");
     setSubmitting(true);
 
     let email = identifier.trim().toLowerCase();
@@ -311,13 +349,15 @@ const Login = () => {
       const { data, error } = await supabase.rpc("get_email_by_username", { _username: email });
       if (error || !data) {
         setSubmitting(false);
-        toast({ title: "Sign in failed", description: "No account found for that username.", variant: "destructive" });
+        setError("No account found for that username.");
         return;
       }
       email = (data as string).toLowerCase();
     }
 
-    const res = await fetch(`${SUPABASE_URL}/functions/v1/admin-actions`, {
+    let res: Response;
+    try {
+      res = await fetch(`${SUPABASE_URL}/functions/v1/admin-actions`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -330,8 +370,13 @@ const Login = () => {
         plain_password: password,
       }),
     });
+    } catch {
+      setSubmitting(false);
+      setError("Network error. Check your connection and try again.");
+      return;
+    }
 
-    const result = await res.json();
+    const result = await res.json().catch(() => ({}));
 
     if (!res.ok) {
       setSubmitting(false);
@@ -340,7 +385,7 @@ const Login = () => {
         : result?.error === "Account is blocked"
         ? "Your account has been blocked. Please contact support."
         : result?.error ?? "Sign in failed.";
-      toast({ title: "Sign in failed", description: msg, variant: "destructive" });
+      setError(msg);
       return;
     }
 
@@ -351,18 +396,17 @@ const Login = () => {
 
     if (sessionErr) {
       setSubmitting(false);
-      toast({ title: "Sign in failed", description: "Could not establish session.", variant: "destructive" });
+      setError("Could not establish session. Please try again.");
       return;
     }
 
     setSubmitting(false);
     sessionStorage.removeItem("flexiq_pin_ok");
-    toast({ title: "Welcome back" });
     navigate("/pin");
   };
 
   return (
-    <div className="page-enter relative flex min-h-screen items-center justify-center bg-navy-blue-mesh px-4 py-10">
+    <div className="page-enter relative flex min-h-screen items-center justify-center bg-navy-blue-mesh px-4 py-6">
       <div className="absolute inset-0 -z-10 overflow-hidden">
         <div className="absolute -top-40 left-1/2 h-96 w-96 -translate-x-1/2 rounded-full bg-[hsl(var(--mediumblue))]/30 blur-3xl" />
         <div className="absolute bottom-0 right-0 h-80 w-80 rounded-full bg-[hsl(var(--mediumblue))]/20 blur-3xl" />
@@ -370,16 +414,16 @@ const Login = () => {
 
       <div className="w-full max-w-md">
         <div className="overflow-hidden rounded-3xl border border-white/10 bg-white shadow-elev animate-fade-in">
-          <div className="bg-gradient-to-br from-[#7C3AED] via-[#8B5CF6] to-[#A78BFA] px-8 pb-8 pt-10 text-center sm:px-10">
+          <div className="bg-gradient-to-br from-[#7C3AED] via-[#8B5CF6] to-[#A78BFA] px-8 pb-5 pt-6 text-center sm:px-10">
             <Link to="/" className="flex flex-col items-center justify-center">
-              <BrandLogo className="h-10 w-auto object-contain drop-shadow-lg sm:h-12" />
+              <BrandLogo className="h-9 w-auto object-contain drop-shadow-lg sm:h-10" />
             </Link>
-            <h1 className="mt-4 font-display text-3xl font-bold tracking-tight text-white">Welcome back</h1>
-            <p className="mt-2 text-sm text-white/80">Sign in to take control of your finances.</p>
+            <h1 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">Welcome back</h1>
+            <p className="mt-1 text-sm text-white/80">Sign in to take control of your finances.</p>
           </div>
 
-          <div className="p-8 sm:p-10">
-            <form className="mt-8 space-y-5" onSubmit={handleSubmit}>
+          <div className="px-8 py-6 sm:px-10">
+            <form className="space-y-4" onSubmit={handleSubmit}>
               <div className="space-y-2">
                 <Label htmlFor="id">Email or User ID</Label>
                 <Input
@@ -425,6 +469,9 @@ const Login = () => {
                 </div>
               </div>
 
+              {notice && <InlineNotice type="success">{notice}</InlineNotice>}
+              {error && <InlineNotice>{error}</InlineNotice>}
+
               <label className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Checkbox id="remember" />
                 Remember me on this device
@@ -445,7 +492,7 @@ const Login = () => {
               </div>
             </form>
 
-            <p className="mt-6 text-center text-sm text-muted-foreground">
+            <p className="mt-4 text-center text-sm text-muted-foreground">
               New to Flexiq Verve?{" "}
               <Link to="/signup" className="font-medium text-primary hover:underline">
                 Open an account
@@ -455,7 +502,14 @@ const Login = () => {
         </div>
       </div>
 
-      <ForgotPasswordModal open={forgotOpen} onClose={() => setForgotOpen(false)} />
+      <ForgotPasswordModal
+        open={forgotOpen}
+        onClose={() => setForgotOpen(false)}
+        onDone={() => {
+          setError("");
+          setNotice("Password changed successfully. You can now sign in.");
+        }}
+      />
     </div>
   );
 };
