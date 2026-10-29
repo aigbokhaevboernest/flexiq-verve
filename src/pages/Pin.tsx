@@ -8,7 +8,6 @@ import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import { BrandLogo } from "@/components/BrandLogo";
 import { sendEmail } from "@/lib/sendEmail";
-import { PulseLoader } from "@/components/PulseLoader";
 
 const ERROR_RING = "border-red-500 focus-visible:ring-red-500";
 
@@ -22,7 +21,16 @@ const InlineError = ({ msg }: { msg: string }) =>
 const Pin = () => {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
-  const [mode, setMode] = useState<"loading" | "create" | "enter">("loading");
+  // Start from the cached answer when we already know the user, so the right form paints on the first frame
+  const [mode, setMode] = useState<"loading" | "create" | "enter">(() => {
+    try {
+      const cached = user ? localStorage.getItem(`hasPinSetup:${user.id}`) : null;
+      return cached === "1" ? "enter" : cached === "0" ? "create" : "loading";
+    } catch {
+      return "loading";
+    }
+  });
+  const ready = mode !== "loading";
   const [pin, setPin] = useState("");
   const [confirmPin, setConfirmPin] = useState("");
   const [busy, setBusy] = useState(false);
@@ -159,10 +167,6 @@ Flexiq Verve Support Team`,
     navigate(data.application_status === "approved" ? "/dashboard" : "/pending", { replace: true });
   };
 
-  if (mode === "loading") {
-    return <PulseLoader fullPage />;
-  }
-
   return (
     <div className="page-enter flex min-h-screen items-center justify-center bg-navy-blue-mesh px-4">
       <div className="relative w-full max-w-sm rounded-2xl border border-white/10 bg-white p-8 shadow-elev animate-fade-in">
@@ -178,7 +182,9 @@ Flexiq Verve Support Team`,
         <div className="mb-6 flex flex-col items-center text-center">
           <BrandLogo className="h-10 w-auto object-contain sm:h-12" />
           <p className="mt-4 text-sm text-muted-foreground">
-            {mode === "create"
+            {!ready
+              ? "\u00A0"
+              : mode === "create"
               ? "Create a 4-digit PIN to secure your account"
               : "Enter your 4-digit PIN to continue"}
           </p>
@@ -224,7 +230,7 @@ Flexiq Verve Support Team`,
 
           <Button
             type="submit"
-            disabled={busy}
+            disabled={busy || !ready}
             className="w-full bg-gradient-primary text-primary-foreground"
           >
             {busy ? "Please wait…" : mode === "create" ? "Set PIN" : "Unlock"}
