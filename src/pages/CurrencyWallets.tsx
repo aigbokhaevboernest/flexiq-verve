@@ -1,7 +1,7 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Wallet, Plus, X, ChevronRight, ArrowLeft, Search } from "lucide-react";
+import { Wallet, Plus, X, ChevronRight, ArrowLeft, Search, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -31,6 +31,9 @@ const CurrencyWallets = () => {
   const [query, setQuery] = useState("");
   // Step 2: confirm modal (currency chosen, nothing inserted yet)
   const [pending, setPending] = useState<string | null>(null);
+  // Insert errors show inline in the confirm modal (not as a toast)
+  const [createError, setCreateError] = useState("");
+  useEffect(() => setCreateError(""), [pending]);
 
   const queryKey = ["currency-wallets", user?.id];
 
@@ -69,7 +72,9 @@ const CurrencyWallets = () => {
   const isPrimary = (c: string) => !!primary && c === primary;
 
   const addWallet = useMutation({
-    mutationFn: async (currency: string) => {
+    mutationFn: async (rawCurrency: string) => {
+      // Always store the ISO code uppercase so it matches the /wallets/:currency lookup
+      const currency = rawCurrency.toUpperCase();
       const { error } = await (supabase as any)
         .from("currency_wallets")
         .insert({ user_id: user!.id, currency, balance: 0 });
@@ -104,7 +109,7 @@ Flexiq Verve Support Team`,
       closeAll();
       toast.success(isPrimary(currency) ? "Primary currency added to wallet" : `${currency} wallet created`);
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: any) => setCreateError(e?.message || "Could not create the wallet. Please try again."),
   });
 
   const closeAll = () => {
@@ -313,6 +318,15 @@ Flexiq Verve Support Team`,
                 it's created.
               </p>
             )}
+            {createError && (
+              <div
+                role="alert"
+                className="mt-4 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-left text-sm text-red-700"
+              >
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>{createError}</span>
+              </div>
+            )}
             <div className="mt-6 grid grid-cols-2 gap-3">
               <button
                 type="button"
@@ -325,7 +339,10 @@ Flexiq Verve Support Team`,
               <button
                 type="button"
                 disabled={addWallet.isPending}
-                onClick={() => addWallet.mutate(pending)}
+                onClick={() => {
+                  setCreateError("");
+                  addWallet.mutate(pending);
+                }}
                 className="rounded-2xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-50"
               >
                 {addWallet.isPending
