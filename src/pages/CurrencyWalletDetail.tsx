@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, ArrowUpRight, Plus, Send } from "lucide-react";
+import { AlertCircle, ArrowLeft, ArrowUpRight, Plus, Send } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -21,6 +21,7 @@ import { CodeGate } from "@/components/CodeGate";
 import { sendEmail } from "@/lib/sendEmail";
 import { getBalanceBreakdown } from "@/hooks/useTotalBalance";
 import { Flag, PrimaryBadge, currencyName, formatMoney } from "@/lib/walletCurrencies";
+import { getWithdrawFields, normalizeValue, recipientFromFields, type WithdrawType } from "@/lib/withdrawFields";
 
 const SUPPORT_EMAIL = "support@flexiqverve.com";
 
@@ -48,10 +49,11 @@ const CurrencyWalletDetail = () => {
   const [withdrawOpen, setWithdrawOpen] = useState(false); // form dialog
   const [gateOpen, setGateOpen] = useState(false);
   const [amount, setAmount] = useState("");
-  const [recipient, setRecipient] = useState("");
-  const [accNumber, setAccNumber] = useState("");
-  const [routing, setRouting] = useState("");
-  const [desc, setDesc] = useState("");
+  const [wType, setWType] = useState<WithdrawType>("domestic");
+  const [fields, setFields] = useState<Record<string, string>>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [formError, setFormError] = useState("");
+  const [notice, setNotice] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   // Same query key as CurrencyWallets so the list cache is reused
@@ -121,27 +123,62 @@ const CurrencyWalletDetail = () => {
     setAmount(rest.length ? `${whole}.${rest.join("")}` : whole);
   };
 
+  const fieldDefs = getWithdrawFields(currency, wType);
+
+  const resetWithdrawForm = () => {
+    setAmount("");
+    setFields({});
+    setErrors({});
+    setFormError("");
+    setWType("domestic");
+  };
+
   const onWithdrawClick = () => {
     if (isPrimary) return;
+    setNotice("");
     if (!(balance > 0)) {
-      toast.error("Insufficient funds");
+      setNotice("Insufficient funds. Fund this wallet before withdrawing.");
       return;
     }
-    setAmount("");
-    setRecipient("");
-    setAccNumber("");
-    setRouting("");
-    setDesc("");
+    resetWithdrawForm();
     setWithdrawOpen(true);
+  };
+
+  const switchType = (t: WithdrawType) => {
+    if (t === wType) return;
+    setWType(t);
+    setFields({});
+    setErrors({});
+    setFormError("");
+  };
+
+  const setField = (key: string, value: string) => {
+    setFields((f) => ({ ...f, [key]: value }));
+    if (errors[key]) setErrors((e) => ({ ...e, [key]: "" }));
+    setFormError("");
   };
 
   // Form -> CodeGate. Nothing is written until the code is verified.
   const onWithdrawFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const next: Record<string, string> = {};
     const amt = Number(amount);
-    if (!amt || amt <= 0) return toast.error("Enter a valid amount");
-    if (amt > balance + 0.000001) return toast.error("Insufficient funds");
-    if (!recipient.trim() || !accNumber.trim()) return toast.error("Enter recipient name and account number");
+    if (!amt || amt <= 0) next.amount = "Enter a valid amount";
+    else if (amt > balance + 0.000001) next.amount = "Insufficient funds";
+
+    for (const f of fieldDefs) {
+      const v = (fields[f.key] || "").trim();
+      if (!v) {
+        if (f.required !== false) next[f.key] = `${f.label} is required`;
+        continue;
+      }
+      const msg = f.check?.(v);
+      if (msg) next[f.key] = msg;
+    }
+
+    setErrors(next);
+    setFormError("");
+    if (Object.keys(next).length) return;
     setWithdrawOpen(false);
     setGateOpen(true);
   };
@@ -162,6 +199,13 @@ const CurrencyWalletDetail = () => {
       const current = Number(fresh.balance);
       if (amt > current + 0.000001) throw new Error("Insufficient funds");
 
+      const clean = Object.fromEntries(
+        Object.entries(fields)
+          .map(([k, v]) => [k, v.trim()])
+          .filter(([, v]) => v),
+      ) as Record<string, string>;
+      const rec = recipientFromFields(clean);
+
       // 2. Transaction row (pending: money leaves the wallet, payout is reviewed)
       const { data: tx, error: tErr } = await (supabase as any)
         .from("transactions")
@@ -171,30 +215,57 @@ const CurrencyWalletDetail = () => {
           status: "pending",
           amount: -amt,
           currency,
-          recipient_name: recipient.trim(),
-          recipient_account: accNumber.trim(),
-          recipient_bank: "External",
-          routing_number: routing.trim() || null,
-          description: desc.trim() || `Wallet withdraw (${currency}) to ${recipient.trim()}`,
-          metadata: { wallet_withdraw: true, wallet_id: wallet.id, wallet_currency: currency },
+          recipient_name: rec.name,
+          recipient_account: rec.account,
+          recipient_bank: rec.bank,
+          routing_number: rec.routing,
+          description: clean.purpose
+            ? `Wallet withdraw (${currency}) to ${rec.name}: ${clean.purpose}`
+            : `Wallet withdraw (${currency}) to ${rec.name}`,
+          metadata: {
+            wallet_withdraw: true,
+            wallet_id: wallet.id,
+            wallet_currency: currency,
+            transfer_type: wType,
+            ...clean,
+          },
         })
         .select("id")
         .single();
-      if (tErr) throw tErr;
+      if (tErr) throw new Error(tErr.message || "Could not create the withdrawal. Please try again.");
 
-      // 3. Debit. The balance filter makes this fail if the wallet changed since step 1.
-      const newBal = Math.round((current - amt) * 1e8) / 1e8;
-      const { data: upd, error: dErr } = await (supabase as any)
-        .from("currency_wallets")
-        .update({ balance: newBal })
-        .eq("id", wallet.id)
-        .eq("user_id", user.id)
-        .eq("balance", fresh.balance)
-        .select("id");
-      if (dErr || !upd?.length) {
-        await (supabase as any).from("transactions").update({ status: "failed" }).eq("id", tx.id);
-        throw new Error(dErr?.message || "Withdrawal could not be completed. Please try again.");
+      // 3. Debit. Preferred: the debit_currency_wallet RPC (checks owner + balance in one step).
+      //    Falls back to a direct update only while that function hasn't been created yet.
+      let debitError: string | null = null;
+      const { error: rpcErr } = await (supabase as any).rpc("debit_currency_wallet", {
+        p_wallet_id: wallet.id,
+        p_amount: amt,
+      });
+      if (rpcErr) {
+        const missing = /could not find the function|PGRST202|does not exist/i.test(
+          `${rpcErr.code ?? ""} ${rpcErr.message ?? ""}`,
+        );
+        if (!missing) {
+          debitError = rpcErr.message;
+        } else {
+          const newBal = Math.round((current - amt) * 1e8) / 1e8;
+          const { data: upd, error: dErr } = await (supabase as any)
+            .from("currency_wallets")
+            .update({ balance: newBal })
+            .eq("id", wallet.id)
+            .eq("user_id", user.id)
+            .select("id");
+          if (dErr) debitError = dErr.message;
+          else if (!upd?.length) debitError = "Your wallet could not be updated (permission denied). Please contact support.";
+        }
       }
+      if (debitError) {
+        await (supabase as any).from("transactions").update({ status: "failed" }).eq("id", tx.id);
+        throw new Error(debitError);
+      }
+
+      // Flag as debited so an admin approval never debits twice (same as Local Transfer)
+      await (supabase as any).rpc("mark_tx_debited", { p_tx_id: tx.id });
 
       // 4. Email (best-effort)
       try {
@@ -204,7 +275,7 @@ const CurrencyWalletDetail = () => {
             email: em,
             first_name: profile?.first_name || "",
             subject: "Wallet withdrawal submitted — Flexiq Verve",
-            message: `Your ${currency} wallet withdrawal of ${formatMoney(amt, currency)} to ${recipient.trim()} has been submitted and is pending processing.
+            message: `Your ${currency} wallet withdrawal of ${formatMoney(amt, currency)} to ${rec.name} has been submitted and is pending processing.
 
 For more information or complaints, please contact ${SUPPORT_EMAIL} or make use of the Live Chat on your dashboard for assistance.
 
@@ -219,13 +290,11 @@ Flexiq Verve Support Team`,
       qc.invalidateQueries({ queryKey: ["recent-tx"] });
       qc.invalidateQueries({ queryKey: ["notifications"] });
       toast.success("Withdrawal submitted");
-      setAmount("");
-      setRecipient("");
-      setAccNumber("");
-      setRouting("");
-      setDesc("");
+      resetWithdrawForm();
     } catch (e: any) {
-      toast.error(e?.message || "Withdrawal failed");
+      // Reopen the form with the real reason shown inline, values kept so the user can retry
+      setFormError(e?.message || "Withdrawal failed. Please try again.");
+      setWithdrawOpen(true);
     } finally {
       setSubmitting(false);
       setGateOpen(false);
@@ -281,6 +350,16 @@ Flexiq Verve Support Team`,
             </button>
           )}
         </div>
+
+        {notice && (
+          <div
+            role="alert"
+            className="mt-4 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-left text-sm text-red-700"
+          >
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>{notice}</span>
+          </div>
+        )}
       </div>
 
       {/* Same send chooser as the dashboard home; it carries on with the normal send flows */}
@@ -297,13 +376,41 @@ Flexiq Verve Support Team`,
         <>
           {/* Withdraw form -> CodeGate -> debit */}
           <Dialog open={withdrawOpen} onOpenChange={setWithdrawOpen}>
-            <DialogContent className="max-h-[90vh] overflow-y-auto font-sans sm:max-w-sm">
+            <DialogContent className="max-h-[90vh] overflow-y-auto font-sans sm:max-w-md">
               <DialogHeader>
                 <DialogTitle>Withdraw {currency}</DialogTitle>
                 <DialogDescription>Available: {formatMoney(balance, currency)}</DialogDescription>
               </DialogHeader>
-              <form onSubmit={onWithdrawFormSubmit} className="space-y-4">
-                <div className="space-y-2">
+              <form onSubmit={onWithdrawFormSubmit} className="space-y-4" noValidate>
+                {formError && (
+                  <div
+                    role="alert"
+                    className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700"
+                  >
+                    <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                    <span>{formError}</span>
+                  </div>
+                )}
+
+                {/* Domestic | International */}
+                <div className="grid grid-cols-2 rounded-full bg-muted p-1 text-sm font-semibold" role="tablist">
+                  {(["domestic", "international"] as WithdrawType[]).map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      role="tab"
+                      aria-selected={wType === t}
+                      onClick={() => switchType(t)}
+                      className={`rounded-full px-4 py-2 capitalize transition-colors ${
+                        wType === t ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground"
+                      }`}
+                    >
+                      {t}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="space-y-1.5">
                   <Label htmlFor="w-amount">Amount</Label>
                   <Input
                     id="w-amount"
@@ -311,47 +418,54 @@ Flexiq Verve Support Team`,
                     inputMode="decimal"
                     autoComplete="off"
                     value={amount}
-                    onChange={(e) => onAmountChange(e.target.value)}
+                    onChange={(e) => {
+                      onAmountChange(e.target.value);
+                      if (errors.amount) setErrors((er) => ({ ...er, amount: "" }));
+                      setFormError("");
+                    }}
                     placeholder={`Amount in ${currency}`}
-                    className="h-12 w-full min-w-0 rounded-xl px-4 text-base"
+                    className={`h-12 w-full min-w-0 rounded-xl px-4 text-base ${errors.amount ? "border-red-500" : ""}`}
                   />
+                  {errors.amount && <p role="alert" className="text-xs text-red-500">{errors.amount}</p>}
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="w-recipient">Recipient name</Label>
-                  <Input
-                    id="w-recipient"
-                    value={recipient}
-                    onChange={(e) => setRecipient(e.target.value)}
-                    className="h-12 rounded-xl px-4 text-base"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="w-acc">Account number</Label>
-                  <Input
-                    id="w-acc"
-                    value={accNumber}
-                    onChange={(e) => setAccNumber(e.target.value)}
-                    className="h-12 rounded-xl px-4 text-base"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="w-routing">Routing number (optional)</Label>
-                  <Input
-                    id="w-routing"
-                    value={routing}
-                    onChange={(e) => setRouting(e.target.value)}
-                    className="h-12 rounded-xl px-4 text-base"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="w-desc">Note (optional)</Label>
-                  <Input
-                    id="w-desc"
-                    value={desc}
-                    onChange={(e) => setDesc(e.target.value)}
-                    className="h-12 rounded-xl px-4 text-base"
-                  />
-                </div>
+
+                {fieldDefs.map((f) => (
+                  <div key={`${wType}-${f.key}`} className="space-y-1.5">
+                    <Label htmlFor={`w-${f.key}`}>
+                      {f.label}
+                      {f.required === false && <span className="text-muted-foreground"> (optional)</span>}
+                    </Label>
+                    {f.options ? (
+                      <select
+                        id={`w-${f.key}`}
+                        value={fields[f.key] || ""}
+                        onChange={(e) => setField(f.key, e.target.value)}
+                        className={`h-12 w-full rounded-xl border bg-background px-4 text-base focus:outline-none focus:ring-2 focus:ring-ring ${
+                          errors[f.key] ? "border-red-500" : "border-input"
+                        }`}
+                      >
+                        <option value="">Select</option>
+                        {f.options.map((o) => (
+                          <option key={o.value} value={o.value}>
+                            {o.label}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <Input
+                        id={`w-${f.key}`}
+                        value={fields[f.key] || ""}
+                        inputMode={f.inputMode}
+                        autoComplete="off"
+                        placeholder={f.placeholder}
+                        onChange={(e) => setField(f.key, normalizeValue(f, e.target.value))}
+                        className={`h-12 rounded-xl px-4 text-base ${errors[f.key] ? "border-red-500" : ""}`}
+                      />
+                    )}
+                    {errors[f.key] && <p role="alert" className="text-xs text-red-500">{errors[f.key]}</p>}
+                  </div>
+                ))}
+
                 <Button type="submit" disabled={submitting} className="h-12 w-full rounded-2xl text-base font-semibold">
                   Continue
                 </Button>
