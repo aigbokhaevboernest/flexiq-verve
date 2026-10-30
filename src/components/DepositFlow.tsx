@@ -259,7 +259,7 @@ const DepositFlow = ({ title, currency, fundTarget, onExit, onSubmit }: Props) =
           <div>
             <p className="font-semibold">Choose payment method</p>
             <p className="text-sm text-muted-foreground">
-              Paying {currency} {amount}
+              Paying {amount}
             </p>
           </div>
           {ASSET_ORDER.map(assetCard)}
@@ -286,9 +286,7 @@ const DepositFlow = ({ title, currency, fundTarget, onExit, onSubmit }: Props) =
               </div>
               <div className="shrink-0 text-right">
                 <p className="text-xs text-muted-foreground">Amount</p>
-                <p className="font-semibold">
-                  {currency} {amount}
-                </p>
+                <p className="font-semibold">{amount}</p>
               </div>
             </div>
 
@@ -353,7 +351,7 @@ const DepositFlow = ({ title, currency, fundTarget, onExit, onSubmit }: Props) =
             <DialogTitle className="mt-2">Pay by bank transfer</DialogTitle>
             <DialogDescription className="text-center">
               Contact support to pay by bank transfer. Our team will share the bank details to fund your {fundTarget} with{" "}
-              {currency} {amount}.
+              {amount}.
             </DialogDescription>
           </DialogHeader>
 
