@@ -241,8 +241,8 @@ const DepositFlow = ({ title, currency, fundTarget, onExit, onSubmit }: Props) =
               autoComplete="off"
               value={amount}
               onChange={(e) => onAmountChange(e.target.value)}
-              placeholder={`Amount in ${currency}`}
-              aria-label={`Amount in ${currency}`}
+              placeholder="Amount"
+              aria-label="Amount"
               className="h-14 w-full min-w-0 rounded-2xl bg-card px-4 text-base"
             />
           </div>
