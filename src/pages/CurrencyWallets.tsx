@@ -40,7 +40,9 @@ const CurrencyWallets = () => {
   const { data: wallets = [], isLoading } = useQuery<WalletRow[]>({
     queryKey,
     enabled: !!user,
-    staleTime: 60_000,
+    // Always refetch on open so wallets created elsewhere (or just now) are never missed
+    staleTime: 0,
+    refetchOnMount: "always",
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("currency_wallets")
@@ -75,10 +77,22 @@ const CurrencyWallets = () => {
     mutationFn: async (rawCurrency: string) => {
       // Always store the ISO code uppercase so it matches the /wallets/:currency lookup
       const currency = rawCurrency.toUpperCase();
-      const { error } = await (supabase as any)
+      const { data: created, error } = await (supabase as any)
         .from("currency_wallets")
-        .insert({ user_id: user!.id, currency, balance: 0 });
-      if (error) throw error;
+        .insert({ user_id: user!.id, currency, balance: 0 })
+        .select("id,currency,balance")
+        .single();
+      if (error) {
+        // 23505 = unique (user_id, currency): the wallet already exists
+        if (error.code === "23505") throw new Error(`You already have a ${currency} wallet.`);
+        throw error;
+      }
+
+      // Put the new row straight into the cache so the detail page finds it immediately
+      qc.setQueryData<WalletRow[]>(["currency-wallets", user!.id], (old) => {
+        const list = old || [];
+        return list.some((w) => w.id === created.id) ? list : [...list, created as WalletRow];
+      });
 
       // Email is best-effort: never blocks or fails adding the wallet
       try {
