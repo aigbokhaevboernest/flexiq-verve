@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, ArrowUpRight, Plus } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, Plus, Send } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -24,6 +24,13 @@ import { Flag, PrimaryBadge, currencyName, formatMoney } from "@/lib/walletCurre
 
 const SUPPORT_EMAIL = "support@flexiqverve.com";
 
+// TEMP: finds the dashboard's SendChooserModal wherever it lives under src/ without hard-coding
+// its path or export style. Once confirmed, replace with a normal import, e.g.
+//   import SendChooserModal from "@/components/SendChooserModal";
+const chooserMods = import.meta.glob("/src/**/SendChooserModal.tsx", { eager: true }) as Record<string, any>;
+const chooserMod: any = Object.values(chooserMods)[0];
+const SendChooserModal: any = chooserMod?.default ?? chooserMod?.SendChooserModal ?? null;
+
 type WalletRow = { id: string; currency: string; balance: number };
 type ProfileRow = Record<string, any>;
 
@@ -33,6 +40,9 @@ const CurrencyWalletDetail = () => {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { user } = useAuth();
+
+  // Send chooser (primary only)
+  const [sendOpen, setSendOpen] = useState(false);
 
   // Withdraw (non-primary only)
   const [withdrawOpen, setWithdrawOpen] = useState(false); // form dialog
@@ -243,8 +253,8 @@ Flexiq Verve Support Team`,
         <p className="mt-2 text-4xl font-bold">{formatMoney(balance, currency)}</p>
         <p className="mt-1 text-sm text-muted-foreground">{isPrimary ? "Account balance" : "Available balance"}</p>
 
-        {/* Primary currency: Fund only, no Withdraw */}
-        <div className={`mt-6 grid gap-3 ${isPrimary ? "grid-cols-1" : "grid-cols-2"}`}>
+        {/* Primary: Fund + Send (dashboard send chooser). Others: Fund + Withdraw */}
+        <div className="mt-6 grid grid-cols-2 gap-3">
           <button
             type="button"
             onClick={() => navigate(`/dashboard/wallets/${currency}/deposit`)}
@@ -252,6 +262,15 @@ Flexiq Verve Support Team`,
           >
             <Plus className="h-4 w-4" /> Fund
           </button>
+          {isPrimary && (
+            <button
+              type="button"
+              onClick={() => (SendChooserModal ? setSendOpen(true) : toast.error("Send is unavailable right now"))}
+              className="inline-flex items-center justify-center gap-1.5 rounded-2xl border border-border/60 px-4 py-3 text-sm font-semibold transition-colors hover:bg-muted"
+            >
+              <Send className="h-4 w-4" /> Send
+            </button>
+          )}
           {!isPrimary && (
             <button
               type="button"
@@ -263,6 +282,16 @@ Flexiq Verve Support Team`,
           )}
         </div>
       </div>
+
+      {/* Same send chooser as the dashboard home; it carries on with the normal send flows */}
+      {isPrimary && SendChooserModal && (
+        <SendChooserModal
+          open={sendOpen}
+          isOpen={sendOpen}
+          onOpenChange={setSendOpen}
+          onClose={() => setSendOpen(false)}
+        />
+      )}
 
       {!isPrimary && (
         <>
