@@ -23,7 +23,8 @@ import { sendEmail } from "@/lib/sendEmail";
 
 const SUPPORT_EMAIL = "support@flexiqverve.com";
 const ADMIN_NOTIFY_EMAIL = SUPPORT_EMAIL;
-const CURRENCIES = ["USD", "EUR", "GBP", "CAD", "AUD", "JPY", "CHF", "CNY"];
+// Any 3-letter ISO code is valid; ownership is checked against currency_wallets below.
+const ISO_CODE = /^[A-Z]{3}$/;
 
 type Method = "crypto" | "bank";
 type Step = "choose" | "crypto_method" | "crypto_pay" | "bank";
@@ -98,6 +99,7 @@ const WalletDeposit = () => {
   useEffect(() => {
     if (!user?.id) return;
     let cancelled = false;
+    setHasWallet(null);
     (async () => {
       const wal = await (supabase as any)
         .from("currency_wallets")
@@ -121,7 +123,7 @@ const WalletDeposit = () => {
       </div>
     );
 
-  if (!CURRENCIES.includes(walletCurrency) || !hasWallet) {
+  if (!ISO_CODE.test(walletCurrency) || !hasWallet) {
     return (
       <Dialog open onOpenChange={() => navigate("/dashboard/wallets")}>
         <DialogContent className="font-sans sm:max-w-md">
