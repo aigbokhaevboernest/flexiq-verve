@@ -234,34 +234,22 @@ const CurrencyWalletDetail = () => {
         .single();
       if (tErr) throw new Error(tErr.message || "Could not create the withdrawal. Please try again.");
 
-      // 3. Debit. Preferred: the debit_currency_wallet RPC (checks owner + balance in one step).
-      //    Falls back to a direct update only while that function hasn't been created yet.
-      let debitError: string | null = null;
+      // 3. Debit via the debit_currency_wallet RPC (SECURITY DEFINER: checks owner + balance atomically).
+      //    Clients no longer have UPDATE on currency_wallets, so there is no direct-update fallback.
       const { error: rpcErr } = await (supabase as any).rpc("debit_currency_wallet", {
         p_wallet_id: wallet.id,
         p_amount: amt,
       });
       if (rpcErr) {
-        const missing = /could not find the function|PGRST202|does not exist/i.test(
+        const missing = /could not find the function|PGRST202/i.test(
           `${rpcErr.code ?? ""} ${rpcErr.message ?? ""}`,
         );
-        if (!missing) {
-          debitError = rpcErr.message;
-        } else {
-          const newBal = Math.round((current - amt) * 1e8) / 1e8;
-          const { data: upd, error: dErr } = await (supabase as any)
-            .from("currency_wallets")
-            .update({ balance: newBal })
-            .eq("id", wallet.id)
-            .eq("user_id", user.id)
-            .select("id");
-          if (dErr) debitError = dErr.message;
-          else if (!upd?.length) debitError = "Your wallet could not be updated (permission denied). Please contact support.";
-        }
-      }
-      if (debitError) {
         await (supabase as any).from("transactions").update({ status: "failed" }).eq("id", tx.id);
-        throw new Error(debitError);
+        throw new Error(
+          missing
+            ? "Withdrawals are temporarily unavailable. Please contact support."
+            : rpcErr.message || "Your wallet could not be debited. Please try again.",
+        );
       }
 
       // Flag as debited so an admin approval never debits twice (same as Local Transfer)
