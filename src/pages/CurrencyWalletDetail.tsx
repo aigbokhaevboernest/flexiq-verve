@@ -60,7 +60,9 @@ const CurrencyWalletDetail = () => {
   const { data: wallets, isLoading } = useQuery<WalletRow[]>({
     queryKey: ["currency-wallets", user?.id],
     enabled: !!user,
-    staleTime: 60_000,
+    // Always refetch on open so a wallet created moments ago is never missed
+    staleTime: 0,
+    refetchOnMount: "always",
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("currency_wallets")
