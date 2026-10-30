@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { sendEmail } from "@/lib/sendEmail";
+import { getBalanceBreakdown } from "@/hooks/useTotalBalance";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Flag,
@@ -17,7 +18,8 @@ import {
 } from "@/lib/walletCurrencies";
 
 type WalletRow = { id: string; currency: string; balance: number };
-type ProfileRow = { first_name: string | null; email: string | null; currency: string | null; balance: number | null };
+// Full profile row: getBalanceBreakdown needs balance + checking/savings/retirement fields
+type ProfileRow = Record<string, any>;
 
 const CurrencyWallets = () => {
   const navigate = useNavigate();
@@ -55,7 +57,7 @@ const CurrencyWallets = () => {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("profiles")
-        .select("first_name,email,currency,balance")
+        .select("*")
         .eq("id", user!.id)
         .maybeSingle();
       if (error) throw error;
@@ -83,13 +85,13 @@ const CurrencyWallets = () => {
             first_name: profile?.first_name || "",
             subject: primaryAdd
               ? "You have added your primary currency to wallet — Flexiq Verve"
-              : "Currency wallet added — Flexiq Verve",
+              : "Currency wallet created — Flexiq Verve",
             message: primaryAdd
               ? `You have added your primary currency to wallet.
 
 Kind Regards,
 Flexiq Verve Support Team`
-              : `Your ${currency} wallet has been added. You can fund it from Wallets → Fund.
+              : `Your ${currency} wallet has been created. You can fund it from Wallets → Fund.
 
 Kind Regards,
 Flexiq Verve Support Team`,
@@ -100,7 +102,7 @@ Flexiq Verve Support Team`,
     onSuccess: (_d, currency) => {
       qc.invalidateQueries({ queryKey });
       closeAll();
-      toast.success(isPrimary(currency) ? "Primary currency added to wallet" : `${currency} wallet added`);
+      toast.success(isPrimary(currency) ? "Primary currency added to wallet" : `${currency} wallet created`);
     },
     onError: (e: any) => toast.error(e.message),
   });
@@ -127,7 +129,7 @@ Flexiq Verve Support Team`,
   const loading = !user || isLoading || profileLoading;
 
   const displayBalance = (w: WalletRow) =>
-    isPrimary(w.currency) ? Number(profile?.balance ?? 0) : Number(w.balance);
+    isPrimary(w.currency) && profile ? Number(getBalanceBreakdown(profile as any).total ?? 0) : Number(w.balance);
 
   return (
     <div className="mx-auto w-full max-w-2xl space-y-4 pb-28">
@@ -301,14 +303,14 @@ Flexiq Verve Support Team`,
             onClick={(e) => e.stopPropagation()}
           >
             <Flag currency={pending} className="mx-auto h-14 w-14" />
-            <h3 className="mt-4 font-display text-lg font-bold">Add {pending} wallet?</h3>
+            <h3 className="mt-4 font-display text-lg font-bold">{isPrimary(pending) ? "Add" : "Create"} {pending} wallet?</h3>
             <p className="mt-1 text-sm font-medium">{currencyName(pending)}</p>
             {isPrimary(pending) ? (
               <p className="mt-2 text-sm text-muted-foreground">This is your primary currency. Add to wallet?</p>
             ) : (
               <p className="mt-2 text-sm text-muted-foreground">
                 You'll be able to hold, receive and fund {pending} from this wallet. We'll email you a confirmation once
-                it's added.
+                it's created.
               </p>
             )}
             <div className="mt-6 grid grid-cols-2 gap-3">
@@ -326,7 +328,13 @@ Flexiq Verve Support Team`,
                 onClick={() => addWallet.mutate(pending)}
                 className="rounded-2xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-50"
               >
-                {addWallet.isPending ? "Adding…" : "Add"}
+                {addWallet.isPending
+                  ? isPrimary(pending)
+                    ? "Adding…"
+                    : "Creating…"
+                  : isPrimary(pending)
+                    ? "Add"
+                    : "Create"}
               </button>
             </div>
           </div>
