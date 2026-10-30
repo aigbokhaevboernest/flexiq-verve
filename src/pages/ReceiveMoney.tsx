@@ -134,7 +134,7 @@ Please verify if the deposit was actually received and log in to the admin dashb
 
   return (
     <DepositFlow
-      title="Make Payment"
+      title="Add funds"
       currency={cur}
       fundTarget="account"
       onExit={() => navigate("/dashboard")}
