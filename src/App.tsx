@@ -48,6 +48,7 @@ import WireTransfer from "./pages/WireTransfer.tsx";
 import CurrencyWallets from "./pages/CurrencyWallets.tsx";
 import CurrencyWalletDetail from "./pages/CurrencyWalletDetail.tsx";
 import WalletDeposit from "./pages/WalletDeposit.tsx";
+import LockedSavings from "./components/dashboard/LockedSavings.tsx";
 import { SplashScreen } from "./components/SplashScreen";
 import { useSessionTimeout } from "./hooks/useSessionTimeout";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
@@ -114,6 +115,7 @@ const App = () => (
                   <Route path="wallets" element={<CurrencyWallets />} />
                   <Route path="wallets/:currency" element={<CurrencyWalletDetail />} />
                   <Route path="wallets/:currency/deposit" element={<WalletDeposit />} />
+                  <Route path="locks" element={<LockedSavings />} />
                   <Route path="loans" element={<Loans />} />
                   <Route path="cards" element={<Cards />} />
                   <Route path="fx" element={<FxTransfer />} />
