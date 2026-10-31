@@ -26,7 +26,21 @@ const STATUS_COLOR: Record<string, string> = {
   failed: "#ef4444",
 };
 
-const activityTitle = (type: string) => {
+// Wallet fund requests use their own status words; map them onto the inbox ones.
+const depositStatus = (s: string) => {
+  const v = String(s || "").toLowerCase();
+  if (["approved", "completed", "confirmed", "paid"].includes(v)) return "completed";
+  if (["declined", "rejected", "failed", "cancelled"].includes(v)) return "failed";
+  return "pending";
+};
+
+const activityTitle = (type: string, t?: any) => {
+  if (t?.metadata?.wallet_withdraw || type === "wallet_withdraw") return "Wallet withdrawal";
+  if (type === "wallet_created") return "Currency wallet added";
+  if (type === "wallet_deposit") return "Wallet fund request";
+  if (type === "lock") return "Funds locked";
+  if (type === "lock_payout") return "Locked funds matured";
+  if (type === "lock_break") return "Lock broken early";
   if (type === "transfer_in") return "Money received";
   if (type === "transfer_out") return "Transfer sent";
   if (type === "loan_disbursement") return "Loan disbursed";
@@ -41,6 +55,8 @@ const Inbox = () => {
   const { data: notes = [], isLoading: notesLoading } = useQuery({
     queryKey: ["inbox-notifications", user?.id],
     enabled: !!user,
+    staleTime: 0,
+    refetchOnMount: "always",
     queryFn: async () => {
       const { data } = await (supabase as any)
         .from("notifications")
@@ -55,9 +71,28 @@ const Inbox = () => {
   const { data: txs = [], isLoading: txLoading } = useQuery({
     queryKey: ["inbox-transactions", user?.id],
     enabled: !!user,
+    staleTime: 0,
+    refetchOnMount: "always",
     queryFn: async () => {
       const { data } = await (supabase as any)
         .from("transactions")
+        .select("*")
+        .eq("user_id", user!.id)
+        .order("created_at", { ascending: false })
+        .limit(100);
+      return data || [];
+    },
+  });
+
+  // Wallet fund requests live in their own table, so load them here too
+  const { data: deposits = [], isLoading: depLoading } = useQuery({
+    queryKey: ["inbox-wallet-deposits", user?.id],
+    enabled: !!user,
+    staleTime: 0,
+    refetchOnMount: "always",
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("wallet_deposit_requests")
         .select("*")
         .eq("user_id", user!.id)
         .order("created_at", { ascending: false })
@@ -80,19 +115,28 @@ const Inbox = () => {
       return {
         id: `t-${t.id}`,
         kind: "activity",
-        title: activityTitle(t.type),
+        title: activityTitle(t.type, t),
         body: `${formatMoney(Math.abs(amt), t.currency || "USD")}${t.description ? " · " + t.description : ""}`,
         at: t.created_at,
         direction: amt > 0 ? "in" : "out",
         status,
       };
     });
-    return [...messages, ...activity]
+    const fundRequests: InboxItem[] = deposits.map((d: any) => ({
+      id: `d-${d.id}`,
+      kind: "activity",
+      title: "Wallet fund request",
+      body: `${formatMoney(Math.abs(Number(d.amount)), d.wallet_currency || "USD")}${d.crypto ? " · via " + d.crypto : ""}`,
+      at: d.created_at,
+      direction: "in",
+      status: depositStatus(d.status),
+    }));
+    return [...messages, ...activity, ...fundRequests]
       .filter((i) => filter === "all" || (filter === "messages" ? i.kind === "message" : i.kind === "activity"))
       .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
-  }, [notes, txs, filter]);
+  }, [notes, txs, deposits, filter]);
 
-  const loading = notesLoading || txLoading;
+  const loading = notesLoading || txLoading || depLoading;
 
   const chip = (value: Filter, label: string) => (
     <button
