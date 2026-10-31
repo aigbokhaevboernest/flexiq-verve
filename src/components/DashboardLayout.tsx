@@ -155,7 +155,7 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
           <Repeat className="h-4 w-4" /> Local Transfer
         </NavLink>
         <NavLink to="/dashboard/receive" onClick={onNavigate} className={linkClass}>
-          <Wallet className="h-4 w-4" /> + Add money
+          <Wallet className="h-4 w-4" /> Add money
         </NavLink>
         <NavLink to="/dashboard/locks" onClick={handleFrozenNav} className={linkClass}>
           <Lock className="h-4 w-4" /> Lock funds
