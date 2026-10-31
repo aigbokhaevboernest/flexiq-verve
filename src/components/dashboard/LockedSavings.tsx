@@ -10,7 +10,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { CodeGate } from "@/components/CodeGate";
 import { Flag, formatMoney } from "@/lib/walletCurrencies";
 import { getBalanceBreakdown } from "@/hooks/useTotalBalance";
 
@@ -47,11 +46,14 @@ const LockedSavings = () => {
   const [createErr, setCreateErr] = useState("");
   const [busy, setBusy] = useState(false);
 
-  // Detail / early break (break needs the unlock authorization code via CodeGate)
+  // Detail / early break (break needs a support-issued unlock code)
   const [selected, setSelected] = useState<LockRow | null>(null);
   const [confirmBreak, setConfirmBreak] = useState(false);
   const [gateOpen, setGateOpen] = useState(false);
   const [breakErr, setBreakErr] = useState("");
+  const [code, setCode] = useState("");
+  const [codeErr, setCodeErr] = useState("");
+  const [codeBusy, setCodeBusy] = useState(false);
 
   const refresh = () => {
     qc.invalidateQueries({ queryKey: ["locks", user?.id] });
@@ -184,20 +186,22 @@ const LockedSavings = () => {
     setBreakErr("");
   };
 
-  // Runs only after CodeGate verifies the unlock authorization code
-  const onBreakVerified = async () => {
+  // Early break needs the unlock code issued by support (checked inside the database function)
+  const submitUnlockCode = async () => {
     if (!selected) return;
-    try {
-      const { error } = await (supabase as any).rpc("break_lock", { p_lock_id: selected.id });
-      if (error) throw error;
-      toast.success("Lock broken. Principal returned, interest forfeited.");
-      closeDetail();
-      refresh();
-    } catch (e: any) {
-      setBreakErr(e?.message || "Could not break the lock. Please try again.");
-    } finally {
-      setGateOpen(false);
-    }
+    const c = code.trim();
+    if (!c) return setCodeErr("Enter your unlock code.");
+    setCodeBusy(true);
+    setCodeErr("");
+    const { data, error } = await (supabase as any).rpc("break_lock", { p_lock_id: selected.id, p_code: c });
+    setCodeBusy(false);
+    if (error) return setCodeErr(error.message || "Could not break the lock. Please try again.");
+    if (!data?.ok) return setCodeErr(data?.message || "Invalid unlock code.");
+    toast.success("Lock broken", { description: "Principal returned to your balance. Interest forfeited." });
+    setGateOpen(false);
+    setCode("");
+    closeDetail();
+    refresh();
   };
 
   const active = locks.filter((l) => l.status === "active");
@@ -429,6 +433,10 @@ const LockedSavings = () => {
                   </span>
                 </div>
                 <div className="flex justify-between">
+                  <span className="text-muted-foreground">Reference</span>
+                  <span className="font-mono font-semibold">{selected.id.slice(0, 8).toUpperCase()}</span>
+                </div>
+                <div className="flex justify-between">
                   <span className="text-muted-foreground">Unlock date</span>
                   <span className="font-semibold">{fmtDate(selected.maturity_at)}</span>
                 </div>
@@ -452,8 +460,8 @@ const LockedSavings = () => {
                   <div className="space-y-3">
                     <p className="text-sm text-muted-foreground">
                       Breaking early returns your {formatMoney(selected.amount, selected.currency)} but you will lose
-                      the {formatMoney(selected.interest_amount, selected.currency)} interest. You'll need your unlock
-                      authorization code.
+                      the {formatMoney(selected.interest_amount, selected.currency)} interest. You'll need an unlock code
+                      from support.
                     </p>
                     <div className="grid grid-cols-2 gap-3">
                       <Button variant="outline" className="h-11 rounded-2xl" onClick={() => setConfirmBreak(false)}>
@@ -464,6 +472,8 @@ const LockedSavings = () => {
                         className="h-11 rounded-2xl"
                         onClick={() => {
                           setBreakErr("");
+                          setCode("");
+                          setCodeErr("");
                           setGateOpen(true);
                         }}
                       >
@@ -488,7 +498,45 @@ const LockedSavings = () => {
         </DialogContent>
       </Dialog>
 
-      <CodeGate open={gateOpen} onOpenChange={setGateOpen} onVerified={onBreakVerified} />
+      {/* Unlock code gate (works like the Loan Authorization Code) */}
+      <Dialog open={gateOpen} onOpenChange={(o) => !codeBusy && setGateOpen(o)}>
+        <DialogContent className="font-sans sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Enter unlock code</DialogTitle>
+            <DialogDescription>
+              To break this lock early you need an unlock code from our support team. Contact support@flexiqverve.com or
+              use the Live Chat on your dashboard
+              {selected ? ` and quote reference ${selected.id.slice(0, 8).toUpperCase()}` : ""}.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            {codeErr && (
+              <div role="alert" className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700">
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>{codeErr}</span>
+              </div>
+            )}
+            <div className="space-y-1.5">
+              <Label htmlFor="l-code">Unlock code</Label>
+              <Input
+                id="l-code"
+                value={code}
+                autoComplete="off"
+                autoCapitalize="characters"
+                onChange={(e) => {
+                  setCode(e.target.value);
+                  setCodeErr("");
+                }}
+                placeholder="Enter code"
+                className="h-12 rounded-xl px-4 text-base tracking-widest"
+              />
+            </div>
+            <Button onClick={submitUnlockCode} disabled={codeBusy} className="h-12 w-full rounded-2xl text-base font-semibold">
+              {codeBusy ? "Verifying…" : "Unlock funds"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
