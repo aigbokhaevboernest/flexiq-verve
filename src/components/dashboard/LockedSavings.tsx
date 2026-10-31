@@ -12,6 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { CodeGate } from "@/components/CodeGate";
 import { Flag, formatMoney } from "@/lib/walletCurrencies";
+import { getBalanceBreakdown } from "@/hooks/useTotalBalance";
 
 type LockRow = {
   id: string;
@@ -125,10 +126,10 @@ const LockedSavings = () => {
   });
 
   const primaryCur = String(profile?.currency || "").toUpperCase();
-  // Sources: main spendable balance + every non-primary currency wallet
+  // Sources: dashboard total (main + opened secondary accounts) + every non-primary currency wallet
   const sources = [
     ...(profile && primaryCur
-      ? [{ key: "primary", label: `${primaryCur} · main balance`, currency: primaryCur, balance: Number(profile.balance ?? 0) }]
+      ? [{ key: "primary", label: `${primaryCur} · account balance`, currency: primaryCur, balance: getBalanceBreakdown(profile).total }]
       : []),
     ...wallets
       .filter((w) => w.currency !== primaryCur)
@@ -352,6 +353,12 @@ const LockedSavings = () => {
                 placeholder="0.00"
                 className="h-12 rounded-xl px-4 text-base"
               />
+              {src && (
+                <p className="text-xs text-muted-foreground">
+                  Available: {formatMoney(src.balance, src.currency)}
+                  {src.key === "primary" ? " (includes your opened accounts)" : ""}
+                </p>
+              )}
             </div>
 
             <div className="space-y-1.5">
