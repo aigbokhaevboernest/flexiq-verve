@@ -10,6 +10,7 @@ import {
   Headphones,
   Landmark,
   LayoutDashboard,
+  Lock,
   LogOut,
   Menu,
   MoonStar,
@@ -155,6 +156,9 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
         </NavLink>
         <NavLink to="/dashboard/receive" onClick={onNavigate} className={linkClass}>
           <Wallet className="h-4 w-4" /> + Add money
+        </NavLink>
+        <NavLink to="/dashboard/locks" onClick={handleFrozenNav} className={linkClass}>
+          <Lock className="h-4 w-4" /> Lock funds
         </NavLink>
         <NavLink to="/dashboard/loans" onClick={handleFrozenNav} className={linkClass}>
           <Banknote className="h-4 w-4" /> Quick Loans
