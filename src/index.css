@@ -211,4 +211,44 @@
   --sidebar-accent-foreground: 205 85% 60%;
 }
 
+/* Backgrounds */
+[class*="bg-purple-"], [class*="bg-violet-"],
+[class*="bg-indigo-"], [class*="bg-fuchsia-"] {
+  background-color: hsl(210 80% 38%) !important;
+}
+/* Light tints */
+[class*="bg-purple-50"], [class*="bg-purple-100"],
+[class*="bg-violet-50"], [class*="bg-violet-100"],
+[class*="bg-indigo-50"], [class*="bg-indigo-100"] {
+  background-color: hsl(210 60% 95%) !important;
+}
+
+/* Text and borders */
+[class*="text-purple-"], [class*="text-violet-"],
+[class*="text-indigo-"], [class*="text-fuchsia-"] {
+  color: hsl(210 80% 38%) !important;
+}
+[class*="border-purple-"], [class*="border-violet-"],
+[class*="border-indigo-"], [class*="border-fuchsia-"] {
+  border-color: hsl(210 80% 38%) !important;
+}
+
+/* Gradients (this is most likely your header) */
+[class*="from-purple-"], [class*="from-violet-"],
+[class*="from-indigo-"], [class*="from-fuchsia-"] {
+  --tw-gradient-from: hsl(210 80% 38%) !important;
+}
+[class*="via-purple-"], [class*="via-violet-"],
+[class*="via-indigo-"], [class*="via-fuchsia-"] {
+  --tw-gradient-stops: var(--tw-gradient-from), hsl(205 85% 55%), var(--tw-gradient-to, transparent) !important;
+}
+[class*="to-purple-"], [class*="to-violet-"],
+[class*="to-indigo-"], [class*="to-fuchsia-"] {
+  --tw-gradient-to: hsl(200 85% 60%) !important;
+}
+
+/* Inline hardcoded purple hex colors */
+[style*="#7c3aed" i], [style*="#8b5cf6" i], [style*="#6d28d9" i], [style*="#6366f1" i] {
+  background: hsl(210 80% 38%) !important;
+}
 
