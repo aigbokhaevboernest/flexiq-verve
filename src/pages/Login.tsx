@@ -551,11 +551,11 @@ const ForgotPasswordModal = ({
 
 // ─── Main Login Page ──────────────────────────────────────────────────────────
 
-// Background photo lives at public/login-bg.JPG (file names are case-sensitive on the server)
+// Photo lives in public/login-bg.JPG (name is case-sensitive)
 const LOGIN_BG = "/login-bg.JPG";
 
 const darkInput =
-  "h-12 rounded-xl border-white/15 bg-white/5 pl-10 text-white placeholder:text-white/40 focus-visible:border-[hsl(212_72%_58%)] focus-visible:ring-2 focus-visible:ring-[hsl(212_72%_58%)]/30 focus-visible:ring-offset-0";
+  "h-12 rounded-xl border-white/15 bg-white/5 pl-10 text-white placeholder:text-white/40 focus-visible:border-[hsl(212_72%_58%)] focus-visible:ring-2 focus-visible:ring-[rgba(74,144,226,0.35)] focus-visible:ring-offset-0";
 const darkIcon =
   "pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/45";
 
@@ -646,7 +646,10 @@ const Login = () => {
       style={{ backgroundImage: `url(${LOGIN_BG})` }}
     >
       {/* Dark overlay keeps the photo subtle and the card readable */}
-      <div className="absolute inset-0 bg-gradient-to-b from-[hsl(222_60%_8%)]/65 via-[hsl(222_55%_10%)]/40 to-[hsl(222_60%_6%)]/75" />
+      <div
+        className="absolute inset-0"
+        style={{ background: "linear-gradient(180deg, rgba(8,14,32,0.72) 0%, rgba(8,14,32,0.62) 50%, rgba(8,14,32,0.82) 100%)" }}
+      />
 
       <div className="relative z-10 w-full max-w-md animate-fade-in">
         <Link to="/" className="mb-6 flex items-center justify-center">
@@ -659,7 +662,10 @@ const Login = () => {
           />
         </Link>
 
-        <div className="rounded-3xl border border-white/10 bg-[hsl(222_45%_13%)]/90 p-7 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.7)] backdrop-blur-xl sm:p-9">
+        <div
+          className="rounded-2xl border border-white/10 p-7 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.7)] sm:p-9"
+          style={{ backgroundColor: "#17233F" }}
+        >
           <div className="mb-7 text-center">
             <h1 className="font-display text-2xl font-bold tracking-tight text-white">Sign in to your account</h1>
             <p className="mt-1.5 text-sm text-white/60">Enter your details to continue.</p>
