@@ -5,7 +5,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Link, useNavigate } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
-import { Eye, EyeOff, ShieldCheck, ArrowLeft, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Eye, EyeOff, ShieldCheck, ArrowLeft, Loader2, AlertCircle, CheckCircle2, User, Lock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { BrandLogo } from "@/components/BrandLogo";
 import { sendEmail } from "@/lib/sendEmail";
@@ -629,28 +629,39 @@ const Login = () => {
       </div>
 
       <div className="w-full max-w-md">
+        <Link to="/" className="mb-5 flex items-center justify-center">
+          <BrandLogo
+            className="h-16 w-auto object-contain sm:h-20"
+            style={{
+              filter:
+                "drop-shadow(1px 0 0 #fff) drop-shadow(-1px 0 0 #fff) drop-shadow(0 1px 0 #fff) drop-shadow(0 -1px 0 #fff)",
+            }}
+          />
+        </Link>
+
         <div className="overflow-hidden rounded-3xl border border-white/10 bg-white shadow-elev animate-fade-in">
-          <div className="border-b border-primary/10 bg-gradient-to-b from-primary/10 to-white px-8 pb-5 pt-6 text-center sm:px-10">
-            <Link to="/" className="flex flex-col items-center justify-center">
-              <BrandLogo className="h-14 w-auto object-contain sm:h-16" />
-            </Link>
-            <h1 className="mt-2 font-display text-2xl font-bold tracking-tight text-primary">Welcome back</h1>
-            <p className="mt-1 text-sm text-muted-foreground">Sign in to take control of your finances.</p>
+          <div className="bg-[linear-gradient(135deg,hsl(214_62%_38%),hsl(218_60%_24%))] px-8 py-6 text-center sm:px-10">
+            <h1 className="font-display text-2xl font-bold tracking-tight text-white">Welcome back</h1>
+            <p className="mt-1 text-sm text-white/75">Sign in to take control of your finances.</p>
           </div>
 
           <div className="px-8 py-6 sm:px-10">
             <form className="space-y-4" onSubmit={handleSubmit}>
               <div className="space-y-2">
                 <Label htmlFor="id">Email or User ID</Label>
-                <Input
-                  id="id"
-                  type="text"
-                  value={identifier}
-                  onChange={(e) => setIdentifier(e.target.value)}
-                  placeholder=""
-                  required
-                  autoComplete="username"
-                />
+                <div className="relative">
+                  <User className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    id="id"
+                    type="text"
+                    value={identifier}
+                    onChange={(e) => setIdentifier(e.target.value)}
+                    placeholder=""
+                    required
+                    autoComplete="username"
+                    className="pl-10"
+                  />
+                </div>
               </div>
 
               <div className="space-y-2">
@@ -665,6 +676,7 @@ const Login = () => {
                   </button>
                 </div>
                 <div className="relative">
+                  <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     id="pwd"
                     type={showPwd ? "text" : "password"}
@@ -673,6 +685,7 @@ const Login = () => {
                     placeholder="••••••••"
                     required
                     autoComplete="current-password"
+                    className="pl-10"
                   />
                   <button
                     type="button"
