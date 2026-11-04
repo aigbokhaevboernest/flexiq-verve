@@ -74,11 +74,13 @@
 
    <!-- Start of Tidio chat code -->
    <script src="//code.tidio.co/adycjwsvby1wec0c9es41p7uepd8z3co.js" async></script>
-   <!-- Keep the Tidio bubble above the mobile bottom nav; the opened chat stays full-size -->
+   <!-- Lift the Tidio bubble above the mobile bottom nav (transform wins even if Tidio sets bottom inline).
+        The opened chat window is left alone via the tidio-open class. -->
    <style>
      @media (max-width: 767px) {
-       html:not(.tidio-open) #tidio-chat-iframe {
-         bottom: calc(96px + env(safe-area-inset-bottom, 0px)) !important;
+       html:not(.tidio-open) #tidio-chat-iframe,
+       html:not(.tidio-open) #tidio-chat iframe {
+         transform: translateY(calc(-96px - env(safe-area-inset-bottom, 0px))) !important;
        }
      }
    </style>
