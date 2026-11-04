@@ -5,7 +5,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Link, useNavigate } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
-import { Eye, EyeOff, ShieldCheck, ArrowLeft, Loader2, AlertCircle, CheckCircle2, User, Lock } from "lucide-react";
+import { Eye, EyeOff, ShieldCheck, ArrowLeft, Loader2, CheckCircle2, User, Lock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { BrandLogo } from "@/components/BrandLogo";
 import { sendEmail } from "@/lib/sendEmail";
@@ -17,35 +17,6 @@ const generateCode = () => Math.floor(100000 + Math.random() * 900000).toString(
 
 type ForgotStep = "email" | "code" | "password";
 type OtpStatus = "idle" | "error" | "success";
-
-const InlineNotice = ({
-  type = "error",
-  dark = false,
-  children,
-}: {
-  type?: "error" | "success";
-  dark?: boolean;
-  children: React.ReactNode;
-}) => {
-  const isError = type === "error";
-  const Icon = isError ? AlertCircle : CheckCircle2;
-  const tone = dark
-    ? isError
-      ? "border-red-400/30 bg-red-500/15 text-red-200"
-      : "border-emerald-400/30 bg-emerald-500/15 text-emerald-200"
-    : isError
-    ? "border-red-200 bg-red-50 text-red-700"
-    : "border-emerald-200 bg-emerald-50 text-emerald-700";
-  return (
-    <div
-      role={isError ? "alert" : "status"}
-      className={`flex items-start gap-2 rounded-xl border px-3 py-2.5 text-sm ${tone}`}
-    >
-      <Icon className="mt-0.5 h-4 w-4 shrink-0" />
-      <span>{children}</span>
-    </div>
-  );
-};
 
 // ─── Segmented code input ─────────────────────────────────────────────────────
 // One hidden real <input> holds the value (so paste, backspace and SMS
@@ -415,9 +386,6 @@ const ForgotPasswordModal = ({
         </DialogHeader>
 
         <div className="mt-2 space-y-4">
-          {error && <InlineNotice>{error}</InlineNotice>}
-          {info && <InlineNotice type="success">{info}</InlineNotice>}
-
           {step === "email" && (
             <>
               <p className="text-sm text-muted-foreground">
@@ -432,7 +400,9 @@ const ForgotPasswordModal = ({
                   onChange={(e) => setEmailInput(e.target.value)}
                   placeholder="you@example.com"
                   onKeyDown={(e) => e.key === "Enter" && handleEmailSubmit()}
+                  className={error ? "border-red-400 focus-visible:ring-red-400" : ""}
                 />
+                {error && <p role="alert" className="text-xs text-red-500">{error}</p>}
               </div>
               <Button
                 onClick={handleEmailSubmit}
@@ -462,6 +432,8 @@ const ForgotPasswordModal = ({
                   status={otpStatus}
                   disabled={loading || otpStatus === "success"}
                 />
+                {error && <p role="alert" className="mt-3 text-center text-xs text-red-500">{error}</p>}
+                {!error && info && <p role="status" className="mt-3 text-center text-xs text-emerald-600">{info}</p>}
               </div>
 
               <Button
@@ -533,6 +505,7 @@ const ForgotPasswordModal = ({
                     {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
+                {error && <p role="alert" className="text-xs text-red-500">{error}</p>}
               </div>
               <Button
                 onClick={handlePasswordSubmit}
@@ -556,6 +529,10 @@ const LOGIN_BG = "/login-bg.JPG";
 
 const darkInput =
   "h-12 rounded-xl border-white/15 bg-white/5 pl-10 text-white placeholder:text-white/40 focus-visible:border-[hsl(212_72%_58%)] focus-visible:ring-2 focus-visible:ring-[rgba(74,144,226,0.35)] focus-visible:ring-offset-0";
+const darkInputError = darkInput
+  .replace("border-white/15", "border-red-400")
+  .replace("focus-visible:border-[hsl(212_72%_58%)]", "focus-visible:border-red-400")
+  .replace("focus-visible:ring-[rgba(74,144,226,0.35)]", "focus-visible:ring-[rgba(248,113,113,0.35)]");
 const darkIcon =
   "pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/45";
 
@@ -566,7 +543,9 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [forgotOpen, setForgotOpen] = useState(false);
-  const [error, setError] = useState("");
+  const [identifierError, setIdentifierError] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [formError, setFormError] = useState("");
   const [notice, setNotice] = useState("");
 
   if (typeof window !== "undefined" && sessionStorage.getItem("flexiq_blocked") === "1") {
@@ -575,7 +554,9 @@ const Login = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
+    setIdentifierError("");
+    setPasswordError("");
+    setFormError("");
     setNotice("");
     setSubmitting(true);
 
@@ -584,7 +565,7 @@ const Login = () => {
       const { data, error } = await supabase.rpc("get_email_by_username", { _username: email });
       if (error || !data) {
         setSubmitting(false);
-        setError("No account found for that username.");
+        setIdentifierError("No account found for that username.");
         return;
       }
       email = (data as string).toLowerCase();
@@ -607,7 +588,7 @@ const Login = () => {
       });
     } catch {
       setSubmitting(false);
-      setError("Network error. Check your connection and try again.");
+      setFormError("Network error. Check your connection and try again.");
       return;
     }
 
@@ -615,12 +596,13 @@ const Login = () => {
 
     if (!res.ok) {
       setSubmitting(false);
-      const msg = result?.error === "Incorrect password"
-        ? "Incorrect password."
-        : result?.error === "Account is blocked"
-        ? "Your account has been blocked. Please contact support."
-        : result?.error ?? "Sign in failed.";
-      setError(msg);
+      if (result?.error === "Incorrect password") {
+        setPasswordError("Incorrect password.");
+      } else if (result?.error === "Account is blocked") {
+        setIdentifierError("Your account has been blocked. Please contact support.");
+      } else {
+        setFormError(result?.error ?? "Sign in failed.");
+      }
       return;
     }
 
@@ -631,7 +613,7 @@ const Login = () => {
 
     if (sessionErr) {
       setSubmitting(false);
-      setError("Could not establish session. Please try again.");
+      setFormError("Could not establish session. Please try again.");
       return;
     }
 
@@ -680,13 +662,19 @@ const Login = () => {
                   id="id"
                   type="text"
                   value={identifier}
-                  onChange={(e) => setIdentifier(e.target.value)}
+                  onChange={(e) => {
+                    setIdentifier(e.target.value);
+                    if (identifierError) setIdentifierError("");
+                  }}
                   placeholder="Enter your email or User ID"
                   required
                   autoComplete="username"
-                  className={darkInput}
+                  className={identifierError ? darkInputError : darkInput}
                 />
               </div>
+              {identifierError && (
+                <p role="alert" className="text-xs text-red-300">{identifierError}</p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -706,11 +694,14 @@ const Login = () => {
                   id="pwd"
                   type={showPwd ? "text" : "password"}
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (passwordError) setPasswordError("");
+                  }}
                   placeholder="Enter your password"
                   required
                   autoComplete="current-password"
-                  className={`${darkInput} pr-11`}
+                  className={`${passwordError ? darkInputError : darkInput} pr-11`}
                 />
                 <button
                   type="button"
@@ -721,10 +712,17 @@ const Login = () => {
                   {showPwd ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
+              {passwordError && (
+                <p role="alert" className="text-xs text-red-300">{passwordError}</p>
+              )}
             </div>
 
-            {notice && <InlineNotice type="success" dark>{notice}</InlineNotice>}
-            {error && <InlineNotice dark>{error}</InlineNotice>}
+            {notice && (
+              <p role="status" className="text-center text-xs text-emerald-300">{notice}</p>
+            )}
+            {formError && (
+              <p role="alert" className="text-center text-xs text-red-300">{formError}</p>
+            )}
 
             <label className="flex items-center gap-2.5 text-sm text-white/70">
               <Checkbox
@@ -762,7 +760,9 @@ const Login = () => {
         open={forgotOpen}
         onClose={() => setForgotOpen(false)}
         onDone={() => {
-          setError("");
+          setIdentifierError("");
+          setPasswordError("");
+          setFormError("");
           setNotice("Password changed successfully. You can now sign in.");
         }}
       />
