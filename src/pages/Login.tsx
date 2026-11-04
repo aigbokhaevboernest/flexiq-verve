@@ -551,6 +551,9 @@ const ForgotPasswordModal = ({
 
 // ─── Main Login Page ──────────────────────────────────────────────────────────
 
+// Background photo lives at public/login-bg.JPG (file names are case-sensitive on the server)
+const LOGIN_BG = "/login-bg.JPG";
+
 const darkInput =
   "h-12 rounded-xl border-white/15 bg-white/5 pl-10 text-white placeholder:text-white/40 focus-visible:border-[hsl(212_72%_58%)] focus-visible:ring-2 focus-visible:ring-[hsl(212_72%_58%)]/30 focus-visible:ring-offset-0";
 const darkIcon =
@@ -640,7 +643,7 @@ const Login = () => {
   return (
     <div
       className="page-enter relative flex min-h-screen items-center justify-center bg-navy bg-cover bg-center px-4 py-8"
-      style={{ backgroundImage: "url('/login-bg.jpg')" }}
+      style={{ backgroundImage: `url(${LOGIN_BG})` }}
     >
       {/* Dark overlay keeps the photo subtle and the card readable */}
       <div className="absolute inset-0 bg-gradient-to-b from-[hsl(222_60%_8%)]/65 via-[hsl(222_55%_10%)]/40 to-[hsl(222_60%_6%)]/75" />
