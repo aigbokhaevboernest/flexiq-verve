@@ -643,7 +643,7 @@ const Login = () => {
       style={{ backgroundImage: "url('/login-bg.jpg')" }}
     >
       {/* Dark overlay keeps the photo subtle and the card readable */}
-      <div className="absolute inset-0 bg-gradient-to-b from-[hsl(222_60%_7%)]/85 via-[hsl(222_55%_10%)]/75 to-[hsl(222_60%_5%)]/95" />
+      <div className="absolute inset-0 bg-gradient-to-b from-[hsl(222_60%_8%)]/65 via-[hsl(222_55%_10%)]/40 to-[hsl(222_60%_6%)]/75" />
 
       <div className="relative z-10 w-full max-w-md animate-fade-in">
         <Link to="/" className="mb-6 flex items-center justify-center">
@@ -658,8 +658,8 @@ const Login = () => {
 
         <div className="rounded-3xl border border-white/10 bg-[hsl(222_45%_13%)]/90 p-7 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.7)] backdrop-blur-xl sm:p-9">
           <div className="mb-7 text-center">
-            <h1 className="font-display text-2xl font-bold tracking-tight text-white">Welcome back</h1>
-            <p className="mt-1.5 text-sm text-white/60">Sign in to take control of your finances.</p>
+            <h1 className="font-display text-2xl font-bold tracking-tight text-white">Sign in to your account</h1>
+            <p className="mt-1.5 text-sm text-white/60">Enter your details to continue.</p>
           </div>
 
           <form className="space-y-5" onSubmit={handleSubmit}>
