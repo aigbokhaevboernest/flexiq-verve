@@ -4,7 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Link, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Eye, EyeOff, ShieldCheck, ArrowLeft, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { BrandLogo } from "@/components/BrandLogo";
@@ -16,6 +16,7 @@ const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 const generateCode = () => Math.floor(100000 + Math.random() * 900000).toString();
 
 type ForgotStep = "email" | "code" | "password";
+type OtpStatus = "idle" | "error" | "success";
 
 const InlineNotice = ({ type = "error", children }: { type?: "error" | "success"; children: React.ReactNode }) => {
   const isError = type === "error";
@@ -35,6 +36,125 @@ const InlineNotice = ({ type = "error", children }: { type?: "error" | "success"
   );
 };
 
+// ─── Segmented code input ─────────────────────────────────────────────────────
+// One hidden real <input> holds the value (so paste, backspace and SMS
+// autofill all work natively). The six boxes are just a visual layer.
+
+const OtpInput = ({
+  value,
+  onChange,
+  length = 6,
+  status = "idle",
+  disabled = false,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  length?: number;
+  status?: OtpStatus;
+  disabled?: boolean;
+}) => {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [focused, setFocused] = useState(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => inputRef.current?.focus(), 150);
+    return () => clearTimeout(t);
+  }, []);
+
+  // Re-focus after an error clears the code
+  useEffect(() => {
+    if (status === "idle" && value === "") inputRef.current?.focus();
+  }, [status, value]);
+
+  const activeIndex = Math.min(value.length, length - 1);
+
+  return (
+    <div className="relative">
+      <style>{`
+        @keyframes otp-pop {
+          0%   { transform: scale(0.4); opacity: 0; }
+          60%  { transform: scale(1.18); opacity: 1; }
+          100% { transform: scale(1); opacity: 1; }
+        }
+        @keyframes otp-shake {
+          10%, 90% { transform: translateX(-2px); }
+          20%, 80% { transform: translateX(3px); }
+          30%, 50%, 70% { transform: translateX(-6px); }
+          40%, 60% { transform: translateX(6px); }
+        }
+        @keyframes otp-caret {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0; }
+        }
+        .otp-pop { animation: otp-pop 0.22s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+        .otp-shake { animation: otp-shake 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97) both; }
+        .otp-caret { animation: otp-caret 1s steps(1) infinite; }
+        @media (prefers-reduced-motion: reduce) {
+          .otp-pop, .otp-shake, .otp-caret { animation: none; }
+        }
+      `}</style>
+
+      <div className={`flex justify-center gap-2 ${status === "error" ? "otp-shake" : ""}`}>
+        {Array.from({ length }).map((_, i) => {
+          const digit = value[i] ?? "";
+          const isActive = focused && i === activeIndex && status === "idle";
+          const isFilled = digit !== "";
+
+          const tone =
+            status === "error"
+              ? "border-red-400 bg-red-50 text-red-600"
+              : status === "success"
+              ? "border-emerald-400 bg-emerald-50 text-emerald-600"
+              : isActive
+              ? "border-primary bg-white text-foreground ring-4 ring-primary/20 -translate-y-0.5"
+              : isFilled
+              ? "border-primary/40 bg-white text-foreground"
+              : "border-border bg-white text-foreground";
+
+          return (
+            <div
+              key={i}
+              className={`relative flex h-14 w-11 items-center justify-center rounded-xl border text-2xl font-semibold shadow-[0_4px_14px_-6px_rgba(15,23,42,0.25)] transition-all duration-200 sm:h-16 sm:w-12 sm:text-3xl ${tone}`}
+            >
+              {isFilled && (
+                <span key={`${i}-${digit}`} className="otp-pop">
+                  {digit}
+                </span>
+              )}
+              {isActive && !isFilled && (
+                <span className="otp-caret absolute h-6 w-0.5 rounded-full bg-primary" />
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      <input
+        ref={inputRef}
+        type="text"
+        inputMode="numeric"
+        autoComplete="one-time-code"
+        pattern="[0-9]*"
+        maxLength={length}
+        value={value}
+        disabled={disabled}
+        aria-label={`${length}-digit code`}
+        onChange={(e) => onChange(e.target.value.replace(/\D/g, "").slice(0, length))}
+        onFocus={(e) => {
+          setFocused(true);
+          const end = e.target.value.length;
+          e.target.setSelectionRange(end, end);
+        }}
+        onBlur={() => setFocused(false)}
+        className="absolute inset-0 h-full w-full cursor-text opacity-0"
+        style={{ caretColor: "transparent" }}
+      />
+    </div>
+  );
+};
+
+// ─── Forgot password modal ────────────────────────────────────────────────────
+
 const ForgotPasswordModal = ({
   open,
   onClose,
@@ -49,100 +169,166 @@ const ForgotPasswordModal = ({
   const [emailInput, setEmailInput] = useState("");
   const [foundUser, setFoundUser] = useState<{ email: string; first_name: string } | null>(null);
   const [codeInput, setCodeInput] = useState("");
+  const [otpStatus, setOtpStatus] = useState<OtpStatus>("idle");
+  const [resendIn, setResendIn] = useState(0);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [error, setError] = useState("");
+  const [info, setInfo] = useState("");
+
+  // Resend countdown
+  useEffect(() => {
+    if (resendIn <= 0) return;
+    const t = setTimeout(() => setResendIn((s) => s - 1), 1000);
+    return () => clearTimeout(t);
+  }, [resendIn]);
+
+  // Auto-verify as soon as the 6th digit is typed
+  useEffect(() => {
+    if (step === "code" && codeInput.length === 6 && otpStatus === "idle" && !loading) {
+      handleCodeSubmit(codeInput);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [codeInput, step]);
 
   const resetModal = () => {
     setStep("email");
     setEmailInput("");
     setFoundUser(null);
     setCodeInput("");
+    setOtpStatus("idle");
+    setResendIn(0);
     setNewPassword("");
     setConfirmPassword("");
     setLoading(false);
     setError("");
+    setInfo("");
   };
 
   const handleClose = () => { resetModal(); onClose(); };
 
+  // Creates a fresh code, stores it, and emails it
+  const issueCode = async (email: string, firstName: string) => {
+    const code = generateCode();
+
+    await (supabase as any)
+      .from("password_reset_codes")
+      .delete()
+      .eq("email", email)
+      .eq("used", false);
+
+    const { error: insertError } = await (supabase as any)
+      .from("password_reset_codes")
+      .insert({ email, code });
+
+    if (insertError) return false;
+
+    await sendEmail({
+      email,
+      first_name: firstName,
+      subject: "Your Password Reset Code — Flexiq Verve",
+      message: `<strong>Your Password Reset Code:</strong><br/><table cellpadding="0" cellspacing="0" border="0" style="margin:4px 0;"><tr><td style="background:#f8fafc; border:2px dashed #e2e8f0; border-radius:10px; padding:14px 24px;"><span style="font-size:26px; font-weight:700; letter-spacing:6px; font-family:'Courier New',monospace; color:#111827;">${code}</span></td></tr></table><br/>Enter this code on the Flexiq Verve password reset page. This code expires in <strong>15 minutes</strong>. Do not share this code with anyone for your security.<br/><br/>For more information or complaints, please contact <a href="mailto:support@flexiqverve.com" style="color:#2563eb;">support@flexiqverve.com</a> or make use of the Live Chat on your dashboard for assistance.`,
+    });
+
+    return true;
+  };
+
   const handleEmailSubmit = async () => {
     if (!emailInput.trim()) return;
     setError("");
+    setInfo("");
     setLoading(true);
 
-    const { data: profileData, error } = await supabase
-      .rpc("get_profile_by_email", { _email: emailInput.trim().toLowerCase() });
+    const email = emailInput.trim().toLowerCase();
+
+    const { data: profileData, error: rpcError } = await supabase
+      .rpc("get_profile_by_email", { _email: email });
 
     const user = Array.isArray(profileData) ? profileData[0] : profileData;
 
-    if (error || !user) {
+    if (rpcError || !user) {
       setLoading(false);
       setError("No account found with that email address.");
       return;
     }
 
     const firstName = (user as any).full_name?.split(" ")[0] ?? "there";
-    const code = generateCode();
+    const ok = await issueCode(email, firstName);
 
-    await (supabase as any)
-      .from("password_reset_codes")
-      .delete()
-      .eq("email", emailInput.trim().toLowerCase())
-      .eq("used", false);
-
-    const { error: insertError } = await (supabase as any)
-      .from("password_reset_codes")
-      .insert({ email: emailInput.trim().toLowerCase(), code });
-
-    if (insertError) {
+    if (!ok) {
       setLoading(false);
       setError("Something went wrong. Please try again.");
       return;
     }
 
-    await sendEmail({
-      email: emailInput.trim().toLowerCase(),
-      first_name: firstName,
-      subject: "Your Password Reset Code — Flexiq Verve",
-      message: `<strong>Your Password Reset Code:</strong><br/><table cellpadding="0" cellspacing="0" border="0" style="margin:4px 0;"><tr><td style="background:#f8fafc; border:2px dashed #e2e8f0; border-radius:10px; padding:14px 24px;"><span style="font-size:26px; font-weight:700; letter-spacing:6px; font-family:'Courier New',monospace; color:#111827;">${code}</span></td></tr></table><br/>Enter this code on the Flexiq Verve password reset page. This code expires in <strong>15 minutes</strong>. Do not share this code with anyone for your security.<br/><br/>For more information or complaints, please contact <a href="mailto:support@flexiqverve.com" style="color:#2563eb;">support@flexiqverve.com</a> or make use of the Live Chat on your dashboard for assistance.`,
-    });
-
-    setFoundUser({ email: emailInput.trim().toLowerCase(), first_name: firstName });
+    setFoundUser({ email, first_name: firstName });
+    setCodeInput("");
+    setOtpStatus("idle");
+    setResendIn(30);
     setLoading(false);
-    setStep("code"); // always advance if code was saved
+    setStep("code");
   };
 
-  const handleCodeSubmit = async () => {
-    if (!codeInput.trim() || !foundUser) return;
+  const handleResend = async () => {
+    if (!foundUser || resendIn > 0 || loading) return;
     setError("");
+    setInfo("");
+    setLoading(true);
+    const ok = await issueCode(foundUser.email, foundUser.first_name);
+    setLoading(false);
+    if (!ok) {
+      setError("Could not send a new code. Please try again.");
+      return;
+    }
+    setCodeInput("");
+    setOtpStatus("idle");
+    setResendIn(30);
+    setInfo("A new code is on its way.");
+  };
+
+  const failCode = (message: string, backToEmail = false) => {
+    setLoading(false);
+    setError(message);
+    setOtpStatus("error");
+    setTimeout(() => {
+      setCodeInput("");
+      setOtpStatus("idle");
+      if (backToEmail) setStep("email");
+    }, 650);
+  };
+
+  const handleCodeSubmit = async (code: string = codeInput) => {
+    if (code.length !== 6 || !foundUser) return;
+    setError("");
+    setInfo("");
     setLoading(true);
 
-    const { data, error } = await (supabase as any)
+    const { data, error: selectError } = await (supabase as any)
       .from("password_reset_codes")
       .select("id, expires_at, used")
       .eq("email", foundUser.email)
-      .eq("code", codeInput.trim())
+      .eq("code", code)
       .eq("used", false)
       .maybeSingle();
 
-    if (error || !data) {
-      setLoading(false);
-      setError("Invalid or expired code. Please try again.");
+    if (selectError || !data) {
+      failCode("Invalid or expired code. Please try again.");
       return;
     }
 
     if (new Date(data.expires_at) < new Date()) {
-      setLoading(false);
-      setError("This code has expired. Please request a new one.");
-      setStep("email");
+      failCode("This code has expired. Please request a new one.", true);
       return;
     }
 
     setLoading(false);
-    setStep("password");
+    setOtpStatus("success");
+    setTimeout(() => {
+      setStep("password");
+      setOtpStatus("idle");
+    }, 600);
   };
 
   const handlePasswordSubmit = async () => {
@@ -198,16 +384,20 @@ const ForgotPasswordModal = ({
               <button
                 onClick={() => {
                   setError("");
+                  setInfo("");
+                  setCodeInput("");
+                  setOtpStatus("idle");
                   setStep(step === "code" ? "email" : "code");
                 }}
-                className="text-muted-foreground hover:text-foreground transition-colors"
+                className="text-muted-foreground transition-colors hover:text-foreground"
+                aria-label="Back"
               >
                 <ArrowLeft className="h-4 w-4" />
               </button>
             )}
             <DialogTitle>
               {step === "email" && "Reset your password"}
-              {step === "code" && "Enter your code"}
+              {step === "code" && "Enter the code"}
               {step === "password" && "Set new password"}
             </DialogTitle>
           </div>
@@ -215,6 +405,7 @@ const ForgotPasswordModal = ({
 
         <div className="mt-2 space-y-4">
           {error && <InlineNotice>{error}</InlineNotice>}
+          {info && <InlineNotice type="success">{info}</InlineNotice>}
 
           {step === "email" && (
             <>
@@ -235,7 +426,7 @@ const ForgotPasswordModal = ({
               <Button
                 onClick={handleEmailSubmit}
                 disabled={loading || !emailInput.trim()}
-                className="w-full bg-gradient-to-r from-[#7C3AED] to-[#A78BFA] text-white"
+                className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
               >
                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Send reset code"}
               </Button>
@@ -244,30 +435,55 @@ const ForgotPasswordModal = ({
 
           {step === "code" && (
             <>
-              <p className="text-sm text-muted-foreground">
-                We sent a 6-digit code to <strong>{foundUser?.email}</strong>. Enter it below.
+              <p className="text-center text-sm text-muted-foreground">
+                Sent to <strong className="text-foreground">{foundUser?.email}</strong>
               </p>
-              <div className="space-y-2">
-                <Label htmlFor="reset-code">6-digit code</Label>
-                <Input
-                  id="reset-code"
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={6}
+
+              <div className="py-2">
+                <OtpInput
                   value={codeInput}
-                  onChange={(e) => setCodeInput(e.target.value.replace(/\D/g, ""))}
-                  placeholder="000000"
-                  className="text-center text-xl tracking-widest font-mono"
-                  onKeyDown={(e) => e.key === "Enter" && handleCodeSubmit()}
+                  onChange={(v) => {
+                    if (otpStatus !== "idle" || loading) return;
+                    setError("");
+                    setInfo("");
+                    setCodeInput(v);
+                  }}
+                  status={otpStatus}
+                  disabled={loading || otpStatus === "success"}
                 />
               </div>
+
               <Button
-                onClick={handleCodeSubmit}
-                disabled={loading || codeInput.length !== 6}
-                className="w-full bg-gradient-to-r from-[#7C3AED] to-[#A78BFA] text-white"
+                onClick={() => handleCodeSubmit()}
+                disabled={loading || codeInput.length !== 6 || otpStatus !== "idle"}
+                className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
               >
-                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Verify code"}
+                {loading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : otpStatus === "success" ? (
+                  <span className="flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4" /> Verified
+                  </span>
+                ) : (
+                  "Verify code"
+                )}
               </Button>
+
+              <p className="text-center text-xs text-muted-foreground">
+                Didn't get it?{" "}
+                {resendIn > 0 ? (
+                  <span>Resend in {resendIn}s</span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleResend}
+                    disabled={loading}
+                    className="font-medium text-primary hover:underline"
+                  >
+                    Resend code
+                  </button>
+                )}
+              </p>
             </>
           )}
 
@@ -310,7 +526,7 @@ const ForgotPasswordModal = ({
               <Button
                 onClick={handlePasswordSubmit}
                 disabled={loading || !newPassword || !confirmPassword}
-                className="w-full bg-gradient-to-r from-[#7C3AED] to-[#A78BFA] text-white"
+                className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
               >
                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Change password"}
               </Button>
@@ -358,18 +574,18 @@ const Login = () => {
     let res: Response;
     try {
       res = await fetch(`${SUPABASE_URL}/functions/v1/admin-actions`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
-      },
-      body: JSON.stringify({
-        action: "signin_with_plain_password",
-        target_user_id: "",
-        email,
-        plain_password: password,
-      }),
-    });
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({
+          action: "signin_with_plain_password",
+          target_user_id: "",
+          email,
+          plain_password: password,
+        }),
+      });
     } catch {
       setSubmitting(false);
       setError("Network error. Check your connection and try again.");
@@ -414,7 +630,7 @@ const Login = () => {
 
       <div className="w-full max-w-md">
         <div className="overflow-hidden rounded-3xl border border-white/10 bg-white shadow-elev animate-fade-in">
-          <div className="bg-gradient-to-br from-[#7C3AED] via-[#8B5CF6] to-[#A78BFA] px-8 pb-5 pt-6 text-center sm:px-10">
+          <div className="bg-primary px-8 pb-5 pt-6 text-center sm:px-10">
             <Link to="/" className="flex flex-col items-center justify-center">
               <BrandLogo className="h-14 w-auto object-contain drop-shadow-lg sm:h-16" />
             </Link>
@@ -481,7 +697,7 @@ const Login = () => {
                 type="submit"
                 size="lg"
                 disabled={submitting}
-                className="w-full bg-gradient-primary text-primary-foreground shadow-md hover:opacity-95"
+                className="w-full bg-primary text-primary-foreground shadow-md hover:bg-primary/90"
               >
                 {submitting ? "Signing in…" : "Continue"}
               </Button>
