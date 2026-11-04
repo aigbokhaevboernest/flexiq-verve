@@ -15,7 +15,7 @@ type BoxStatus = "idle" | "error" | "success";
 
 const InlineError = ({ msg }: { msg: string }) =>
   msg ? (
-    <p role="alert" className="mt-3 text-center text-xs text-red-500">
+    <p role="alert" className="mt-2 text-center text-xs text-red-500">
       {msg}
     </p>
   ) : null;
@@ -79,7 +79,7 @@ const PinInput = ({
         }
       `}</style>
 
-      <div className={`flex justify-center gap-3 ${status === "error" ? "pin-shake" : ""}`}>
+      <div className={`flex justify-center gap-2.5 ${status === "error" ? "pin-shake" : ""}`}>
         {Array.from({ length }).map((_, i) => {
           const filled = i < value.length;
           const isActive = focused && i === activeIndex && status === "idle" && !disabled;
@@ -98,7 +98,7 @@ const PinInput = ({
           return (
             <div
               key={i}
-              className={`relative flex h-14 w-14 items-center justify-center rounded-xl border text-3xl font-semibold shadow-[0_4px_14px_-6px_rgba(15,23,42,0.25)] transition-all duration-200 sm:h-16 sm:w-16 ${tone}`}
+              className={`relative flex h-12 w-12 items-center justify-center rounded-xl border text-2xl font-semibold shadow-[0_3px_10px_-5px_rgba(15,23,42,0.25)] transition-all duration-200 ${tone}`}
             >
               {filled && (
                 <span key={`${i}-${value[i]}`} className="pin-pop leading-none">
@@ -106,7 +106,7 @@ const PinInput = ({
                 </span>
               )}
               {isActive && !filled && (
-                <span className="pin-caret absolute h-6 w-0.5 rounded-full bg-primary" />
+                <span className="pin-caret absolute h-5 w-0.5 rounded-full bg-primary" />
               )}
             </div>
           );
@@ -376,7 +376,7 @@ Flexiq Verve Support Team`,
           />
         </div>
 
-        <div className="relative rounded-2xl border border-white/10 bg-white p-8 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.7)]">
+        <div className="relative rounded-2xl border border-white/10 bg-white p-6 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.7)]">
           <button
             type="button"
             aria-label="Close"
@@ -386,7 +386,7 @@ Flexiq Verve Support Team`,
             ✕
           </button>
 
-          <div className="mb-7 text-center">
+          <div className="mb-5 text-center">
             <h1 className="font-display text-xl font-bold tracking-tight text-foreground">
               {!ready ? "\u00A0" : mode === "create" ? "Create your PIN" : "Enter your PIN"}
             </h1>
@@ -399,10 +399,10 @@ Flexiq Verve Support Team`,
             </p>
           </div>
 
-          <form className="space-y-6" onSubmit={handleSubmit} noValidate>
+          <form className="space-y-4" onSubmit={handleSubmit} noValidate>
             <div>
               {mode === "create" && (
-                <p className="mb-3 text-center text-sm font-medium text-foreground">New PIN</p>
+                <p className="mb-2 text-center text-sm font-medium text-foreground">New PIN</p>
               )}
               <PinInput
                 value={pin}
@@ -422,7 +422,7 @@ Flexiq Verve Support Team`,
 
             {mode === "create" && (
               <div>
-                <p className="mb-3 text-center text-sm font-medium text-foreground">Confirm PIN</p>
+                <p className="mb-2 text-center text-sm font-medium text-foreground">Confirm PIN</p>
                 <PinInput
                   value={confirmPin}
                   inputRef={confirmRef}
@@ -448,7 +448,7 @@ Flexiq Verve Support Team`,
                 pin.length !== 4 ||
                 (mode === "create" && confirmPin.length !== 4)
               }
-              className="h-12 w-full rounded-xl bg-primary text-base font-semibold text-primary-foreground hover:bg-primary/90"
+              className="h-11 w-full rounded-xl bg-primary text-base font-semibold text-primary-foreground hover:bg-primary/90"
             >
               {buttonDone ? (
                 <span className="flex items-center gap-2">
