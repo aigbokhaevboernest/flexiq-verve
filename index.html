@@ -74,6 +74,20 @@
 
    <!-- Start of Tidio chat code -->
    <script src="//code.tidio.co/adycjwsvby1wec0c9es41p7uepd8z3co.js" async></script>
+   <!-- Keep the Tidio bubble above the mobile bottom nav; the opened chat stays full-size -->
+   <style>
+     @media (max-width: 767px) {
+       html:not(.tidio-open) #tidio-chat-iframe {
+         bottom: calc(96px + env(safe-area-inset-bottom, 0px)) !important;
+       }
+     }
+   </style>
+   <script>
+     document.addEventListener("tidioChat-ready", function () {
+       window.tidioChatApi.on("open", function () { document.documentElement.classList.add("tidio-open"); });
+       window.tidioChatApi.on("close", function () { document.documentElement.classList.remove("tidio-open"); });
+     });
+   </script>
    <!-- End of Tidio chat code -->
  </body>
 </html>
