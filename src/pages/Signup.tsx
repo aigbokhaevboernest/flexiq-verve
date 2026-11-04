@@ -15,6 +15,9 @@ import { sendEmail } from "@/lib/sendEmail";
 // Public site key (safe in the browser). Set VITE_RECAPTCHA_SITE_KEY in .env / Vercel.
 const RECAPTCHA_SITE_KEY = (import.meta.env.VITE_RECAPTCHA_SITE_KEY as string | undefined) ?? "";
 
+// Photo lives in public/login-bg.JPG (name is case-sensitive)
+const BG_IMAGE = "/login-bg.JPG";
+
 declare global {
   interface Window {
     grecaptcha?: {
@@ -23,6 +26,7 @@ declare global {
         container: string | HTMLElement,
         params: {
           sitekey: string;
+          theme?: "light" | "dark";
           callback?: (token: string) => void;
           "expired-callback"?: () => void;
           "error-callback"?: () => void;
@@ -33,14 +37,21 @@ declare global {
   }
 }
 
-const nativeSelectClass =
-  "mt-1 h-10 w-full rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring";
+// ── Shared dark-form styles (same look as the login page) ──
+const FOCUS =
+  "focus-visible:border-[hsl(212_72%_58%)] focus-visible:ring-2 focus-visible:ring-[rgba(74,144,226,0.35)] focus-visible:ring-offset-0";
 
-// Theme-aware native date field: follows light/dark instead of staying white.
-const dateInputClass =
-  "mt-1 block h-10 w-full max-w-full rounded-md border bg-background px-3 text-sm text-foreground [color-scheme:light] dark:[color-scheme:dark] focus:outline-none focus:ring-2 focus:ring-ring";
+const INPUT_BASE = `h-12 rounded-xl border-white/15 bg-white/5 text-white placeholder:text-white/40 ${FOCUS}`;
+const INPUT_ERROR =
+  "h-12 rounded-xl border-red-400 bg-white/5 text-white placeholder:text-white/40 focus-visible:border-red-400 focus-visible:ring-2 focus-visible:ring-red-400/40 focus-visible:ring-offset-0";
 
-const ERROR_RING = "border-red-500 focus-visible:ring-red-500 focus:ring-red-500";
+const SELECT_BASE =
+  "mt-1 h-12 w-full min-w-0 rounded-xl border bg-white/5 px-3 text-sm [color-scheme:dark] focus:outline-none focus:ring-2 focus:ring-[rgba(74,144,226,0.35)]";
+
+// Date field: same height and width as every other field (iOS Safari makes native
+// date inputs taller/wider unless the native appearance is switched off).
+const DATE_BASE =
+  "mt-1 block h-12 w-full min-w-0 max-w-full appearance-none rounded-xl border bg-white/5 px-3 text-sm text-white [color-scheme:dark] focus:outline-none focus:ring-2 focus:ring-[rgba(74,144,226,0.35)] [&::-webkit-date-and-time-value]:text-left [&::-webkit-datetime-edit]:p-0";
 
 // Order used to scroll to the first problem on submit.
 const FIELD_ORDER = [
@@ -51,10 +62,16 @@ const FIELD_ORDER = [
 
 const FieldError = ({ msg }: { msg?: string }) =>
   msg ? (
-    <p role="alert" className="mt-1 text-xs text-red-500">
+    <p role="alert" className="mt-1 text-xs text-red-300">
       {msg}
     </p>
   ) : null;
+
+const FormLabel = ({ htmlFor, children }: { htmlFor: string; children: React.ReactNode }) => (
+  <Label htmlFor={htmlFor} className="text-white/90">
+    {children}
+  </Label>
+);
 
 const Signup = () => {
   const navigate = useNavigate();
@@ -95,6 +112,7 @@ const Signup = () => {
         if (!captchaRef.current || widgetIdRef.current !== null) return;
         widgetIdRef.current = window.grecaptcha!.render(captchaRef.current, {
           sitekey: RECAPTCHA_SITE_KEY,
+          theme: "dark",
           callback: (token) => {
             setRecaptchaToken(token);
             setErrors((prev) => {
@@ -219,9 +237,12 @@ const Signup = () => {
     return Object.keys(next).length === 0;
   };
 
-  const inputCls = (name: string) => (errors[name] ? ERROR_RING : "");
-  const selectCls = (name: string) =>
-    `${nativeSelectClass} ${errors[name] ? "border-red-500" : ""}`;
+  const inputCls = (name: string) => (errors[name] ? INPUT_ERROR : INPUT_BASE);
+
+  const selectCls = (name: keyof typeof form) =>
+    `${SELECT_BASE} ${errors[name] ? "border-red-400" : "border-white/15"} ${
+      form[name] ? "text-white" : "text-white/40"
+    }`;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -369,49 +390,68 @@ Flexiq Verve Support Team`,
   };
 
   return (
-    <div className="page-enter relative min-h-screen bg-navy-blue-mesh px-4 pb-32 pt-5">
-      <div className="mx-auto w-full max-w-2xl overflow-hidden rounded-3xl border border-white/10 bg-white shadow-elev animate-fade-in">
-        <div className="bg-gradient-to-br from-[#7C3AED] via-[#8B5CF6] to-[#A78BFA] px-6 pb-4 pt-5 text-center sm:px-10">
-          <Link to="/" className="flex flex-col items-center justify-center">
-            <BrandLogo className="h-14 w-auto object-contain drop-shadow-lg sm:h-16" />
-          </Link>
-          <h1 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">
-            Create Your Account
-          </h1>
-          <p className="mt-1 text-sm text-white/80">Start banking smarter — safe, secure, and ready in minutes.</p>
-        </div>
+    <div className="page-enter relative min-h-screen bg-navy px-4 pb-32 pt-8">
+      {/* Fixed photo + dark overlay so the background stays put while the form scrolls */}
+      <div
+        className="fixed inset-0 bg-cover bg-center"
+        style={{ backgroundImage: `url(${BG_IMAGE})` }}
+      />
+      <div
+        className="fixed inset-0"
+        style={{ background: "linear-gradient(180deg, rgba(8,14,32,0.72) 0%, rgba(8,14,32,0.62) 50%, rgba(8,14,32,0.82) 100%)" }}
+      />
 
-        <div className="px-6 py-5 sm:px-10">
+      <div className="relative z-10 mx-auto w-full max-w-2xl animate-fade-in">
+        <Link to="/" className="mb-6 flex items-center justify-center">
+          <BrandLogo
+            className="h-16 w-auto object-contain sm:h-20"
+            style={{
+              filter:
+                "drop-shadow(1.5px 0 0 #fff) drop-shadow(-1.5px 0 0 #fff) drop-shadow(0 1.5px 0 #fff) drop-shadow(0 -1.5px 0 #fff)",
+            }}
+          />
+        </Link>
+
+        <div
+          className="rounded-2xl border border-white/10 p-6 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.7)] sm:p-10"
+          style={{ backgroundColor: "#17233F" }}
+        >
+          <div className="mb-6 text-center">
+            <h1 className="font-display text-2xl font-bold tracking-tight text-white">Create your account</h1>
+            <p className="mt-1.5 text-sm text-white/60">It only takes a few minutes.</p>
+          </div>
+
           {/* noValidate: we show our own inline errors instead of the browser's pop-ups */}
-          <form className="space-y-3" onSubmit={handleSubmit} noValidate>
-            <div className="grid grid-cols-2 gap-x-3 gap-y-3">
+          <form className="space-y-4" onSubmit={handleSubmit} noValidate>
+            {/* [&>*]:min-w-0 stops any field (like the date picker) from stretching its column */}
+            <div className="grid grid-cols-2 gap-x-3 gap-y-4 [&>*]:min-w-0">
               <div>
-                <Label htmlFor="first_name">First name</Label>
+                <FormLabel htmlFor="first_name">First name</FormLabel>
                 <Input id="first_name" className={`mt-1 ${inputCls("first_name")}`} placeholder="First name" value={form.first_name} onChange={(e) => update("first_name")(e.target.value)} onBlur={onBlur("first_name")} />
                 <FieldError msg={errors.first_name} />
               </div>
               <div>
-                <Label htmlFor="last_name">Last name</Label>
+                <FormLabel htmlFor="last_name">Last name</FormLabel>
                 <Input id="last_name" className={`mt-1 ${inputCls("last_name")}`} placeholder="Last name" value={form.last_name} onChange={(e) => update("last_name")(e.target.value)} onBlur={onBlur("last_name")} />
                 <FieldError msg={errors.last_name} />
               </div>
               <div className="col-span-2 sm:col-span-1">
-                <Label htmlFor="username">User ID</Label>
+                <FormLabel htmlFor="username">User ID</FormLabel>
                 <Input id="username" className={`mt-1 ${inputCls("username")}`} placeholder="Enter User ID" value={form.username} onChange={(e) => update("username")(e.target.value.replace(/\s+/g, ""))} onBlur={onBlur("username")} />
                 <FieldError msg={errors.username} />
               </div>
               <div className="col-span-2 sm:col-span-1">
-                <Label htmlFor="email">Email</Label>
+                <FormLabel htmlFor="email">Email</FormLabel>
                 <Input id="email" type="email" className={`mt-1 ${inputCls("email")}`} placeholder="Enter email" value={form.email} onChange={(e) => update("email")(e.target.value)} onBlur={onBlur("email")} />
                 <FieldError msg={errors.email} />
               </div>
               <div className="col-span-2 sm:col-span-1">
-                <Label htmlFor="phone">Phone</Label>
+                <FormLabel htmlFor="phone">Phone</FormLabel>
                 <Input id="phone" type="tel" className={`mt-1 ${inputCls("phone")}`} placeholder="Enter phone number" value={form.phone} onChange={(e) => update("phone")(e.target.value)} onBlur={onBlur("phone")} />
                 <FieldError msg={errors.phone} />
               </div>
               <div className="col-span-2 sm:col-span-1">
-                <Label htmlFor="country">Country</Label>
+                <FormLabel htmlFor="country">Country</FormLabel>
                 <select id="country" className={selectCls("country")} value={form.country} onChange={(e) => update("country")(e.target.value)} onBlur={onBlur("country")}>
                   <option value="">Select country</option>
                   {countries.map((c) => <option key={c} value={c}>{c}</option>)}
@@ -419,7 +459,7 @@ Flexiq Verve Support Team`,
                 <FieldError msg={errors.country} />
               </div>
               <div className="col-span-2 sm:col-span-1">
-                <Label htmlFor="account_type">Account type</Label>
+                <FormLabel htmlFor="account_type">Account type</FormLabel>
                 <select id="account_type" className={selectCls("account_type")} value={form.account_type} onChange={(e) => update("account_type")(e.target.value)} onBlur={onBlur("account_type")}>
                   <option value="">Choose account</option>
                   <option value="checking">Checking Account</option>
@@ -430,7 +470,7 @@ Flexiq Verve Support Team`,
                 <FieldError msg={errors.account_type} />
               </div>
               <div className="col-span-2 sm:col-span-1">
-                <Label htmlFor="currency">Currency</Label>
+                <FormLabel htmlFor="currency">Currency</FormLabel>
                 <select id="currency" className={selectCls("currency")} value={form.currency} onChange={(e) => update("currency")(e.target.value)} onBlur={onBlur("currency")}>
                   <option value="">Currency</option>
                   {currencies.map((c) => <option key={c.code} value={c.code}>{c.code} — {c.name}</option>)}
@@ -438,14 +478,14 @@ Flexiq Verve Support Team`,
                 <FieldError msg={errors.currency} />
               </div>
               <div className="col-span-2 sm:col-span-1">
-                <Label htmlFor="city">City</Label>
+                <FormLabel htmlFor="city">City</FormLabel>
                 <Input id="city" className={`mt-1 ${inputCls("city")}`} placeholder="Enter City" value={form.city} onChange={(e) => update("city")(e.target.value)} onBlur={onBlur("city")} />
                 <FieldError msg={errors.city} />
               </div>
               <div className="col-span-2 sm:col-span-1">
                 <div className="flex items-center gap-2">
-                  <Label htmlFor="date_of_birth">Date of birth</Label>
-                  <span className="text-xs text-muted-foreground">(click to select)</span>
+                  <FormLabel htmlFor="date_of_birth">Date of birth</FormLabel>
+                  <span className="text-xs text-white/50">(tap to select)</span>
                 </div>
                 <input
                   id="date_of_birth"
@@ -454,43 +494,46 @@ Flexiq Verve Support Team`,
                   value={form.date_of_birth}
                   onChange={(e) => update("date_of_birth")(e.target.value)}
                   onBlur={onBlur("date_of_birth")}
-                  className={`${dateInputClass} ${errors.date_of_birth ? "border-red-500" : "border-input"}`}
+                  style={{ WebkitAppearance: "none", appearance: "none", minHeight: "3rem" }}
+                  className={`${DATE_BASE} ${errors.date_of_birth ? "border-red-400" : "border-white/15"}`}
                 />
                 <FieldError msg={errors.date_of_birth} />
               </div>
 
               <div className="col-span-2">
-                <Label htmlFor="address">Address</Label>
+                <FormLabel htmlFor="address">Address</FormLabel>
                 <Input id="address" className={`mt-1 ${inputCls("address")}`} placeholder="Enter address" value={form.address} onChange={(e) => update("address")(e.target.value)} onBlur={onBlur("address")} />
                 <FieldError msg={errors.address} />
               </div>
               <div className="col-span-2 sm:col-span-1">
-                <Label htmlFor="password">Password</Label>
+                <FormLabel htmlFor="password">Password</FormLabel>
                 <Input id="password" type="password" className={`mt-1 ${inputCls("password")}`} placeholder="At least 8 characters" value={form.password} onChange={(e) => update("password")(e.target.value)} onBlur={onBlur("password")} />
                 <FieldError msg={errors.password} />
               </div>
               <div className="col-span-2 sm:col-span-1">
-                <Label htmlFor="confirm_password">Confirm password</Label>
+                <FormLabel htmlFor="confirm_password">Confirm password</FormLabel>
                 <Input id="confirm_password" type="password" className={`mt-1 ${inputCls("confirm_password")}`} placeholder="Repeat password" value={form.confirm_password} onChange={(e) => update("confirm_password")(e.target.value)} onBlur={onBlur("confirm_password")} />
                 <FieldError msg={errors.confirm_password} />
               </div>
             </div>
 
             <div>
-              <label id="terms" className="flex items-start gap-2 text-sm text-muted-foreground">
+              <label id="terms" className="flex items-start gap-2.5 text-sm text-white/70">
                 <Checkbox
                   checked={agreed}
                   onCheckedChange={(v) => {
                     setAgreed(v === true);
                     if (v === true) setError("terms", "");
                   }}
-                  className={`mt-0.5 ${errors.terms ? "border-red-500" : ""}`}
+                  className={`mt-0.5 data-[state=checked]:border-[hsl(212_72%_50%)] data-[state=checked]:bg-[hsl(212_72%_50%)] ${
+                    errors.terms ? "border-red-400" : "border-white/40"
+                  }`}
                 />
                 <span>
                   I agree to the{" "}
-                  <Link to="/terms" className="font-medium text-primary hover:underline">Terms of Service</Link>{" "}
+                  <Link to="/terms" className="font-medium text-[hsl(205_80%_72%)] hover:underline">Terms of Service</Link>{" "}
                   and{" "}
-                  <Link to="/policies" className="font-medium text-primary hover:underline">Privacy Policy</Link>.
+                  <Link to="/policies" className="font-medium text-[hsl(205_80%_72%)] hover:underline">Privacy Policy</Link>.
                 </span>
               </label>
               <FieldError msg={errors.terms} />
@@ -505,7 +548,7 @@ Flexiq Verve Support Team`,
             </div>
 
             {formError && (
-              <div role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+              <div role="alert" className="rounded-xl border border-red-400/30 bg-red-500/15 px-3 py-2.5 text-sm text-red-200">
                 {formError}
               </div>
             )}
@@ -514,7 +557,7 @@ Flexiq Verve Support Team`,
               type="submit"
               size="lg"
               disabled={submitting || !recaptchaToken}
-              className="w-full bg-gradient-primary text-primary-foreground shadow-md hover:opacity-95"
+              className="h-12 w-full rounded-xl bg-[hsl(212_72%_50%)] text-base font-semibold text-white shadow-lg shadow-black/30 hover:bg-[hsl(212_72%_45%)] disabled:opacity-50"
             >
               {submitting ? (
                 <span className="inline-flex items-center justify-center gap-2">
@@ -526,9 +569,9 @@ Flexiq Verve Support Team`,
             </Button>
           </form>
 
-          <p className="mt-3 text-center text-sm text-muted-foreground">
+          <p className="mt-5 text-center text-sm text-white/60">
             Already have an account?{" "}
-            <Link to="/login" className="font-medium text-primary hover:underline">Login</Link>
+            <Link to="/login" className="font-medium text-[hsl(205_80%_72%)] hover:underline">Sign in</Link>
           </p>
         </div>
       </div>
