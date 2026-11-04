@@ -18,17 +18,28 @@ const generateCode = () => Math.floor(100000 + Math.random() * 900000).toString(
 type ForgotStep = "email" | "code" | "password";
 type OtpStatus = "idle" | "error" | "success";
 
-const InlineNotice = ({ type = "error", children }: { type?: "error" | "success"; children: React.ReactNode }) => {
+const InlineNotice = ({
+  type = "error",
+  dark = false,
+  children,
+}: {
+  type?: "error" | "success";
+  dark?: boolean;
+  children: React.ReactNode;
+}) => {
   const isError = type === "error";
   const Icon = isError ? AlertCircle : CheckCircle2;
+  const tone = dark
+    ? isError
+      ? "border-red-400/30 bg-red-500/15 text-red-200"
+      : "border-emerald-400/30 bg-emerald-500/15 text-emerald-200"
+    : isError
+    ? "border-red-200 bg-red-50 text-red-700"
+    : "border-emerald-200 bg-emerald-50 text-emerald-700";
   return (
     <div
       role={isError ? "alert" : "status"}
-      className={`flex items-start gap-2 rounded-xl border px-3 py-2.5 text-sm ${
-        isError
-          ? "border-red-200 bg-red-50 text-red-700"
-          : "border-emerald-200 bg-emerald-50 text-emerald-700"
-      }`}
+      className={`flex items-start gap-2 rounded-xl border px-3 py-2.5 text-sm ${tone}`}
     >
       <Icon className="mt-0.5 h-4 w-4 shrink-0" />
       <span>{children}</span>
@@ -540,6 +551,11 @@ const ForgotPasswordModal = ({
 
 // ─── Main Login Page ──────────────────────────────────────────────────────────
 
+const darkInput =
+  "h-12 rounded-xl border-white/15 bg-white/5 pl-10 text-white placeholder:text-white/40 focus-visible:border-[hsl(212_72%_58%)] focus-visible:ring-2 focus-visible:ring-[hsl(212_72%_58%)]/30 focus-visible:ring-offset-0";
+const darkIcon =
+  "pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/45";
+
 const Login = () => {
   const navigate = useNavigate();
   const [showPwd, setShowPwd] = useState(false);
@@ -622,112 +638,114 @@ const Login = () => {
   };
 
   return (
-    <div className="page-enter relative flex min-h-screen items-center justify-center bg-navy-blue-mesh px-4 py-6">
-      <div className="absolute inset-0 -z-10 overflow-hidden">
-        <div className="absolute -top-40 left-1/2 h-96 w-96 -translate-x-1/2 rounded-full bg-[hsl(var(--mediumblue))]/30 blur-3xl" />
-        <div className="absolute bottom-0 right-0 h-80 w-80 rounded-full bg-[hsl(var(--mediumblue))]/20 blur-3xl" />
-      </div>
+    <div
+      className="page-enter relative flex min-h-screen items-center justify-center bg-navy bg-cover bg-center px-4 py-8"
+      style={{ backgroundImage: "url('/login-bg.jpg')" }}
+    >
+      {/* Dark overlay keeps the photo subtle and the card readable */}
+      <div className="absolute inset-0 bg-gradient-to-b from-[hsl(222_60%_7%)]/85 via-[hsl(222_55%_10%)]/75 to-[hsl(222_60%_5%)]/95" />
 
-      <div className="w-full max-w-md">
-        <Link to="/" className="mb-5 flex items-center justify-center">
+      <div className="relative z-10 w-full max-w-md animate-fade-in">
+        <Link to="/" className="mb-6 flex items-center justify-center">
           <BrandLogo
             className="h-16 w-auto object-contain sm:h-20"
             style={{
               filter:
-                "drop-shadow(1px 0 0 #fff) drop-shadow(-1px 0 0 #fff) drop-shadow(0 1px 0 #fff) drop-shadow(0 -1px 0 #fff)",
+                "drop-shadow(1.5px 0 0 #fff) drop-shadow(-1.5px 0 0 #fff) drop-shadow(0 1.5px 0 #fff) drop-shadow(0 -1.5px 0 #fff)",
             }}
           />
         </Link>
 
-        <div className="overflow-hidden rounded-3xl border border-white/10 bg-white shadow-elev animate-fade-in">
-          <div className="bg-[linear-gradient(135deg,hsl(214_62%_38%),hsl(218_60%_24%))] px-8 py-6 text-center sm:px-10">
+        <div className="rounded-3xl border border-white/10 bg-[hsl(222_45%_13%)]/90 p-7 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.7)] backdrop-blur-xl sm:p-9">
+          <div className="mb-7 text-center">
             <h1 className="font-display text-2xl font-bold tracking-tight text-white">Welcome back</h1>
-            <p className="mt-1 text-sm text-white/75">Sign in to take control of your finances.</p>
+            <p className="mt-1.5 text-sm text-white/60">Sign in to take control of your finances.</p>
           </div>
 
-          <div className="px-8 py-6 sm:px-10">
-            <form className="space-y-4" onSubmit={handleSubmit}>
-              <div className="space-y-2">
-                <Label htmlFor="id">Email or User ID</Label>
-                <div className="relative">
-                  <User className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    id="id"
-                    type="text"
-                    value={identifier}
-                    onChange={(e) => setIdentifier(e.target.value)}
-                    placeholder=""
-                    required
-                    autoComplete="username"
-                    className="pl-10"
-                  />
-                </div>
+          <form className="space-y-5" onSubmit={handleSubmit}>
+            <div className="space-y-2">
+              <Label htmlFor="id" className="text-white/90">Email or User ID</Label>
+              <div className="relative">
+                <User className={darkIcon} />
+                <Input
+                  id="id"
+                  type="text"
+                  value={identifier}
+                  onChange={(e) => setIdentifier(e.target.value)}
+                  placeholder="Enter your email or User ID"
+                  required
+                  autoComplete="username"
+                  className={darkInput}
+                />
               </div>
+            </div>
 
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="pwd">Password</Label>
-                  <button
-                    type="button"
-                    onClick={() => setForgotOpen(true)}
-                    className="text-xs text-primary hover:underline"
-                  >
-                    Forgot password?
-                  </button>
-                </div>
-                <div className="relative">
-                  <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    id="pwd"
-                    type={showPwd ? "text" : "password"}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    required
-                    autoComplete="current-password"
-                    className="pl-10"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPwd((s) => !s)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    aria-label="Toggle password"
-                  >
-                    {showPwd ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                </div>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="pwd" className="text-white/90">Password</Label>
+                <button
+                  type="button"
+                  onClick={() => setForgotOpen(true)}
+                  className="text-xs font-medium text-[hsl(205_80%_72%)] hover:underline"
+                >
+                  Forgot password?
+                </button>
               </div>
-
-              {notice && <InlineNotice type="success">{notice}</InlineNotice>}
-              {error && <InlineNotice>{error}</InlineNotice>}
-
-              <label className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Checkbox id="remember" />
-                Remember me on this device
-              </label>
-
-              <Button
-                type="submit"
-                size="lg"
-                disabled={submitting}
-                className="w-full bg-primary text-primary-foreground shadow-md hover:bg-primary/90"
-              >
-                {submitting ? "Signing in…" : "Continue"}
-              </Button>
-
-              <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
-                <ShieldCheck className="h-3.5 w-3.5 text-success" />
-                Secured with 256-bit encryption
+              <div className="relative">
+                <Lock className={darkIcon} />
+                <Input
+                  id="pwd"
+                  type={showPwd ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter your password"
+                  required
+                  autoComplete="current-password"
+                  className={`${darkInput} pr-11`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPwd((s) => !s)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/50 transition-colors hover:text-white"
+                  aria-label="Toggle password"
+                >
+                  {showPwd ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
               </div>
-            </form>
+            </div>
 
-            <p className="mt-4 text-center text-sm text-muted-foreground">
-              New to Flexiq Verve?{" "}
-              <Link to="/signup" className="font-medium text-primary hover:underline">
-                Open an account
-              </Link>
-            </p>
-          </div>
+            {notice && <InlineNotice type="success" dark>{notice}</InlineNotice>}
+            {error && <InlineNotice dark>{error}</InlineNotice>}
+
+            <label className="flex items-center gap-2.5 text-sm text-white/70">
+              <Checkbox
+                id="remember"
+                className="border-white/40 data-[state=checked]:border-[hsl(212_72%_50%)] data-[state=checked]:bg-[hsl(212_72%_50%)]"
+              />
+              Keep me signed in
+            </label>
+
+            <Button
+              type="submit"
+              size="lg"
+              disabled={submitting}
+              className="h-12 w-full rounded-xl bg-[hsl(212_72%_50%)] text-base font-semibold text-white shadow-lg shadow-black/30 hover:bg-[hsl(212_72%_45%)]"
+            >
+              {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : "Sign in"}
+            </Button>
+          </form>
+
+          <p className="mt-6 text-center text-sm text-white/60">
+            New to Flexiq Verve?{" "}
+            <Link to="/signup" className="font-medium text-[hsl(205_80%_72%)] hover:underline">
+              Open an account
+            </Link>
+          </p>
+        </div>
+
+        <div className="mt-5 flex items-center justify-center gap-2 text-xs text-white/55">
+          <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
+          Secured with 256-bit encryption
         </div>
       </div>
 
