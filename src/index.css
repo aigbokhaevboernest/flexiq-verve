@@ -187,68 +187,45 @@
 }
 
 :root {
-  --primary: 210 80% 38%;
-  --primary-glow: 205 85% 55%;
-  --ring: 210 80% 38%;
-  --sidebar-primary: 210 80% 38%;
-  --sidebar-accent-foreground: 210 80% 38%;
-  --gradient-hero: linear-gradient(135deg, hsl(210 80% 38%) 0%, hsl(205 85% 55%) 50%, hsl(200 85% 60%) 100%);
-  --gradient-primary: linear-gradient(135deg, hsl(210 80% 38%), hsl(205 85% 55%));
-  --gradient-mesh: radial-gradient(at 20% 0%, hsl(210 90% 60% / 0.35) 0px, transparent 50%),
-                   radial-gradient(at 80% 0%, hsl(168 80% 70% / 0.3) 0px, transparent 50%),
-                   radial-gradient(at 0% 50%, hsl(200 85% 75% / 0.25) 0px, transparent 50%),
-                   radial-gradient(at 80% 80%, hsl(18 95% 75% / 0.25) 0px, transparent 50%);
-  --shadow-sm: 0 2px 8px -2px hsl(210 50% 40% / 0.08);
-  --shadow-md: 0 8px 24px -8px hsl(210 50% 40% / 0.12);
-  --shadow-lg: 0 24px 48px -16px hsl(210 60% 40% / 0.18);
-  --shadow-glow: 0 0 60px hsl(210 90% 60% / 0.35);
+  --primary: 206 85% 62%;
+  --primary-glow: 206 85% 62%;
+  --ring: 206 85% 62%;
+  --sidebar-primary: 206 85% 62%;
+  --sidebar-accent-foreground: 206 85% 62%;
+
+  /* Solid instead of gradient */
+  --gradient-hero: linear-gradient(hsl(206 85% 62%), hsl(206 85% 62%));
+  --gradient-primary: linear-gradient(hsl(206 85% 62%), hsl(206 85% 62%));
+
+  --shadow-glow: 0 0 60px hsl(206 85% 62% / 0.3);
 }
 
 .dark {
-  --primary: 205 85% 60%;
-  --ring: 205 85% 60%;
-  --sidebar-primary: 205 85% 60%;
-  --sidebar-accent-foreground: 205 85% 60%;
+  --primary: 206 85% 62%;
+  --ring: 206 85% 62%;
+  --sidebar-primary: 206 85% 62%;
+  --sidebar-accent-foreground: 206 85% 62%;
 }
 
-/* Backgrounds */
+/* Hardcoded purple classes (signup/login header etc.) -> same solid blue */
 [class*="bg-purple-"], [class*="bg-violet-"],
 [class*="bg-indigo-"], [class*="bg-fuchsia-"] {
-  background-color: hsl(210 80% 38%) !important;
+  background-color: hsl(206 85% 62%) !important;
+  background-image: none !important;
 }
-/* Light tints */
-[class*="bg-purple-50"], [class*="bg-purple-100"],
-[class*="bg-violet-50"], [class*="bg-violet-100"],
-[class*="bg-indigo-50"], [class*="bg-indigo-100"] {
-  background-color: hsl(210 60% 95%) !important;
-}
-
-/* Text and borders */
 [class*="text-purple-"], [class*="text-violet-"],
 [class*="text-indigo-"], [class*="text-fuchsia-"] {
-  color: hsl(210 80% 38%) !important;
+  color: hsl(206 85% 62%) !important;
 }
 [class*="border-purple-"], [class*="border-violet-"],
 [class*="border-indigo-"], [class*="border-fuchsia-"] {
-  border-color: hsl(210 80% 38%) !important;
+  border-color: hsl(206 85% 62%) !important;
 }
-
-/* Gradients (this is most likely your header) */
-[class*="from-purple-"], [class*="from-violet-"],
-[class*="from-indigo-"], [class*="from-fuchsia-"] {
-  --tw-gradient-from: hsl(210 80% 38%) !important;
+[class*="from-purple-"], [class*="from-violet-"], [class*="from-indigo-"], [class*="from-fuchsia-"],
+[class*="via-purple-"], [class*="via-violet-"], [class*="via-indigo-"], [class*="via-fuchsia-"],
+[class*="to-purple-"], [class*="to-violet-"], [class*="to-indigo-"], [class*="to-fuchsia-"] {
+  --tw-gradient-from: hsl(206 85% 62%) !important;
+  --tw-gradient-via: hsl(206 85% 62%) !important;
+  --tw-gradient-to: hsl(206 85% 62%) !important;
+  --tw-gradient-stops: hsl(206 85% 62%), hsl(206 85% 62%) !important;
 }
-[class*="via-purple-"], [class*="via-violet-"],
-[class*="via-indigo-"], [class*="via-fuchsia-"] {
-  --tw-gradient-stops: var(--tw-gradient-from), hsl(205 85% 55%), var(--tw-gradient-to, transparent) !important;
-}
-[class*="to-purple-"], [class*="to-violet-"],
-[class*="to-indigo-"], [class*="to-fuchsia-"] {
-  --tw-gradient-to: hsl(200 85% 60%) !important;
-}
-
-/* Inline hardcoded purple hex colors */
-[style*="#7c3aed" i], [style*="#8b5cf6" i], [style*="#6d28d9" i], [style*="#6366f1" i] {
-  background: hsl(210 80% 38%) !important;
-}
-
