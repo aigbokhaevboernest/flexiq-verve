@@ -119,12 +119,28 @@
   * {
     @apply border-border;
   }
+
+  /* Instant scroll. No smooth animation on navigation. */
   html {
-    scroll-behavior: smooth;
+    scroll-behavior: auto;
   }
+
   body {
     @apply bg-background text-foreground antialiased;
     font-feature-settings: "ss01", "cv11";
+    overflow-anchor: none;
+  }
+
+  #root {
+    min-height: 100%;
+    overflow-anchor: none;
+  }
+
+  /* Add this class to any inner scrolling container (e.g. DashboardLayout) */
+  .scroll-region {
+    overflow-y: auto;
+    overflow-anchor: none;
+    -webkit-overflow-scrolling: touch;
   }
 }
 
@@ -173,12 +189,12 @@
   .text-on-dark-muted { color: hsl(220 20% 78%); }
 }
 
-/* Page transition */
+/* Page transition: fade only, no vertical movement */
 @keyframes page-enter {
-  from { opacity: 0; transform: translateY(8px) scale(0.995); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
-.page-enter { animation: page-enter 0.5s cubic-bezier(0.4, 0, 0.2, 1) both; }
+.page-enter { animation: page-enter 0.3s ease-out both; }
 
 @media (max-width: 767px) {
   input, select, textarea {
