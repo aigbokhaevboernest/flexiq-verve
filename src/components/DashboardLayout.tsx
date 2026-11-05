@@ -194,7 +194,7 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
           onClick={async () => {
             onNavigate?.();
             await signOut();
-            navigate("/login");
+            navigate("/login", { replace: true });
           }}
           className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground transition-smooth hover:bg-destructive/10 hover:text-destructive"
         >
@@ -207,7 +207,13 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
 
 export const DashboardLayout = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [dark, setDark] = useState(false);
+  const [dark, setDark] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem("flexiq-theme") === "dark";
+    } catch {
+      return false;
+    }
+  });
   const { user } = useAuth();
   const [initials, setInitials] = useState<string | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
@@ -226,13 +232,15 @@ export const DashboardLayout = () => {
 
   useRealtimeProfile();
 
+  // Dark mode only exists while the dashboard is mounted. Leaving the
+  // dashboard (logout, session expiry, link to a public page) removes the
+  // class automatically, so it can never leak onto public pages.
   useEffect(() => {
-    const saved = localStorage.getItem("flexiq-theme");
-    if (saved === "dark") {
-      document.documentElement.classList.add("dark");
-      setDark(true);
-    }
-  }, []);
+    document.documentElement.classList.toggle("dark", dark);
+    return () => {
+      document.documentElement.classList.remove("dark");
+    };
+  }, [dark]);
 
   // Fetch initials + avatar_url together, re-run when user changes
   useEffect(() => {
@@ -276,8 +284,9 @@ export const DashboardLayout = () => {
   const toggleTheme = () => {
     const next = !dark;
     setDark(next);
-    document.documentElement.classList.toggle("dark", next);
-    localStorage.setItem("flexiq-theme", next ? "dark" : "light");
+    try {
+      localStorage.setItem("flexiq-theme", next ? "dark" : "light");
+    } catch {}
   };
 
   return (
