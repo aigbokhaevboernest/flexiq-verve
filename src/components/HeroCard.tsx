@@ -46,7 +46,7 @@ export const HeroCard = () => {
   });
 
   return (
-    <div className="relative mx-auto w-full max-w-md py-10 sm:py-14 lg:max-w-lg">
+    <div className="relative mx-auto w-full max-w-md py-8 sm:py-10 lg:max-w-lg">
       {/* Floating mint card */}
       <motion.div
         {...enter(30, -8, 0.2)}
