@@ -17,6 +17,7 @@ const TOAST_VISIBLE_MS = 3000; // "Cookie accepted" message stays this long
  *   then slides up from the bottom.
  * - Sits flush against the bottom, left and right edges of the screen, kept short so
  *   it doesn't cover the main button on pages like Login.
+ * - Dark, 50% transparent background with a blur so the text stays readable.
  * - X (top left) or doing nothing for 15 seconds closes it as "declined".
  * - Accept closes it and slides a green "Cookie accepted successfully" message
  *   down from the top.
@@ -106,8 +107,8 @@ export const CookieBanner = () => {
             role="dialog"
             aria-label="Cookie consent"
             style={{ transitionDuration: `${SLIDE_MS}ms` }}
-            // Plain white, flush to the bottom, left and right edges
-            className={`fixed inset-x-0 bottom-0 z-[100] rounded-t-2xl bg-white px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 text-center text-gray-900 shadow-[0_-4px_20px_rgba(0,0,0,0.15)] transition-transform ease-out ${
+            // Dark, 50% transparent, blurred, flush to the bottom, left and right edges
+            className={`fixed inset-x-0 bottom-0 z-[100] rounded-t-2xl border-t border-white/10 bg-gray-900/50 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 text-center text-white shadow-[0_-4px_20px_rgba(0,0,0,0.25)] backdrop-blur-md transition-transform ease-out ${
               entered ? "translate-y-0" : "translate-y-full"
             }`}
           >
@@ -115,15 +116,15 @@ export const CookieBanner = () => {
               type="button"
               aria-label="Close"
               onClick={() => choose("declined")}
-              className="absolute left-3 top-3 flex h-7 w-7 items-center justify-center rounded-full bg-gray-100 text-gray-700 transition hover:bg-gray-200"
+              className="absolute left-3 top-3 flex h-7 w-7 items-center justify-center rounded-full bg-white/15 text-white transition hover:bg-white/25"
             >
               <X className="h-4 w-4" />
             </button>
 
             {/* side padding keeps the text clear of the X button */}
-            <p className="px-9 text-[13px] font-medium leading-snug text-gray-800">
+            <p className="px-9 text-[13px] font-medium leading-snug text-white">
               We use cookies to improve your experience. See our{" "}
-              <Link to="/policies" className="font-semibold text-primary underline underline-offset-2">
+              <Link to="/policies" className="font-semibold text-white underline underline-offset-2">
                 Privacy Policy
               </Link>
               .
