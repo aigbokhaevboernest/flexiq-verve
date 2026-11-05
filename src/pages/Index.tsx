@@ -320,7 +320,7 @@ const Index = () => {
     <div className="page-enter min-h-screen bg-navy">
       <Navbar />
 
-           {/* ── HERO ── */}
+               {/* ── HERO ── */}
       <section className="relative overflow-hidden">
         <img src={heroBanking} alt="Premium banking app and card" width={1920} height={1080} className="absolute inset-0 h-full w-full object-cover object-center" />
         <div className="absolute inset-0 bg-black/60" />
@@ -329,16 +329,16 @@ const Index = () => {
         {/* Wavy edge into the next section (sits behind the content below) */}
         <HeroWave />
 
-        <div className="container relative grid gap-8 pt-8 pb-28 md:grid-cols-2 md:gap-14 md:pt-16 md:pb-32 lg:pt-24 lg:pb-40">
+        <div className="container relative grid gap-12 pt-20 pb-40 md:grid-cols-2 md:gap-16 md:pt-32 md:pb-48 lg:pt-40 lg:pb-56">
           <div className="flex flex-col justify-center text-on-dark">
-            <motion.h1 {...fade(0.05)} className="font-display text-4xl font-bold leading-[1.05] tracking-tight sm:text-5xl lg:text-6xl">
+            <motion.h1 {...fade(0.05)} className="font-display text-4xl font-bold leading-[1.1] tracking-tight sm:text-5xl lg:text-6xl">
               Bank Smarter,{" "}<RotatingWord />{" "}
               <span className="block">your money & build credit with Flexiq Verve</span>
             </motion.h1>
-            <motion.p {...fade(0.15)} className="mt-4 max-w-xl text-base text-on-dark-muted sm:text-lg">
+            <motion.p {...fade(0.15)} className="mt-6 max-w-xl text-base text-on-dark-muted sm:text-lg">
               Flexiq Verve provides secure, fast, and reliable digital banking services to help you manage your finances with ease, from anywhere, on any device.
             </motion.p>
-            <motion.div {...fade(0.25)} className="mt-6 flex flex-col gap-3 sm:flex-row">
+            <motion.div {...fade(0.25)} className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Button asChild size="lg" className="bg-[hsl(var(--mediumblue))] text-white hover:bg-[hsl(var(--mediumblue))]/90">
                 <Link to="/signup">Open an Account <ArrowRight className="ml-1 h-4 w-4" /></Link>
               </Button>
@@ -352,8 +352,6 @@ const Index = () => {
           </div>
         </div>
       </section>
-
-
 
             {/* ── CORE FEATURES ── */}
       <section id="features" className="bg-white pb-20 pt-4 sm:pb-28 sm:pt-12">
