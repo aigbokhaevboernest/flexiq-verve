@@ -30,7 +30,8 @@ export const HeroWave = ({ color = NEXT_SECTION }: { color?: string }) => (
     >
       <path
         d={WAVE_BACK}
-        style={{ fill: "#ffffff" }}
+        style={{ fill: "hsl(var(--mediumblue))" }}
+        fillOpacity="0.22"
       />
       <path
         d={WAVE_FRONT}
@@ -62,7 +63,7 @@ export const HeroCard = () => {
           className="block h-16 w-full"
           xmlns="http://www.w3.org/2000/svg"
         >
-          <path d={WAVE_BACK} style={{ fill: "#ffffff" }} />
+          <path d={WAVE_BACK} style={{ fill: "hsl(var(--mediumblue))" }} fillOpacity="0.22" />
           <path d={WAVE_FRONT} style={{ fill: NEXT_SECTION }} />
         </svg>
         <div className="-mt-px h-[60rem]" style={{ background: NEXT_SECTION }} />
@@ -84,7 +85,7 @@ export const HeroCard = () => {
       {/* Main card: same simple layout, matte color, no glow blobs */}
       <motion.div
         {...enter(40)}
-        className="relative overflow-hidden rounded-3xl border border-white/10 p-5 text-white"
+        className="relative overflow-hidden rounded-3xl border border-white/10 p-7 text-white"
         style={{ background: `linear-gradient(145deg, ${CARD_FROM} 0%, ${CARD_TO} 100%)` }}
       >
         {/* soft curve in the top-right corner (flat, no blur) */}
@@ -93,13 +94,13 @@ export const HeroCard = () => {
           <span className="font-display text-sm font-semibold opacity-90">FLEXIQ VERVE • Platinum</span>
           <Wifi className="h-5 w-5 rotate-90 opacity-90" />
         </div>
-        <div className="relative mt-5">
+        <div className="relative mt-10">
           <p className="text-xs uppercase tracking-widest opacity-70">Available Balance</p>
-          <p className="mt-1 font-display text-3xl font-bold tracking-tight">$24,891.50</p>
+          <p className="mt-1 font-display text-4xl font-bold tracking-tight">$24,891.50</p>
         </div>
-        <div className="relative mt-4 flex items-end justify-between">
+        <div className="relative mt-8 flex items-end justify-between">
           <p className="font-mono text-base tracking-[0.2em] opacity-90">•••• 4829</p>
-          <CreditCard className="h-6 w-6 opacity-90" />
+          <CreditCard className="h-8 w-8 opacity-90" />
         </div>
       </motion.div>
 
