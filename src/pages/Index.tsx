@@ -2,7 +2,7 @@ import heroBanking from "@/assets/hero-banking.jpg";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { RotatingWord } from "@/components/RotatingWord";
-import { HeroCard } from "@/components/HeroCard";
+import { HeroCard, HeroBlend } from "@/components/HeroCard";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
