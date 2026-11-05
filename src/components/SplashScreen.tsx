@@ -5,9 +5,9 @@ export const SplashScreen = () => {
   const [removed, setRemoved] = useState(false);
 
   useEffect(() => {
-    // 2 full animation cycles (0.5s each), then fade out
-    const t1 = setTimeout(() => setHidden(true), 1000);
-    const t2 = setTimeout(() => setRemoved(true), 1300);
+    // 1 full animation cycle (0.5s), a short hold, then fade out
+    const t1 = setTimeout(() => setHidden(true), 650);
+    const t2 = setTimeout(() => setRemoved(true), 950);
     return () => { clearTimeout(t1); clearTimeout(t2); };
   }, []);
 
@@ -42,7 +42,7 @@ export const SplashScreen = () => {
           position: "absolute",
           width: 44,
           height: 44,
-          animation: "bracketCycle 0.5s ease-out infinite",
+          animation: "bracketCycle 0.5s ease-out 1 forwards",
         }}>
           {[
             { top: -6, left: -6,   borderWidth: "2px 0 0 2px" },
