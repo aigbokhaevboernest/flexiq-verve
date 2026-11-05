@@ -9,6 +9,9 @@ const CARD_TO = "#244b57";
 // Color of the section right AFTER the hero (your "Core banking" section uses bg-navy-2).
 const NEXT_SECTION = "hsl(var(--navy-2))";
 
+const WAVE_BACK = "M0,70 C200,20 420,24 660,62 C900,100 1180,108 1440,44 L1440,120 L0,120 Z";
+const WAVE_FRONT = "M0,92 C260,52 480,52 720,84 C960,116 1200,112 1440,76 L1440,120 L0,120 Z";
+
 /**
  * Wavy edge between the hero and the next section (replaces the hard cut).
  * Place it inside the hero <section> (which is `relative`), BEFORE the content container.
@@ -17,7 +20,7 @@ const NEXT_SECTION = "hsl(var(--navy-2))";
 export const HeroWave = ({ color = NEXT_SECTION }: { color?: string }) => (
   <div
     aria-hidden="true"
-    className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-14 translate-y-px sm:h-20 lg:h-24"
+    className="pointer-events-none absolute inset-x-0 bottom-0 z-0 hidden h-20 translate-y-px md:block lg:h-24"
   >
     <svg
       viewBox="0 0 1440 120"
@@ -26,12 +29,12 @@ export const HeroWave = ({ color = NEXT_SECTION }: { color?: string }) => (
       xmlns="http://www.w3.org/2000/svg"
     >
       <path
-        d="M0,70 C200,20 420,24 660,62 C900,100 1180,108 1440,44 L1440,120 L0,120 Z"
+        d={WAVE_BACK}
         style={{ fill: "hsl(var(--mediumblue))" }}
         fillOpacity="0.22"
       />
       <path
-        d="M0,92 C260,52 480,52 720,84 C960,116 1200,112 1440,76 L1440,120 L0,120 Z"
+        d={WAVE_FRONT}
         style={{ fill: color }}
       />
     </svg>
@@ -49,6 +52,23 @@ export const HeroCard = () => {
 
   return (
     <div className="relative mx-auto w-full max-w-md">
+      {/* Mobile: the wave starts behind the card and fills down to the next section */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute left-1/2 top-[58%] z-0 w-screen -translate-x-1/2 md:hidden"
+      >
+        <svg
+          viewBox="0 0 1440 120"
+          preserveAspectRatio="none"
+          className="block h-16 w-full"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path d={WAVE_BACK} style={{ fill: "hsl(var(--mediumblue))" }} fillOpacity="0.22" />
+          <path d={WAVE_FRONT} style={{ fill: NEXT_SECTION }} />
+        </svg>
+        <div className="-mt-px h-[60rem]" style={{ background: NEXT_SECTION }} />
+      </div>
+
       {/* Floating mint card */}
       <motion.div
         {...enter(30, -8, 0.2)}
@@ -68,6 +88,8 @@ export const HeroCard = () => {
         className="relative overflow-hidden rounded-3xl border border-white/10 p-7 text-white shadow-elev"
         style={{ background: `linear-gradient(145deg, ${CARD_FROM} 0%, ${CARD_TO} 100%)` }}
       >
+        {/* soft curve in the top-right corner (flat, no blur) */}
+        <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-white/10" />
         <div className="relative flex items-center justify-between">
           <span className="font-display text-sm font-semibold opacity-90">FLEXIQ VERVE • Platinum</span>
           <Wifi className="h-5 w-5 rotate-90 opacity-90" />
