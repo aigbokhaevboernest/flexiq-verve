@@ -1,7 +1,6 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Menu } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { useState } from "react";
 import { BrandLogo } from "@/components/BrandLogo";
 
@@ -21,7 +20,7 @@ export const Navbar = () => {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-[#18223E] transition-smooth">
       <div className="container flex h-20 items-center justify-between">
-        <Link to="/" className="flex items-center">
+        <Link to="/" className="flex items-center" onClick={() => setOpen(false)}>
           <BrandLogo className="h-9 w-auto object-contain sm:h-10" />
         </Link>
 
@@ -53,61 +52,67 @@ export const Navbar = () => {
           </Button>
         </div>
 
-        <Sheet open={open} onOpenChange={setOpen}>
-          <SheetTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label={open ? "Close menu" : "Open menu"}
+          aria-expanded={open}
+          onClick={() => setOpen((o) => !o)}
+          className="h-12 w-12 text-white hover:bg-white/10 hover:text-white lg:hidden"
+        >
+          {open ? <X className="!h-8 !w-8" /> : <Menu className="!h-8 !w-8" />}
+        </Button>
+      </div>
+
+      {/* Dim backdrop under the header; tap to close */}
+      <div
+        onClick={() => setOpen(false)}
+        className={`fixed inset-x-0 bottom-0 top-20 bg-black/40 transition-opacity duration-300 lg:hidden ${
+          open ? "opacity-100" : "pointer-events-none opacity-0"
+        }`}
+      />
+
+      {/* Dropdown panel: clipped at the header's bottom edge so it slides out from under it */}
+      <div
+        className={`absolute inset-x-0 top-full overflow-hidden lg:hidden ${
+          open ? "" : "pointer-events-none"
+        }`}
+      >
+        <div
+          className={`border-b border-white/10 bg-[#18223E] px-6 pb-6 pt-2 text-white shadow-xl transition-transform duration-500 ease-in-out ${
+            open ? "translate-y-0" : "-translate-y-full"
+          }`}
+        >
+          <nav className="flex flex-col">
+            {links.map((l) => (
+              <a
+                key={l.href}
+                href={l.href}
+                onClick={() => setOpen(false)}
+                className="border-b border-white/10 py-4 text-base font-medium uppercase tracking-wide text-white/90 hover:text-white"
+              >
+                {l.label}
+              </a>
+            ))}
+          </nav>
+
+          <div className="mt-6 flex gap-3">
             <Button
-              variant="ghost"
-              size="icon"
-              className="h-12 w-12 text-white hover:bg-white/10 hover:text-white lg:hidden"
+              variant="outline"
+              asChild
+              className="border-white/30 bg-transparent text-white hover:bg-white/10 hover:text-white"
             >
-              <Menu className="!h-8 !w-8" />
+              <Link to="/login" onClick={() => setOpen(false)}>
+                Login
+              </Link>
             </Button>
-          </SheetTrigger>
-
-          <SheetContent
-            side="top"
-            className="border-b border-white/10 bg-[#18223E] text-white duration-500 data-[state=closed]:duration-300 [&>button]:text-white [&>button]:opacity-100 [&>button_svg]:h-7 [&>button_svg]:w-7"
-          >
-            <SheetTitle className="sr-only">Menu</SheetTitle>
-
-            <div className="flex flex-col gap-6 pb-4 pt-2">
-              <BrandLogo className="h-9 w-auto self-start object-contain" />
-
-              <nav className="flex flex-col gap-5">
-                {links.map((l) => (
-                  <a
-                    key={l.href}
-                    href={l.href}
-                    onClick={() => setOpen(false)}
-                    className="text-base font-medium uppercase tracking-wide text-white/90 hover:text-white"
-                  >
-                    {l.label}
-                  </a>
-                ))}
-              </nav>
-
-              <div className="flex gap-3">
-                <Button
-                  variant="outline"
-                  asChild
-                  className="border-white/30 bg-transparent text-white hover:bg-white/10 hover:text-white"
-                >
-                  <Link to="/login" onClick={() => setOpen(false)}>
-                    Login
-                  </Link>
-                </Button>
-                <Button
-                  asChild
-                  className="bg-gradient-primary text-primary-foreground"
-                >
-                  <Link to="/signup" onClick={() => setOpen(false)}>
-                    Open Account
-                  </Link>
-                </Button>
-              </div>
-            </div>
-          </SheetContent>
-        </Sheet>
+            <Button asChild className="bg-gradient-primary text-primary-foreground">
+              <Link to="/signup" onClick={() => setOpen(false)}>
+                Open Account
+              </Link>
+            </Button>
+          </div>
+        </div>
       </div>
     </header>
   );
