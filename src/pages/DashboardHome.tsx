@@ -53,7 +53,7 @@ const quickActions: Array<{
  *    text, so the card pops against the dark page.
  * Solid colors only — no gradients, blur or stacked translucent layers.
  */
-const card = {
+const cardTheme = {
   surface:
     "bg-[#0f1830] text-white border border-[#263a63] dark:bg-[#8cc8ff] dark:text-[#0b1220] dark:border-[#6fb3ee]",
   muted: "text-white/60 dark:text-[#0b1220]/65",
@@ -356,7 +356,7 @@ const DashboardHome = () => {
             formatMoney={formatMoney}
             primarySlide={
               <div
-                className={`flex h-full flex-col overflow-hidden rounded-3xl shadow-elev ${card.surface}`}
+                className={`flex h-full flex-col overflow-hidden rounded-3xl shadow-elev ${cardTheme.surface}`}
               >
                 {/* Main content */}
                 <div className="flex-1 p-8 pb-6">
@@ -372,12 +372,12 @@ const DashboardHome = () => {
                         </span>
                       )}
 
-                      <p className={`text-xs uppercase tracking-widest ${card.muted}`}>
+                      <p className={`text-xs uppercase tracking-widest ${cardTheme.muted}`}>
                         Available Balance
                       </p>
                       <div className="mt-2 flex items-center gap-3">
                         {!balanceKnown || !currency ? (
-                          <Skeleton className={`h-10 w-44 ${card.skeleton}`} />
+                          <Skeleton className={`h-10 w-44 ${cardTheme.skeleton}`} />
                         ) : (
                           <FitAmount
                             variant="hero"
@@ -389,7 +389,7 @@ const DashboardHome = () => {
                           type="button"
                           aria-label={hidden ? "Show balance" : "Hide balance"}
                           onClick={() => setHidden((h) => !h)}
-                          className={`shrink-0 rounded-full p-2 transition-smooth ${card.eyeBtn}`}
+                          className={`shrink-0 rounded-full p-2 transition-smooth ${cardTheme.eyeBtn}`}
                         >
                           {hidden ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
                         </button>
@@ -397,11 +397,11 @@ const DashboardHome = () => {
 
                       <div className="mt-6 flex flex-wrap gap-x-8 gap-y-2 text-sm">
                         <div>
-                          <p className={`text-xs ${card.muted}`}>Account No.</p>
+                          <p className={`text-xs ${cardTheme.muted}`}>Account No.</p>
                           <p className="font-mono">
                             {!profileReady ? (
                               <Skeleton
-                                className={`inline-block h-3 w-24 align-middle ${card.skeleton}`}
+                                className={`inline-block h-3 w-24 align-middle ${cardTheme.skeleton}`}
                               />
                             ) : (
                               maskedAccountNumber
@@ -409,7 +409,7 @@ const DashboardHome = () => {
                           </p>
                         </div>
                         <div>
-                          <p className={`text-xs ${card.muted}`}>Account type</p>
+                          <p className={`text-xs ${cardTheme.muted}`}>Account type</p>
                           {/* Currency suffix removed per request — type only */}
                           <p className="font-medium capitalize">
                             {(profile as any)?.account_type || "Personal"}
@@ -417,7 +417,7 @@ const DashboardHome = () => {
                         </div>
                         {isFrozen && (
                           <div>
-                            <p className={`text-xs ${card.muted}`}>Status</p>
+                            <p className={`text-xs ${cardTheme.muted}`}>Status</p>
                             <p className="font-semibold" style={{ color: "#ff8503" }}>
                               ● Frozen
                             </p>
@@ -437,11 +437,11 @@ const DashboardHome = () => {
                   <div className="mt-8 grid grid-cols-4 gap-3">
                     {quickActions.map((a) => {
                       const Icon = a.icon;
-                      const cls = `group flex flex-col items-center gap-2 rounded-2xl p-3 text-center transition-smooth ${card.tile}`;
+                      const cls = `group flex flex-col items-center gap-2 rounded-2xl p-3 text-center transition-smooth ${cardTheme.tile}`;
                       const inner = (
                         <>
                           <span
-                            className={`flex h-10 w-10 items-center justify-center rounded-xl ${card.iconChip}`}
+                            className={`flex h-10 w-10 items-center justify-center rounded-xl ${cardTheme.iconChip}`}
                           >
                             <Icon className="h-4 w-4" />
                           </span>
@@ -501,7 +501,7 @@ const DashboardHome = () => {
                   onKeyDown={(e) => {
                     if (e.key === "Enter") goToWallets();
                   }}
-                  className={`flex cursor-pointer items-center justify-center gap-2 px-8 py-4 text-sm font-medium transition-colors ${card.footer}`}
+                  className={`flex cursor-pointer items-center justify-center gap-2 px-8 py-4 text-sm font-medium transition-colors ${cardTheme.footer}`}
                 >
                   <ArrowLeftRight className="h-4 w-4" />
                   <span>View currency wallet</span>
