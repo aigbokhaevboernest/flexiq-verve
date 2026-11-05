@@ -320,7 +320,7 @@ const Index = () => {
     <div className="page-enter min-h-screen bg-navy">
       <Navbar />
 
-                     {/* ── HERO ── */}
+           {/* ── HERO ── */}
       <section className="relative overflow-hidden">
         <img src={heroBanking} alt="Premium banking app and card" width={1920} height={1080} className="absolute inset-0 h-full w-full object-cover object-center" />
         <div className="absolute inset-0 bg-black/60" />
@@ -352,6 +352,7 @@ const Index = () => {
           </div>
         </div>
       </section>
+
 
 
             {/* ── CORE FEATURES ── */}
@@ -387,6 +388,27 @@ const Index = () => {
         </div>
       </section>
 
+
+      {/* ── QUICK FEATURES ── */}
+      <section className="bg-blue-gradient py-16">
+        <div className="container">
+          <motion.div {...fade()} className="rounded-3xl bg-white/10 p-8 backdrop-blur sm:p-12">
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {quickFeatures.map((q, i) => {
+                const Icon = q.icon;
+                return (
+                  <motion.div key={q.label} {...fade(i * 0.05)} className="flex items-center gap-4 rounded-2xl bg-white p-4 shadow-sm">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[hsl(var(--mediumblue))]/15 text-[hsl(var(--mediumblue))]">
+                      <Icon className="h-5 w-5" />
+                    </div>
+                    <p className="font-medium text-foreground">{q.label}</p>
+                  </motion.div>
+                );
+              })}
+            </div>
+          </motion.div>
+        </div>
+      </section>
 
       {/* ── STATS ── */}
       <section id="stats" className="bg-navy py-20 sm:py-28">
