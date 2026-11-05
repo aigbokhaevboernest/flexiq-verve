@@ -320,25 +320,18 @@ const Index = () => {
     <div className="page-enter min-h-screen bg-navy">
       <Navbar />
 
-           {/* ── HERO ── */}
+               {/* ── HERO ── */}
       <section className="relative overflow-hidden">
         <img src={heroBanking} alt="Premium banking app and card" width={1920} height={1080} className="absolute inset-0 h-full w-full object-cover object-center" />
         <div className="absolute inset-0 bg-black/60" />
         <div className="absolute inset-0 bg-gradient-to-b from-[hsl(var(--navy))]/40 via-transparent to-[hsl(var(--navy))]" />
-        <div className="pointer-events-none absolute -top-24 -left-24 h-80 w-80 rounded-full bg-[hsl(var(--mediumblue))]/30 blur-3xl animate-float" />
-        <div className="pointer-events-none absolute -bottom-32 right-0 h-96 w-96 rounded-full bg-[hsl(var(--mediumblue))]/20 blur-3xl animate-float [animation-delay:2s]" />
-        <div className="pointer-events-none absolute top-1/3 right-1/4 h-40 w-40 rounded-full bg-primary-glow/30 blur-2xl animate-float [animation-delay:4s] hidden md:block" />
 
         {/* Wavy edge into the next section (sits behind the content below) */}
         <HeroWave />
 
-        <div className="container relative grid gap-14 pt-16 pb-12 md:pt-24 md:pb-32 lg:pt-32 lg:pb-40">
+        <div className="container relative grid gap-14 pt-8 pb-6 md:grid-cols-2 md:pt-16 md:pb-32 lg:pt-24 lg:pb-40">
           <div className="flex flex-col justify-center text-on-dark">
-            <motion.div {...fade(0)} className="inline-flex w-fit items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-xs font-medium text-on-dark backdrop-blur">
-              <PiggyBank className="h-3.5 w-3.5 text-[hsl(var(--mediumblue))]" />
-              Now offering 4.5% APY on savings
-            </motion.div>
-            <motion.h1 {...fade(0.05)} className="mt-6 font-display text-4xl font-bold leading-[1.05] tracking-tight sm:text-5xl lg:text-6xl">
+            <motion.h1 {...fade(0.05)} className="font-display text-4xl font-bold leading-[1.05] tracking-tight sm:text-5xl lg:text-6xl">
               Bank Smarter,{" "}<RotatingWord />{" "}
               <span className="block">your money & build credit with Flexiq Verve</span>
             </motion.h1>
@@ -346,16 +339,12 @@ const Index = () => {
               Flexiq Verve provides secure, fast, and reliable digital banking services to help you manage your finances with ease, from anywhere, on any device.
             </motion.p>
             <motion.div {...fade(0.25)} className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <Button asChild size="lg" className="bg-[hsl(var(--mediumblue))] text-white shadow-glow hover:bg-[hsl(var(--mediumblue))]/90">
+              <Button asChild size="lg" className="bg-[hsl(var(--mediumblue))] text-white hover:bg-[hsl(var(--mediumblue))]/90">
                 <Link to="/signup">Open an Account <ArrowRight className="ml-1 h-4 w-4" /></Link>
               </Button>
-              <Button asChild size="lg" variant="outline" className="border-white/30 bg-white/10 text-on-dark backdrop-blur hover:bg-white/20 hover:text-white">
+              <Button asChild size="lg" variant="outline" className="border-white/30 bg-white/10 text-on-dark hover:bg-white/20 hover:text-white">
                 <Link to="/login">Login</Link>
               </Button>
-            </motion.div>
-            <motion.div {...fade(0.35)} className="mt-10 flex items-center gap-6 text-xs text-on-dark-muted">
-              <div className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-success" /> FDIC Insured</div>
-              <div className="flex items-center gap-2"><Lock className="h-4 w-4 text-[hsl(var(--mediumblue))]" /> 256-bit encryption</div>
             </motion.div>
           </div>
           <div className="relative flex items-center justify-center">
@@ -364,8 +353,9 @@ const Index = () => {
         </div>
       </section>
 
+
       {/* ── CORE FEATURES ── */}
-      <section id="features" className="bg-navy-2 py-20 sm:py-28">
+      <section id="features" className="bg-navy-2 pb-20 pt-8 sm:pb-28 sm:pt-12">
         <div className="container">
           <motion.div {...fade()} className="mx-auto max-w-2xl text-center text-on-dark">
             <p className="text-sm font-semibold uppercase tracking-widest text-[hsl(var(--mediumblue))]">Core banking</p>
