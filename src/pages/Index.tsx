@@ -320,7 +320,7 @@ const Index = () => {
     <div className="page-enter min-h-screen bg-navy">
       <Navbar />
 
-      {/* ── HERO ── */}
+           {/* ── HERO ── */}
       <section className="relative overflow-hidden">
         <img src={heroBanking} alt="Premium banking app and card" width={1920} height={1080} className="absolute inset-0 h-full w-full object-cover object-center" />
         <div className="absolute inset-0 bg-black/60" />
@@ -328,7 +328,11 @@ const Index = () => {
         <div className="pointer-events-none absolute -top-24 -left-24 h-80 w-80 rounded-full bg-[hsl(var(--mediumblue))]/30 blur-3xl animate-float" />
         <div className="pointer-events-none absolute -bottom-32 right-0 h-96 w-96 rounded-full bg-[hsl(var(--mediumblue))]/20 blur-3xl animate-float [animation-delay:2s]" />
         <div className="pointer-events-none absolute top-1/3 right-1/4 h-40 w-40 rounded-full bg-primary-glow/30 blur-2xl animate-float [animation-delay:4s] hidden md:block" />
-        <div className="container relative grid gap-14 py-16 md:grid-cols-2 md:py-24 lg:py-32">
+
+        {/* Wavy edge into the next section (sits behind the content below) */}
+        <HeroWave />
+
+        <div className="container relative grid gap-14 pt-16 pb-24 md:grid-cols-2 md:pt-24 md:pb-32 lg:pt-32 lg:pb-40">
           <div className="flex flex-col justify-center text-on-dark">
             <motion.div {...fade(0)} className="inline-flex w-fit items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-xs font-medium text-on-dark backdrop-blur">
               <PiggyBank className="h-3.5 w-3.5 text-[hsl(var(--mediumblue))]" />
