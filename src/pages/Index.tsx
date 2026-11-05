@@ -332,7 +332,7 @@ const Index = () => {
         {/* Wavy edge into the next section (sits behind the content below) */}
         <HeroWave />
 
-        <div className="container relative grid gap-14 pt-16 pb-24 md:grid-cols-2 md:pt-24 md:pb-32 lg:pt-32 lg:pb-40">
+        <div className="container relative grid gap-14 pt-16 pb-12 md:pt-24 md:pb-32 lg:pt-32 lg:pb-40">
           <div className="flex flex-col justify-center text-on-dark">
             <motion.div {...fade(0)} className="inline-flex w-fit items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-xs font-medium text-on-dark backdrop-blur">
               <PiggyBank className="h-3.5 w-3.5 text-[hsl(var(--mediumblue))]" />
