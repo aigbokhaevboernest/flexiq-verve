@@ -5,8 +5,9 @@ export const SplashScreen = () => {
   const [removed, setRemoved] = useState(false);
 
   useEffect(() => {
-    const t1 = setTimeout(() => setHidden(true), 1500);
-    const t2 = setTimeout(() => setRemoved(true), 2000);
+    // 2 full animation cycles (0.5s each), then fade out
+    const t1 = setTimeout(() => setHidden(true), 1000);
+    const t2 = setTimeout(() => setRemoved(true), 1300);
     return () => { clearTimeout(t1); clearTimeout(t2); };
   }, []);
 
@@ -24,7 +25,7 @@ export const SplashScreen = () => {
         zIndex: 9999,
         opacity: hidden ? 0 : 1,
         pointerEvents: hidden ? "none" : "auto",
-        transition: "opacity 0.4s ease",
+        transition: "opacity 0.3s ease",
       }}
     >
       <div style={{ position: "relative", width: 80, height: 80, display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -41,7 +42,7 @@ export const SplashScreen = () => {
           position: "absolute",
           width: 44,
           height: 44,
-          animation: "bracketCycle 0.9s ease-in-out infinite",
+          animation: "bracketCycle 0.5s ease-out infinite",
         }}>
           {[
             { top: -6, left: -6,   borderWidth: "2px 0 0 2px" },
@@ -64,8 +65,8 @@ export const SplashScreen = () => {
       <style>{`
         @keyframes bracketCycle {
           0%   { transform: scale(1)   rotate(0deg);  }
-          30%  { transform: scale(1.7) rotate(0deg);  }
-          95%  { transform: scale(1)   rotate(90deg); }
+          20%  { transform: scale(1.7) rotate(0deg);  }
+          90%  { transform: scale(1)   rotate(90deg); }
           100% { transform: scale(1)   rotate(90deg); }
         }
       `}</style>
@@ -91,7 +92,7 @@ export const PageSkeleton = () => (
         height: 200,
         borderRadius: "50%",
         background: "#e2e5ea",
-        animation: "skeletonPulse 1.5s ease-in-out infinite",
+        animation: "skeletonPulse 1s ease-in-out infinite",
       }}
     />
     <style>{`
