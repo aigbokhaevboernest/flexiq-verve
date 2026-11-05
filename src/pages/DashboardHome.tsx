@@ -10,11 +10,11 @@ import {
   Eye,
   EyeOff,
   FileText,
+  Landmark,
   Receipt,
   Send,
   TrendingUp,
   Wallet,
-  Wifi,
   ShieldAlert,
 } from "lucide-react";
 import { motion } from "framer-motion";
@@ -47,26 +47,20 @@ const quickActions: Array<{
 ];
 
 /**
- * Primary card theme.
- *  - Light mode: deep navy surface, white text.
- *  - Dark mode (Tailwind `dark:` class): bright sky blue surface, near-black
- *    text, so the card pops against the dark page.
- * Solid colors only — no gradients, blur or stacked translucent layers.
+ * Primary card theme: one solid blue with white text in both light and dark
+ * mode (mid blue stays visible on dark pages). Solid colors only — no
+ * gradients, blur or stacked translucent layers.
  */
 const cardTheme = {
-  surface:
-    "bg-[#0f1830] text-white border border-[#263a63] dark:bg-[#8cc8ff] dark:text-[#0b1220] dark:border-[#6fb3ee]",
-  muted: "text-white/60 dark:text-[#0b1220]/65",
-  eyeBtn:
-    "bg-white/10 hover:bg-white/20 dark:bg-[#0b1220]/10 dark:hover:bg-[#0b1220]/20",
-  tile:
-    "bg-[#17243f] hover:bg-[#1c2c4d] dark:bg-[#0b1220]/10 dark:hover:bg-[#0b1220]/15",
-  iconChip:
-    "bg-[#1f3a66] text-[#5aa9f5] dark:bg-[#0b1220]/15 dark:text-[#0b1220]",
-  skeleton: "bg-white/20 dark:bg-[#0b1220]/15",
-  // Darker band behind "View currency wallet" for a touch of separation
+  surface: "bg-[#3d76ca] text-white border border-white/10",
+  muted: "text-white/70",
+  eyeBtn: "border border-white/30 hover:bg-white/15",
+  tile: "bg-white/15 hover:bg-white/20",
+  iconChip: "bg-white/20 text-white",
+  skeleton: "bg-white/25",
+  // Darker shade of the same blue behind "View currency wallet"
   footer:
-    "bg-[#0a1226] border-t border-[#263a63] hover:bg-[#080f20] dark:bg-[#6fb3ee] dark:border-[#5aa2e0] dark:hover:bg-[#62a8e6]",
+    "bg-[#2f62b3] border-t border-white/15 hover:bg-[#2a58a3]",
 };
 
 /** Mask account number — show only last 4 digits: •••• •••• 7890 */
@@ -268,6 +262,10 @@ const DashboardHome = () => {
 
   // Stable masked account number — only recomputes when accountNumber changes, no flicker
   const maskedAccountNumber = useMemo(() => maskAccountNumber(accountNumber), [accountNumber]);
+  const lastFour = useMemo(
+    () => (accountNumber ? String(accountNumber).replace(/\D/g, "").slice(-4) : "----"),
+    [accountNumber]
+  );
 
   // Which secondary cards to show alongside the primary card, based on the
   // signup account_type. Always 2, never duplicates signup type, never
@@ -360,78 +358,61 @@ const DashboardHome = () => {
               >
                 {/* Main content */}
                 <div className="flex-1 p-8 pb-6">
-                  <div className="flex items-start justify-between">
-                    <div className="min-w-0 flex-1">
-                      {isFrozen && (
-                        <span
-                          className="mb-3 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold text-white"
-                          style={{ backgroundColor: "#ff8503" }}
-                        >
-                          <ShieldAlert className="h-3 w-3" />
-                          Account Frozen
-                        </span>
-                      )}
-
-                      <p className={`text-xs uppercase tracking-widest ${cardTheme.muted}`}>
-                        Available Balance
-                      </p>
-                      <div className="mt-2 flex items-center gap-3">
-                        {!balanceKnown || !currency ? (
-                          <Skeleton className={`h-10 w-44 ${cardTheme.skeleton}`} />
-                        ) : (
-                          <FitAmount
-                            variant="hero"
-                            text={hidden ? "••••••" : formatMoney(balanceValue, currency)}
-                            title={formatMoney(balanceValue, currency)}
-                          />
-                        )}
-                        <button
-                          type="button"
-                          aria-label={hidden ? "Show balance" : "Hide balance"}
-                          onClick={() => setHidden((h) => !h)}
-                          className={`shrink-0 rounded-full p-2 transition-smooth ${cardTheme.eyeBtn}`}
-                        >
-                          {hidden ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-                        </button>
-                      </div>
-
-                      <div className="mt-6 flex flex-wrap gap-x-8 gap-y-2 text-sm">
-                        <div>
-                          <p className={`text-xs ${cardTheme.muted}`}>Account No.</p>
-                          <p className="font-mono">
-                            {!profileReady ? (
-                              <Skeleton
-                                className={`inline-block h-3 w-24 align-middle ${cardTheme.skeleton}`}
-                              />
-                            ) : (
-                              maskedAccountNumber
-                            )}
-                          </p>
-                        </div>
-                        <div>
-                          <p className={`text-xs ${cardTheme.muted}`}>Account type</p>
-                          {/* Currency suffix removed per request — type only */}
-                          <p className="font-medium capitalize">
-                            {(profile as any)?.account_type || "Personal"}
-                          </p>
-                        </div>
-                        {isFrozen && (
-                          <div>
-                            <p className={`text-xs ${cardTheme.muted}`}>Status</p>
-                            <p className="font-semibold" style={{ color: "#ff8503" }}>
-                              ● Frozen
-                            </p>
-                          </div>
-                        )}
+                  {/* Header: icon chip + account name/number, eye toggle on the right */}
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex min-w-0 items-center gap-4">
+                      <span
+                        className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl ${cardTheme.iconChip}`}
+                      >
+                        <Landmark className="h-6 w-6" />
+                      </span>
+                      <div className="min-w-0">
+                        <p className="truncate text-lg font-medium capitalize leading-tight">
+                          {(profile as any)?.account_type || "Personal"}
+                        </p>
+                        <p className={`mt-0.5 text-sm ${cardTheme.muted}`}>
+                          {!profileReady ? (
+                            <Skeleton
+                              className={`inline-block h-3 w-20 align-middle ${cardTheme.skeleton}`}
+                            />
+                          ) : (
+                            <>●●●● {lastFour}</>
+                          )}
+                        </p>
                       </div>
                     </div>
+                    <button
+                      type="button"
+                      aria-label={hidden ? "Show balance" : "Hide balance"}
+                      onClick={() => setHidden((h) => !h)}
+                      className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full transition-smooth ${cardTheme.eyeBtn}`}
+                    >
+                      {hidden ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                    </button>
+                  </div>
 
-                    <div className="hidden text-right sm:block">
-                      <Wifi className="ml-auto h-5 w-5 rotate-90 opacity-90" />
-                      <p className="mt-12 font-display text-sm font-semibold opacity-90">
-                        PLATINUM
-                      </p>
-                    </div>
+                  {isFrozen && (
+                    <span
+                      className="mt-4 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold text-white"
+                      style={{ backgroundColor: "#ff8503" }}
+                    >
+                      <ShieldAlert className="h-3 w-3" />
+                      Account Frozen
+                    </span>
+                  )}
+
+                  {/* Balance */}
+                  <p className={`mt-8 text-base ${cardTheme.muted}`}>Available balance</p>
+                  <div className="mt-1">
+                    {!balanceKnown || !currency ? (
+                      <Skeleton className={`h-12 w-56 ${cardTheme.skeleton}`} />
+                    ) : (
+                      <FitAmount
+                        variant="hero"
+                        text={hidden ? "••••••" : formatMoney(balanceValue, currency)}
+                        title={formatMoney(balanceValue, currency)}
+                      />
+                    )}
                   </div>
 
                   <div className="mt-8 grid grid-cols-4 gap-3">
