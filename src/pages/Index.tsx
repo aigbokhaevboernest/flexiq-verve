@@ -320,7 +320,7 @@ const Index = () => {
     <div className="page-enter min-h-screen bg-navy">
       <Navbar />
 
-               {/* ── HERO ── */}
+                     {/* ── HERO ── */}
       <section className="relative overflow-hidden">
         <img src={heroBanking} alt="Premium banking app and card" width={1920} height={1080} className="absolute inset-0 h-full w-full object-cover object-center" />
         <div className="absolute inset-0 bg-black/60" />
@@ -329,16 +329,16 @@ const Index = () => {
         {/* Wavy edge into the next section (sits behind the content below) */}
         <HeroWave />
 
-        <div className="container relative grid gap-14 pt-8 pb-6 md:grid-cols-2 md:pt-16 md:pb-32 lg:pt-24 lg:pb-40">
+        <div className="container relative grid gap-8 pt-8 pb-28 md:grid-cols-2 md:gap-14 md:pt-16 md:pb-32 lg:pt-24 lg:pb-40">
           <div className="flex flex-col justify-center text-on-dark">
             <motion.h1 {...fade(0.05)} className="font-display text-4xl font-bold leading-[1.05] tracking-tight sm:text-5xl lg:text-6xl">
               Bank Smarter,{" "}<RotatingWord />{" "}
               <span className="block">your money & build credit with Flexiq Verve</span>
             </motion.h1>
-            <motion.p {...fade(0.15)} className="mt-6 max-w-xl text-base text-on-dark-muted sm:text-lg">
+            <motion.p {...fade(0.15)} className="mt-4 max-w-xl text-base text-on-dark-muted sm:text-lg">
               Flexiq Verve provides secure, fast, and reliable digital banking services to help you manage your finances with ease, from anywhere, on any device.
             </motion.p>
-            <motion.div {...fade(0.25)} className="mt-8 flex flex-col gap-3 sm:flex-row">
+            <motion.div {...fade(0.25)} className="mt-6 flex flex-col gap-3 sm:flex-row">
               <Button asChild size="lg" className="bg-[hsl(var(--mediumblue))] text-white hover:bg-[hsl(var(--mediumblue))]/90">
                 <Link to="/signup">Open an Account <ArrowRight className="ml-1 h-4 w-4" /></Link>
               </Button>
@@ -347,20 +347,20 @@ const Index = () => {
               </Button>
             </motion.div>
           </div>
-          <div className="relative flex items-center justify-center">
+          <div className="relative hidden items-center justify-center md:flex">
             <HeroCard />
           </div>
         </div>
       </section>
 
 
-      {/* ── CORE FEATURES ── */}
-      <section id="features" className="bg-navy-2 pb-20 pt-8 sm:pb-28 sm:pt-12">
+            {/* ── CORE FEATURES ── */}
+      <section id="features" className="bg-white pb-20 pt-4 sm:pb-28 sm:pt-12">
         <div className="container">
-          <motion.div {...fade()} className="mx-auto max-w-2xl text-center text-on-dark">
+          <motion.div {...fade()} className="mx-auto max-w-2xl text-center text-foreground">
             <p className="text-sm font-semibold uppercase tracking-widest text-[hsl(var(--mediumblue))]">Core banking</p>
             <h2 className="mt-3 font-display text-3xl font-bold sm:text-4xl">Sophisticated banking, simplified.</h2>
-            <p className="mt-4 text-on-dark-muted">A modern, intuitive experience designed around security and simplicity.</p>
+            <p className="mt-4 text-muted-foreground">A modern, intuitive experience designed around security and simplicity.</p>
           </motion.div>
           <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {features.map((f, idx) => {
@@ -373,7 +373,7 @@ const Index = () => {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: "-60px" }}
                   transition={{ duration: 0.5, delay: idx * 0.1, ease: "easeOut" }}
-                  className="group relative overflow-hidden rounded-3xl border border-white/10 bg-white p-6 shadow-card hover:-translate-y-1 hover:shadow-elev transition-transform duration-300"
+                  className="group relative overflow-hidden rounded-3xl border border-border bg-white p-6 shadow-card hover:-translate-y-1 hover:shadow-elev transition-transform duration-300"
                 >
                   <div className={`mb-5 flex h-12 w-12 items-center justify-center rounded-2xl ${tone} text-white shadow-md`}>
                     <Icon className="h-6 w-6" />
@@ -387,26 +387,6 @@ const Index = () => {
         </div>
       </section>
 
-      {/* ── QUICK FEATURES ── */}
-      <section className="bg-blue-gradient py-16">
-        <div className="container">
-          <motion.div {...fade()} className="rounded-3xl bg-white/10 p-8 backdrop-blur sm:p-12">
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {quickFeatures.map((q, i) => {
-                const Icon = q.icon;
-                return (
-                  <motion.div key={q.label} {...fade(i * 0.05)} className="flex items-center gap-4 rounded-2xl bg-white p-4 shadow-sm">
-                    <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[hsl(var(--mediumblue))]/15 text-[hsl(var(--mediumblue))]">
-                      <Icon className="h-5 w-5" />
-                    </div>
-                    <p className="font-medium text-foreground">{q.label}</p>
-                  </motion.div>
-                );
-              })}
-            </div>
-          </motion.div>
-        </div>
-      </section>
 
       {/* ── STATS ── */}
       <section id="stats" className="bg-navy py-20 sm:py-28">
