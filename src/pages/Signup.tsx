@@ -48,10 +48,11 @@ const INPUT_ERROR =
 const SELECT_BASE =
   "mt-1 h-12 w-full min-w-0 rounded-xl border bg-white/5 px-3 text-sm [color-scheme:dark] focus:outline-none focus:ring-2 focus:ring-[rgba(74,144,226,0.35)]";
 
-// Date field: same height and width as every other field (iOS Safari makes native
-// date inputs taller/wider unless the native appearance is switched off).
-const DATE_BASE =
-  "mt-1 block h-12 w-full min-w-0 max-w-full appearance-none rounded-xl border bg-white/5 px-3 text-sm text-white [color-scheme:dark] focus:outline-none focus:ring-2 focus:ring-[rgba(74,144,226,0.35)] [&::-webkit-date-and-time-value]:text-left [&::-webkit-datetime-edit]:p-0";
+// Date field: the visible box is a plain flex div (so the text is centered both ways on
+// every browser, including iOS Safari). A transparent native date input sits on top of it,
+// so tapping anywhere still opens the native picker.
+const DATE_BOX =
+  "pointer-events-none flex h-12 w-full min-w-0 items-center justify-center rounded-xl border bg-white/5 px-3 text-center text-sm transition-shadow peer-focus:ring-2 peer-focus:ring-[rgba(74,144,226,0.35)]";
 
 // Order used to scroll to the first problem on submit.
 const FIELD_ORDER = [
@@ -72,6 +73,17 @@ const FormLabel = ({ htmlFor, children }: { htmlFor: string; children: React.Rea
     {children}
   </Label>
 );
+
+// "2000-05-17" -> "17 May 2000" (parsed as a local date so the day never shifts)
+const formatDob = (value: string) => {
+  const [y, m, d] = value.split("-").map(Number);
+  if (!y || !m || !d) return "";
+  return new Date(y, m - 1, d).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+};
 
 const Signup = () => {
   const navigate = useNavigate();
@@ -487,16 +499,32 @@ Flexiq Verve Support Team`,
                   <FormLabel htmlFor="date_of_birth">Date of birth</FormLabel>
                   <span className="text-xs text-white/50">(tap to select)</span>
                 </div>
-                <input
-                  id="date_of_birth"
-                  type="date"
-                  max={new Date().toISOString().split("T")[0]}
-                  value={form.date_of_birth}
-                  onChange={(e) => update("date_of_birth")(e.target.value)}
-                  onBlur={onBlur("date_of_birth")}
-                  style={{ WebkitAppearance: "none", appearance: "none", minHeight: "3rem" }}
-                  className={`${DATE_BASE} ${errors.date_of_birth ? "border-red-400" : "border-white/15"}`}
-                />
+                {/*
+                  Visible box = centered flex div. The native date input sits on top at
+                  opacity-0, so a tap anywhere opens the native picker, and the text is
+                  centered horizontally and vertically on iOS, Android and desktop.
+                */}
+                <div className="relative mt-1 h-12 w-full min-w-0">
+                  <input
+                    id="date_of_birth"
+                    type="date"
+                    max={new Date().toISOString().split("T")[0]}
+                    value={form.date_of_birth}
+                    onChange={(e) => update("date_of_birth")(e.target.value)}
+                    onBlur={onBlur("date_of_birth")}
+                    aria-invalid={!!errors.date_of_birth}
+                    className="peer absolute inset-0 z-10 block h-full w-full min-w-0 max-w-full cursor-pointer appearance-none opacity-0 [color-scheme:dark]"
+                    style={{ WebkitAppearance: "none", appearance: "none" }}
+                  />
+                  <div
+                    aria-hidden="true"
+                    className={`${DATE_BOX} ${errors.date_of_birth ? "border-red-400" : "border-white/15"} ${
+                      form.date_of_birth ? "text-white" : "text-white/40"
+                    }`}
+                  >
+                    {form.date_of_birth ? formatDob(form.date_of_birth) : "Select date"}
+                  </div>
+                </div>
                 <FieldError msg={errors.date_of_birth} />
               </div>
 
