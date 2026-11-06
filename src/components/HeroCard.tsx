@@ -60,23 +60,26 @@ export const HeroCard = () => {
         <p className="mt-1 text-xs opacity-80">This month • 12.4%</p>
       </motion.div>
 
-      {/* Main card: same simple layout, matte color, no glow blobs */}
+      {/* Main card: true credit-card proportions (1.586:1), content spaced with flex */}
       <motion.div
         {...enter(40)}
-        className="relative overflow-hidden rounded-3xl border border-white/10 p-8 text-white sm:p-10"
+        className="relative flex aspect-[1.586/1] w-full flex-col justify-between overflow-hidden rounded-3xl border border-white/10 p-6 text-white sm:p-8"
         style={{ background: `linear-gradient(145deg, ${CARD_FROM} 0%, ${CARD_TO} 100%)` }}
       >
         {/* soft curve in the top-right corner (flat, no blur) */}
         <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-white/10" />
+
         <div className="relative flex items-center justify-between">
           <span className="font-display text-sm font-semibold opacity-90">FLEXIQ VERVE • Platinum</span>
           <Wifi className="h-5 w-5 rotate-90 opacity-90" />
         </div>
-        <div className="relative mt-16">
+
+        <div className="relative">
           <p className="text-xs uppercase tracking-widest opacity-70">Available Balance</p>
-          <p className="mt-1 font-display text-4xl font-bold tracking-tight">$24,891.50</p>
+          <p className="mt-1 font-display text-3xl font-bold tracking-tight sm:text-4xl">$24,891.50</p>
         </div>
-        <div className="relative mt-14 flex items-end justify-between">
+
+        <div className="relative flex items-end justify-between">
           <p className="font-mono text-base tracking-[0.2em] opacity-90">•••• 4829</p>
           <CreditCard className="h-8 w-8 opacity-90" />
         </div>
