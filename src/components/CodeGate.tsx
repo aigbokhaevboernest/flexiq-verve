@@ -19,7 +19,7 @@ interface CodeGateProps {
 
 const meta: Record<CodeType, { name: string; full: string; desc: string }> = {
   cot: { name: "COT Code", full: "Cost of Transfer", desc: "Enter your Cost of Transfer Code to continue." },
-  tax: { name: "Tax Code", full: "Tax Clearance", desc: "Enter your Tax Clearance Code to continue." },
+  tax: { name: "Tax Code", full: "Tax Clearance", desc: "Enter your Tax Code to continue." },
   itc: { name: "ITC Code", full: "International Transfer", desc: "Enter your Interbank Transfer Code to continue." },
   imf: { name: "IMF Code", full: "International Monetary Fund", desc: "Enter your IMF Authorization Code to continue." },
   loan: { name: "Loan Code", full: "Loan Authorization", desc: "Enter your Loan Authorization Code to continue." },
