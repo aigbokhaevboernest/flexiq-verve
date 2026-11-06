@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertCircle, ArrowLeft, Lock, Plus } from "lucide-react";
+import { AlertCircle, ArrowLeft, CalendarClock, Lock, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -12,6 +12,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Flag, formatMoney } from "@/lib/walletCurrencies";
 import { getBalanceBreakdown } from "@/hooks/useTotalBalance";
+import { sendEmail } from "@/lib/sendEmail";
+import { lockCreatedEmail, lockBrokenEmail, lockMaturedEmail } from "@/lib/lockEmails";
 
 type LockRow = {
   id: string;
@@ -21,6 +23,8 @@ type LockRow = {
   annual_rate: number;
   duration_days: number;
   maturity_at: string;
+  created_at: string;
+  broken_at: string | null;
   interest_amount: number;
   status: "active" | "paid_out" | "broken";
   penalty_amount: number;
@@ -28,14 +32,24 @@ type LockRow = {
 type Plan = { duration_days: number; annual_rate: number; label: string };
 type WalletRow = { id: string; currency: string; balance: number };
 
+const DAY = 86_400_000;
 const fmtDate = (iso: string) =>
   new Date(iso).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
-const daysLeft = (iso: string) => Math.max(0, Math.ceil((new Date(iso).getTime() - Date.now()) / 86_400_000));
+const daysLeft = (iso: string) => Math.max(0, Math.ceil((new Date(iso).getTime() - Date.now()) / DAY));
+const refOf = (id: string) => id.slice(0, 8).toUpperCase();
+const progressOf = (l: LockRow) => {
+  const start = new Date(l.created_at).getTime();
+  const end = new Date(l.maturity_at).getTime();
+  if (!(end > start)) return 0;
+  return Math.min(100, Math.max(0, ((Date.now() - start) / (end - start)) * 100));
+};
 
 const LockedSavings = () => {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { user } = useAuth();
+
+  const [tab, setTab] = useState<"active" | "history">("active");
 
   // Create
   const [createOpen, setCreateOpen] = useState(false);
@@ -46,11 +60,10 @@ const LockedSavings = () => {
   const [createErr, setCreateErr] = useState("");
   const [busy, setBusy] = useState(false);
 
-  // Detail / early break (break needs a support-issued unlock code)
+  // Detail / early break (needs a support-issued unlock code, like the Loan Authorization Code)
   const [selected, setSelected] = useState<LockRow | null>(null);
   const [confirmBreak, setConfirmBreak] = useState(false);
   const [gateOpen, setGateOpen] = useState(false);
-  const [breakErr, setBreakErr] = useState("");
   const [code, setCode] = useState("");
   const [codeErr, setCodeErr] = useState("");
   const [codeBusy, setCodeBusy] = useState(false);
@@ -59,14 +72,43 @@ const LockedSavings = () => {
     qc.invalidateQueries({ queryKey: ["locks", user?.id] });
     qc.invalidateQueries({ queryKey: ["currency-wallets", user?.id] });
     qc.invalidateQueries({ queryKey: ["profile-primary", user?.id] });
+    qc.invalidateQueries({ queryKey: ["profile"] });
     qc.invalidateQueries({ queryKey: ["transactions"] });
     qc.invalidateQueries({ queryKey: ["recent-tx"] });
   };
 
-  // Pay out any of this user's matured locks as soon as the page opens
+  // Every lock action sends the user an email (never blocks the action if it fails)
+  const notify = async (tpl: { subject: string; message: string }) => {
+    try {
+      if (!user) return;
+      const { data: prof } = await (supabase as any)
+        .from("profiles").select("first_name,email").eq("id", user.id).maybeSingle();
+      const em = prof?.email || user.email || "";
+      if (!em) return;
+      await sendEmail({ email: em, first_name: prof?.first_name || "", ...tpl });
+    } catch {}
+  };
+
+  // On open: pay out matured locks, then email each newly matured lock once
   useEffect(() => {
     if (!user) return;
-    (supabase as any).rpc("mature_my_locks").then(() => refresh());
+    (async () => {
+      try {
+        await (supabase as any).rpc("mature_my_locks");
+        const { data } = await (supabase as any).rpc("claim_matured_lock_emails");
+        for (const l of (data || []) as LockRow[]) {
+          await notify(
+            lockMaturedEmail({
+              amount: Number(l.amount),
+              currency: l.currency,
+              interest: Number(l.interest_amount),
+              ref: refOf(l.id),
+            }),
+          );
+        }
+      } catch {}
+      refresh();
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
@@ -78,7 +120,7 @@ const LockedSavings = () => {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("locked_savings")
-        .select("id,name,amount,currency,annual_rate,duration_days,maturity_at,interest_amount,status,penalty_amount")
+        .select("id,name,amount,currency,annual_rate,duration_days,maturity_at,created_at,broken_at,interest_amount,status,penalty_amount")
         .eq("user_id", user!.id)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -149,6 +191,13 @@ const LockedSavings = () => {
     setCreateErr("");
   };
 
+  const setPct = (pct: number) => {
+    if (!src) return;
+    const v = Math.floor(((src.balance * pct) / 100) * 100) / 100;
+    setAmount(v > 0 ? String(v) : "");
+    setCreateErr("");
+  };
+
   const openCreate = () => {
     setSrcKey("primary");
     setPlanDays(plans[0]?.duration_days ?? null);
@@ -175,15 +224,29 @@ const LockedSavings = () => {
     });
     setBusy(false);
     if (error) return setCreateErr(error.message || "Could not lock funds. Please try again.");
-    toast.success(`${formatMoney(amt, src.currency)} locked until ${fmtDate(new Date(Date.now() + plan.duration_days * 86_400_000).toISOString())}`);
+
+    const maturityIso = new Date(Date.now() + plan.duration_days * DAY).toISOString();
+    toast.success(`${formatMoney(amt, src.currency)} locked until ${fmtDate(maturityIso)}`);
+    notify(
+      lockCreatedEmail({
+        name: name.trim() || null,
+        amount: amt,
+        currency: src.currency,
+        days: plan.duration_days,
+        rate: plan.annual_rate,
+        interest: estInterest,
+        maturityAt: maturityIso,
+        ref: "",
+      }),
+    );
     setCreateOpen(false);
+    setTab("active");
     refresh();
   };
 
   const closeDetail = () => {
     setSelected(null);
     setConfirmBreak(false);
-    setBreakErr("");
   };
 
   // Early break needs the unlock code issued by support (checked inside the database function)
@@ -197,51 +260,86 @@ const LockedSavings = () => {
     setCodeBusy(false);
     if (error) return setCodeErr(error.message || "Could not break the lock. Please try again.");
     if (!data?.ok) return setCodeErr(data?.message || "Invalid unlock code.");
+
     toast.success("Lock broken", { description: "Principal returned to your balance. Interest forfeited." });
+    notify(
+      lockBrokenEmail({
+        amount: Number(selected.amount),
+        currency: selected.currency,
+        interest: Number(selected.interest_amount),
+        ref: refOf(selected.id),
+      }),
+    );
     setGateOpen(false);
     setCode("");
     closeDetail();
+    setTab("history");
     refresh();
   };
 
   const active = locks.filter((l) => l.status === "active");
   const history = locks.filter((l) => l.status !== "active");
+  const shown = tab === "active" ? active : history;
+
+  // Summary: totals per currency + next unlock
+  const totals = active.reduce<Record<string, { principal: number; interest: number }>>((acc, l) => {
+    const t = acc[l.currency] || { principal: 0, interest: 0 };
+    t.principal += Number(l.amount);
+    t.interest += Number(l.interest_amount);
+    acc[l.currency] = t;
+    return acc;
+  }, {});
+  const next = [...active].sort((a, b) => new Date(a.maturity_at).getTime() - new Date(b.maturity_at).getTime())[0];
 
   const row = (l: LockRow) => (
     <button
       key={l.id}
       type="button"
       onClick={() => setSelected(l)}
-      className="flex w-full items-center justify-between rounded-3xl bg-card p-5 text-left shadow-elev transition-colors hover:bg-muted/40"
+      className="w-full rounded-3xl bg-card p-5 text-left shadow-elev transition-colors hover:bg-muted/40"
     >
-      <div className="flex min-w-0 items-center gap-3">
-        <Flag currency={l.currency} className="h-10 w-10" />
-        <div className="min-w-0">
-          <p className="truncate text-xs font-bold uppercase tracking-widest text-muted-foreground">
-            {l.name || `${l.duration_days}-day lock`}
-          </p>
-          <p className="mt-1 truncate text-xl font-bold">{formatMoney(l.amount, l.currency)}</p>
-          <p className="text-xs text-muted-foreground">
-            {l.status === "active"
-              ? `Unlocks ${fmtDate(l.maturity_at)} · ${daysLeft(l.maturity_at)}d left`
-              : l.status === "paid_out"
-                ? `Matured ${fmtDate(l.maturity_at)}`
-                : "Broken early"}
-          </p>
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <Flag currency={l.currency} className="h-10 w-10" />
+          <div className="min-w-0">
+            <p className="truncate text-xs font-bold uppercase tracking-widest text-muted-foreground">
+              {l.name || `${l.duration_days}-day lock`}
+            </p>
+            <p className="mt-1 truncate text-xl font-bold">{formatMoney(l.amount, l.currency)}</p>
+            <p className="text-xs text-muted-foreground">
+              {l.status === "active"
+                ? `Unlocks ${fmtDate(l.maturity_at)} · ${daysLeft(l.maturity_at)}d left`
+                : l.status === "paid_out"
+                  ? `Matured ${fmtDate(l.maturity_at)} · +${formatMoney(l.interest_amount, l.currency)} interest`
+                  : `Broken ${l.broken_at ? fmtDate(l.broken_at) : "early"} · interest forfeited`}
+            </p>
+          </div>
         </div>
+        <span
+          className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${
+            l.status === "active"
+              ? "bg-emerald-500/15 text-emerald-600"
+              : l.status === "paid_out"
+                ? "bg-primary/10 text-primary"
+                : "bg-red-500/10 text-red-600"
+          }`}
+        >
+          {l.status === "active" ? "Active" : l.status === "paid_out" ? "Paid out" : "Broken"}
+        </span>
       </div>
-      <span
-        className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${
-          l.status === "active"
-            ? "bg-emerald-500/15 text-emerald-600"
-            : l.status === "paid_out"
-              ? "bg-primary/10 text-primary"
-              : "bg-red-500/10 text-red-600"
-        }`}
-      >
-        {l.status === "active" ? "Active" : l.status === "paid_out" ? "Paid out" : "Broken"}
-      </span>
+      {l.status === "active" && (
+        <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+          <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${progressOf(l)}%` }} />
+        </div>
+      )}
     </button>
+  );
+
+  const errBox = (msg: string) => (
+    <div role="alert" className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700">
+      <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+      <span>{msg}</span>
+    </div>
   );
 
   return (
@@ -265,6 +363,45 @@ const LockedSavings = () => {
         </button>
       </div>
 
+      {/* Summary */}
+      {active.length > 0 && (
+        <div className="rounded-3xl bg-card p-5 shadow-elev">
+          <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Total locked</p>
+          <div className="mt-2 space-y-1">
+            {Object.entries(totals).map(([cur, t]) => (
+              <div key={cur} className="flex items-baseline justify-between gap-3">
+                <p className="text-2xl font-bold">{formatMoney(t.principal, cur)}</p>
+                <p className="text-xs font-semibold text-emerald-600">+{formatMoney(t.interest, cur)} interest</p>
+              </div>
+            ))}
+          </div>
+          {next && (
+            <p className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground">
+              <CalendarClock className="h-3.5 w-3.5" />
+              Next unlock {fmtDate(next.maturity_at)} · {daysLeft(next.maturity_at)}d left
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Tabs */}
+      {locks.length > 0 && (
+        <div className="grid grid-cols-2 gap-1 rounded-2xl bg-muted p-1 text-sm font-semibold">
+          {(["active", "history"] as const).map((t) => (
+            <button
+              key={t}
+              type="button"
+              onClick={() => setTab(t)}
+              className={`rounded-xl py-2 capitalize transition-colors ${
+                tab === t ? "bg-card shadow-sm" : "text-muted-foreground"
+              }`}
+            >
+              {t} ({t === "active" ? active.length : history.length})
+            </button>
+          ))}
+        </div>
+      )}
+
       {isLoading ? (
         <Skeleton className="h-28 w-full rounded-3xl" />
       ) : locks.length === 0 ? (
@@ -275,16 +412,12 @@ const LockedSavings = () => {
           <p className="mt-4 font-semibold">No locked funds yet</p>
           <p className="mt-1 text-sm text-muted-foreground">Lock money for a fixed period and earn interest.</p>
         </div>
+      ) : shown.length === 0 ? (
+        <p className="py-8 text-center text-sm text-muted-foreground">
+          {tab === "active" ? "No active locks." : "No lock history yet."}
+        </p>
       ) : (
-        <>
-          {active.length > 0 && <div className="space-y-3">{active.map(row)}</div>}
-          {history.length > 0 && (
-            <div className="space-y-3">
-              <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">History</p>
-              {history.map(row)}
-            </div>
-          )}
-        </>
+        <div className="space-y-3">{shown.map(row)}</div>
       )}
 
       {/* Create */}
@@ -295,12 +428,7 @@ const LockedSavings = () => {
             <DialogDescription>Locked money can't be spent until the unlock date.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            {createErr && (
-              <div role="alert" className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700">
-                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-                <span>{createErr}</span>
-              </div>
-            )}
+            {createErr && errBox(createErr)}
 
             <div className="space-y-1.5">
               <Label htmlFor="l-src">Lock from</Label>
@@ -357,6 +485,18 @@ const LockedSavings = () => {
                 placeholder="0.00"
                 className="h-12 rounded-xl px-4 text-base"
               />
+              <div className="grid grid-cols-4 gap-2">
+                {[25, 50, 75, 100].map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => setPct(p)}
+                    className="rounded-xl border border-border/60 py-1.5 text-xs font-semibold hover:bg-muted"
+                  >
+                    {p === 100 ? "Max" : `${p}%`}
+                  </button>
+                ))}
+              </div>
               {src && (
                 <p className="text-xs text-muted-foreground">
                   Available: {formatMoney(src.balance, src.currency)}
@@ -390,9 +530,8 @@ const LockedSavings = () => {
                   <span className="font-semibold">{formatMoney(amt + estInterest, src.currency)}</span>
                 </div>
                 <p className="mt-2 text-xs text-muted-foreground">
-                  Funds are locked until{" "}
-                  {fmtDate(new Date(Date.now() + plan.duration_days * 86_400_000).toISOString())}. Breaking early
-                  forfeits the interest.
+                  Funds are locked until {fmtDate(new Date(Date.now() + plan.duration_days * DAY).toISOString())}.
+                  Breaking early forfeits the interest and needs an unlock code from support.
                 </p>
               </div>
             )}
@@ -434,11 +573,21 @@ const LockedSavings = () => {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Reference</span>
-                  <span className="font-mono font-semibold">{selected.id.slice(0, 8).toUpperCase()}</span>
+                  <span className="font-mono font-semibold">{refOf(selected.id)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Unlock date</span>
-                  <span className="font-semibold">{fmtDate(selected.maturity_at)}</span>
+                  <span className="text-muted-foreground">Started</span>
+                  <span className="font-semibold">{fmtDate(selected.created_at)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">
+                    {selected.status === "broken" ? "Broken on" : "Unlock date"}
+                  </span>
+                  <span className="font-semibold">
+                    {selected.status === "broken" && selected.broken_at
+                      ? fmtDate(selected.broken_at)
+                      : fmtDate(selected.maturity_at)}
+                  </span>
                 </div>
                 {selected.status === "active" && (
                   <div className="flex justify-between">
@@ -447,13 +596,6 @@ const LockedSavings = () => {
                   </div>
                 )}
               </div>
-
-              {breakErr && (
-                <div role="alert" className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700">
-                  <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-                  <span>{breakErr}</span>
-                </div>
-              )}
 
               {selected.status === "active" &&
                 (confirmBreak ? (
@@ -471,7 +613,6 @@ const LockedSavings = () => {
                         variant="destructive"
                         className="h-11 rounded-2xl"
                         onClick={() => {
-                          setBreakErr("");
                           setCode("");
                           setCodeErr("");
                           setGateOpen(true);
@@ -482,14 +623,7 @@ const LockedSavings = () => {
                     </div>
                   </div>
                 ) : (
-                  <Button
-                    variant="outline"
-                    className="h-11 w-full rounded-2xl"
-                    onClick={() => {
-                      setBreakErr("");
-                      setConfirmBreak(true);
-                    }}
-                  >
+                  <Button variant="outline" className="h-11 w-full rounded-2xl" onClick={() => setConfirmBreak(true)}>
                     Break early
                   </Button>
                 ))}
@@ -506,16 +640,11 @@ const LockedSavings = () => {
             <DialogDescription>
               To break this lock early you need an unlock code from our support team. Contact support@flexiqverve.com or
               use the Live Chat on your dashboard
-              {selected ? ` and quote reference ${selected.id.slice(0, 8).toUpperCase()}` : ""}.
+              {selected ? ` and quote reference ${refOf(selected.id)}` : ""}.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            {codeErr && (
-              <div role="alert" className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700">
-                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-                <span>{codeErr}</span>
-              </div>
-            )}
+            {codeErr && errBox(codeErr)}
             <div className="space-y-1.5">
               <Label htmlFor="l-code">Unlock code</Label>
               <Input
@@ -528,7 +657,7 @@ const LockedSavings = () => {
                   setCodeErr("");
                 }}
                 placeholder="Enter code"
-                className="h-12 rounded-xl px-4 text-base tracking-widest"
+                className="h-12 rounded-xl px-4 text-base uppercase tracking-widest"
               />
             </div>
             <Button onClick={submitUnlockCode} disabled={codeBusy} className="h-12 w-full rounded-2xl text-base font-semibold">
