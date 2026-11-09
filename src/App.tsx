@@ -89,26 +89,30 @@ const AppSplash = () => {
 };
 
 /**
- * Plays the splash every time someone OPENS /login or /signup from inside the
- * app (e.g. tapping "Login" on the home page). The app-start splash only runs
- * once on a cold load, so without this the animation never shows on auth pages.
- * A cold load straight onto /login is already covered by AppSplash, so the
- * first page is skipped here to avoid two splashes back to back.
+ * Plays the splash every time someone goes INTO or OUT OF /login or /signup
+ * from inside the app (e.g. tapping "Login" on the home page, going back to
+ * the home page, login -> signup, or login -> PIN after signing in).
+ * The app-start splash only runs once on a cold load, so without this the
+ * animation never shows on auth pages. A cold load straight onto /login is
+ * already covered by AppSplash, so that first page view is skipped here to
+ * avoid two splashes back to back.
  */
+const isAuthPath = (p: string) => p === "/login" || p === "/signup";
+
 const AuthEntrySplash = () => {
   const { pathname } = useLocation();
-  const isAuthPage = pathname === "/login" || pathname === "/signup";
   const lastPath = useRef(pathname);
-  const changes = useRef(0);
+  const plays = useRef(0);
 
   if (lastPath.current !== pathname) {
+    // entering OR leaving an auth page counts
+    if (isAuthPath(lastPath.current) || isAuthPath(pathname)) plays.current += 1;
     lastPath.current = pathname;
-    changes.current += 1;
   }
 
-  if (!isAuthPage || changes.current === 0) return null;
-  // key = remount on every visit, so the animation restarts each time
-  return <SplashScreen key={`${pathname}-${changes.current}`} />;
+  if (plays.current === 0) return null;
+  // new key = remount, so the animation restarts every time
+  return <SplashScreen key={plays.current} />;
 };
 
 const App = () => (
