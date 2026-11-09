@@ -24,14 +24,12 @@ type FxState = "idle" | "loading" | "ok" | "error";
 type FxQuote = { rate: number; converted: number; currency: string };
 
 /**
- * Cross-currency Flexiq -> Flexiq transfers are converted at the rate below.
- * Keep this FALSE until the `credit_internal_transfer` function credits the
- * receiver `metadata.converted_amount` (in `metadata.converted_currency`)
- * instead of the sender's amount. While false, a cross-currency transfer is
- * debited from the sender, saved with its conversion details, and sent to
- * admin review as Pending (amber clock) so nobody is credited a wrong amount.
+ * Cross-currency Flexiq -> Flexiq transfers are credited automatically.
+ * Requires the `credit_internal_transfer` SQL function (credit_internal_transfer.sql),
+ * which credits the receiver `metadata.converted_amount` in their own currency.
+ * Set to false to send cross-currency transfers to admin review (Pending) instead.
  */
-const AUTO_CREDIT_CROSS_CURRENCY = false;
+const AUTO_CREDIT_CROSS_CURRENCY = true;
 
 // ── Exchange rate ────────────────────────────────────────────────────────────
 // NOTE: this is a live public rate. If FxTransfer uses its own rate source
