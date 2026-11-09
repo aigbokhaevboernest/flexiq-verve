@@ -1,15 +1,35 @@
 import { useEffect, useState } from "react";
 
-export const SplashScreen = () => {
+type SplashProps = {
+  /**
+   * When true the splash stays on screen until the parent unmounts it
+   * (e.g. GuestOnly while the session check is still running).
+   * When false (default) it plays once and fades out by itself, like at app start.
+   */
+  hold?: boolean;
+  /** How long to stay before fading out once not held. Default 650ms (the original timing). */
+  exitDelay?: number;
+  onDone?: () => void;
+};
+
+export const SplashScreen = ({ hold = false, exitDelay = 650, onDone }: SplashProps) => {
   const [hidden, setHidden] = useState(false);
   const [removed, setRemoved] = useState(false);
 
   useEffect(() => {
-    // 1 full animation cycle (0.5s), a short hold, then fade out
-    const t1 = setTimeout(() => setHidden(true), 650);
-    const t2 = setTimeout(() => setRemoved(true), 950);
-    return () => { clearTimeout(t1); clearTimeout(t2); };
-  }, []);
+    if (hold) return; // parent decides when it goes away
+    // 1 full animation cycle (0.5s), a short hold, then fade out (0.3s)
+    const t1 = setTimeout(() => setHidden(true), exitDelay);
+    const t2 = setTimeout(() => {
+      setRemoved(true);
+      onDone?.();
+    }, exitDelay + 300);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hold]);
 
   if (removed) return null;
 
@@ -42,7 +62,11 @@ export const SplashScreen = () => {
           position: "absolute",
           width: 44,
           height: 44,
-          animation: "bracketCycle 0.5s ease-out 1 forwards",
+          // In hold mode the cycle repeats. The four corner brackets are
+          // symmetric, so a 90deg turn looks identical to 0deg and the loop is seamless.
+          animation: hold
+            ? "bracketCycle 0.5s ease-out infinite"
+            : "bracketCycle 0.5s ease-out 1 forwards",
         }}>
           {[
             { top: -6, left: -6,   borderWidth: "2px 0 0 2px" },
