@@ -1,6 +1,6 @@
 import { Navigate, Outlet } from "react-router-dom";
-import { Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { SplashScreen } from "@/components/SplashScreen";
 
 /**
  * Layout route for PUBLIC pages (home, login, signup, FAQ, ...).
@@ -9,6 +9,10 @@ import { useAuth } from "@/hooks/useAuth";
  * is unlocked for this session, and only then to /dashboard. Going directly to
  * the right place (instead of /dashboard -> bounce -> /pin) is what removes the
  * dashboard flash after signup.
+ *
+ * While the session is still being checked we keep showing the SAME splash used
+ * at app start (instead of a grey screen with a spinner), so login/signup never
+ * paint under a different loading UI.
  */
 export default function GuestOnly() {
   const auth = useAuth() as any;
@@ -16,11 +20,7 @@ export default function GuestOnly() {
   const loading: boolean = auth.loading ?? auth.isLoading ?? false;
 
   if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <Loader2 className="h-6 w-6 animate-spin text-primary" />
-      </div>
-    );
+    return <SplashScreen hold />;
   }
 
   if (user) {
