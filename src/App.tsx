@@ -70,6 +70,8 @@ const SessionGuard = ({ children }: { children: React.ReactNode }) => {
  * A 6s safety limit makes sure a stuck session check can never trap the user.
  */
 const AppSplash = () => {
+  const { pathname } = useLocation();
+  const openedOnPin = useRef(pathname === "/pin"); // decided once, at app start
   const auth = useAuth() as any;
   const loading: boolean = auth.loading ?? auth.isLoading ?? false;
   const [minDone, setMinDone] = useState(false);
@@ -84,6 +86,8 @@ const AppSplash = () => {
     };
   }, []);
 
+  if (openedOnPin.current) return null;
+
   // exitDelay 0: once released, fade out right away
   return <SplashScreen hold={!timedOut && (loading || !minDone)} exitDelay={0} />;
 };
@@ -91,13 +95,15 @@ const AppSplash = () => {
 /**
  * Plays the splash every time someone goes INTO or OUT OF /login or /signup
  * from inside the app (e.g. tapping "Login" on the home page, going back to
- * the home page, login -> signup, or login -> PIN after signing in).
+ * the home page, or login -> signup). Never when the PIN page is involved.
  * The app-start splash only runs once on a cold load, so without this the
  * animation never shows on auth pages. A cold load straight onto /login is
  * already covered by AppSplash, so that first page view is skipped here to
  * avoid two splashes back to back.
  */
 const isAuthPath = (p: string) => p === "/login" || p === "/signup";
+// The PIN page never shows the splash: moving to or from it is a plain page transition
+const isPinPath = (p: string) => p === "/pin";
 
 const AuthEntrySplash = () => {
   const { pathname } = useLocation();
@@ -105,8 +111,9 @@ const AuthEntrySplash = () => {
   const plays = useRef(0);
 
   if (lastPath.current !== pathname) {
-    // entering OR leaving an auth page counts
-    if (isAuthPath(lastPath.current) || isAuthPath(pathname)) plays.current += 1;
+    // entering OR leaving an auth page counts, except when the PIN page is involved
+    const touchesPin = isPinPath(lastPath.current) || isPinPath(pathname);
+    if (!touchesPin && (isAuthPath(lastPath.current) || isAuthPath(pathname))) plays.current += 1;
     lastPath.current = pathname;
   }
 
