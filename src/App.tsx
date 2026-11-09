@@ -1,8 +1,9 @@
+import { useEffect, useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { AuthProvider } from "@/hooks/useAuth";
+import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Index from "./pages/Index.tsx";
 import NotFound from "./pages/NotFound.tsx";
@@ -61,14 +62,41 @@ const SessionGuard = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+/**
+ * The one app-start splash. It stays up until BOTH are true:
+ *   1. the minimum splash time (650ms, same as before) has passed, and
+ *   2. the session check has finished (auth is no longer loading).
+ * So /login and /signup never paint under a spinner or a second splash.
+ * A 6s safety limit makes sure a stuck session check can never trap the user.
+ */
+const AppSplash = () => {
+  const auth = useAuth() as any;
+  const loading: boolean = auth.loading ?? auth.isLoading ?? false;
+  const [minDone, setMinDone] = useState(false);
+  const [timedOut, setTimedOut] = useState(false);
+
+  useEffect(() => {
+    const a = setTimeout(() => setMinDone(true), 650);
+    const b = setTimeout(() => setTimedOut(true), 6000);
+    return () => {
+      clearTimeout(a);
+      clearTimeout(b);
+    };
+  }, []);
+
+  // exitDelay 0: once released, fade out right away
+  return <SplashScreen hold={!timedOut && (loading || !minDone)} exitDelay={0} />;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <SplashScreen />
       <Sonner />
       <BrowserRouter>
         <ScrollToTop />
         <AuthProvider>
+          {/* Inside AuthProvider so the splash can wait for the session check */}
+          <AppSplash />
           <SessionGuard>
             <Routes>
               {/* PUBLIC pages: a logged-in user is redirected (to /pin until unlocked, then /dashboard) */}
