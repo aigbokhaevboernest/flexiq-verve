@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
@@ -88,6 +88,29 @@ const AppSplash = () => {
   return <SplashScreen hold={!timedOut && (loading || !minDone)} exitDelay={0} />;
 };
 
+/**
+ * Plays the splash every time someone OPENS /login or /signup from inside the
+ * app (e.g. tapping "Login" on the home page). The app-start splash only runs
+ * once on a cold load, so without this the animation never shows on auth pages.
+ * A cold load straight onto /login is already covered by AppSplash, so the
+ * first page is skipped here to avoid two splashes back to back.
+ */
+const AuthEntrySplash = () => {
+  const { pathname } = useLocation();
+  const isAuthPage = pathname === "/login" || pathname === "/signup";
+  const lastPath = useRef(pathname);
+  const changes = useRef(0);
+
+  if (lastPath.current !== pathname) {
+    lastPath.current = pathname;
+    changes.current += 1;
+  }
+
+  if (!isAuthPage || changes.current === 0) return null;
+  // key = remount on every visit, so the animation restarts each time
+  return <SplashScreen key={`${pathname}-${changes.current}`} />;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -97,6 +120,7 @@ const App = () => (
         <AuthProvider>
           {/* Inside AuthProvider so the splash can wait for the session check */}
           <AppSplash />
+          <AuthEntrySplash />
           <SessionGuard>
             <Routes>
               {/* PUBLIC pages: a logged-in user is redirected (to /pin until unlocked, then /dashboard) */}
