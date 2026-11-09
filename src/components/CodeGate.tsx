@@ -17,61 +17,98 @@ interface CodeGateProps {
   onVerified: (codeIds: string[]) => Promise<void> | void;
 }
 
+// `full` is used in the heading as "<full> Code"
 const meta: Record<CodeType, { name: string; full: string; desc: string }> = {
   cot: { name: "COT Code", full: "Cost of Transfer", desc: "Enter your Cost of Transfer Code to continue." },
-  tax: { name: "Tax Code", full: "Tax Clearance", desc: "Enter your Tax Code to continue." },
-  itc: { name: "ITC Code", full: "International Transfer", desc: "Enter your Interbank Transfer Code to continue." },
+  tax: { name: "Tax Code", full: "Tax", desc: "Enter your Tax Code to continue." },
+  itc: { name: "ITC Code", full: "Interbank Transfer", desc: "Enter your Interbank Transfer Code to continue." },
   imf: { name: "IMF Code", full: "International Monetary Fund", desc: "Enter your IMF Authorization Code to continue." },
   loan: { name: "Loan Code", full: "Loan Authorization", desc: "Enter your Loan Authorization Code to continue." },
 };
 
+type CodeRow = { id: string; verified: boolean };
+
 export const CodeGate = ({ open, onOpenChange, required, title, description, onVerified }: CodeGateProps) => {
   const { user } = useAuth();
   const [enabledCodes, setEnabledCodes] = useState<CodeType[]>(["cot"]);
+  // The user's enabled code rows, keyed by upper-case type (COT, TAX, ...)
+  const [rows, setRows] = useState<Record<string, CodeRow>>({});
+  const [ready, setReady] = useState(false);
   const [step, setStep] = useState(0);
   const [value, setValue] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [verifiedIds, setVerifiedIds] = useState<string[]>([]);
   const [state, setState] = useState<"idle" | "checking" | "success" | "error">("idle");
 
-  // Fetch only enabled codes from withdrawal_codes table
+  // While a code is being checked (or just verified) the dialog must not be dismissed
+  const busy = state === "checking" || state === "success";
+
+  // On open: reset, then load this user's enabled codes (with their verified flag)
   useEffect(() => {
-    if (!user || !open) return;
+    if (!open) return;
+    setStep(0);
+    setValue("");
+    setError(null);
+    setVerifiedIds([]);
+    setState("idle");
+    setReady(false);
+
+    if (!user) return;
+    let cancelled = false;
+
     (supabase as any)
       .from("withdrawal_codes")
-      .select("code_type, enabled")
+      .select("id, code_type, verified, enabled")
       .eq("user_id", user.id)
       .eq("enabled", true)
       .then(({ data }: any) => {
-        const list: CodeType[] = ["cot"]; // COT always required
-        if (data?.find((d: any) => d.code_type === "TAX")) list.push("tax");
-        if (data?.find((d: any) => d.code_type === "ITC")) list.push("itc");
-        if (data?.find((d: any) => d.code_type === "IMF")) list.push("imf");
-        setEnabledCodes(list);
-      });
-  }, [user, open]);
+        if (cancelled) return;
+        const byType: Record<string, CodeRow> = {};
+        (data ?? []).forEach((d: any) => {
+          byType[String(d.code_type).toUpperCase()] = { id: d.id, verified: !!d.verified };
+        });
 
-  // Reset on open
-  useEffect(() => {
-    if (open) {
-      setStep(0);
-      setValue("");
-      setError(null);
-      setVerifiedIds([]);
-      setState("idle");
-    }
-  }, [open]);
+        const list: CodeType[] = ["cot"]; // COT always required
+        if (byType.TAX) list.push("tax");
+        if (byType.ITC) list.push("itc");
+        if (byType.IMF) list.push("imf");
+
+        setRows(byType);
+        setEnabledCodes(list);
+        setReady(true);
+      });
+
+    return () => { cancelled = true; };
+  }, [user, open]);
 
   const computed = useMemo<CodeType[]>(() => {
     if (required && required.length) return required;
     return enabledCodes;
   }, [required, enabledCodes]);
 
+  // Smart start: begin at the first code that isn't verified yet. Codes before it
+  // are already verified, so their ids are carried along for onVerified.
+  // (When an admin edits a code's value, that row's `verified` must be set back to
+  // false so the gate restarts from it. Newly enabled codes default to unverified.)
+  useEffect(() => {
+    if (!open || !ready) return;
+    const firstUnverified = computed.findIndex((t) => !rows[t.toUpperCase()]?.verified);
+    const start = firstUnverified === -1 ? 0 : firstUnverified;
+    setStep(start);
+    setVerifiedIds(
+      computed
+        .slice(0, start)
+        .map((t) => rows[t.toUpperCase()]?.id)
+        .filter((id): id is string => !!id)
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, open]);
+
   const current = computed[step];
   const total = computed.length;
 
   const verify = async () => {
-    if (!user || !current) return;
+    if (!user || !current || busy) return;
     const code = value.trim();
     if (!code) { setError("Please enter the code."); setState("error"); return; }
     setState("checking");
@@ -92,19 +129,20 @@ export const CodeGate = ({ open, onOpenChange, required, title, description, onV
       return;
     }
 
-    const next = [...verifiedIds, (data as any).id];
+    const next = Array.from(new Set([...verifiedIds, (data as any).id]));
     setVerifiedIds(next);
     setState("success");
 
     if (step + 1 < total) {
-      // More steps: brief pause (250ms) so the green "Verified" state is visible, then next code
+      // More steps: brief pause so the green "Verified" state is visible, then the next code
       setTimeout(() => {
-        setStep(step + 1);
+        setStep((s) => s + 1);
         setValue("");
+        setError(null);
         setState("idle");
       }, 250);
     } else {
-      // Last code: continue immediately, no artificial delay
+      // Last code: mark everything verified, hand over to the parent, then close
       await (supabase as any)
         .from("withdrawal_codes")
         .update({ verified: true })
@@ -112,15 +150,35 @@ export const CodeGate = ({ open, onOpenChange, required, title, description, onV
       try {
         await onVerified(next);
         onOpenChange(false);
-      } catch {/* parent handles */}
+      } catch {
+        /* parent handles */
+        setState("idle");
+      }
     }
   };
 
   const m = current ? meta[current] : null;
 
+  // Ignore every attempt to dismiss while a code is checking / just verified
+  const guard = (e: Event) => {
+    if (busy) e.preventDefault();
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md font-sans p-0 overflow-hidden border-0 shadow-2xl rounded-3xl">
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        if (!next && busy) return;
+        onOpenChange(next);
+      }}
+    >
+      <DialogContent
+        className="sm:max-w-md font-sans p-0 overflow-hidden border-0 shadow-2xl rounded-3xl"
+        onPointerDownOutside={guard}
+        onInteractOutside={guard}
+        onEscapeKeyDown={guard}
+        onFocusOutside={guard}
+      >
         <div className="bg-gradient-to-br from-primary/10 via-background to-accent/5 p-7">
           <DialogHeader>
             <div className="flex items-center gap-2">
@@ -134,8 +192,14 @@ export const CodeGate = ({ open, onOpenChange, required, title, description, onV
             </p>
           </DialogHeader>
 
+          {!ready && (
+            <div className="flex justify-center py-10">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            </div>
+          )}
+
           {/* Only show steps if more than 1 code required */}
-          {total > 1 && (
+          {ready && total > 1 && (
             <div className="mt-5">
               <div className="mb-2 flex items-center justify-between text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                 <span>Step {step + 1} of {total}</span>
@@ -151,7 +215,7 @@ export const CodeGate = ({ open, onOpenChange, required, title, description, onV
             </div>
           )}
 
-          {m && (
+          {ready && m && (
             <div key={current} className="mt-6 animate-fade-in space-y-3">
               <div>
                 <p className="font-display text-xl font-bold leading-tight">{m.full} Code</p>
@@ -174,7 +238,9 @@ export const CodeGate = ({ open, onOpenChange, required, title, description, onV
                   onKeyDown={(e) => { if (e.key === "Enter") verify(); }}
                   placeholder="ENTER CODE"
                   className="h-14 border-0 bg-transparent text-center font-mono text-xl font-bold tracking-[0.35em] shadow-none focus-visible:ring-0"
-                  disabled={state === "checking" || state === "success"}
+                  // readOnly (not disabled) so the input keeps focus and the dialog
+                  // doesn't treat it as focus leaving the dialog
+                  readOnly={busy}
                 />
               </div>
 
@@ -186,7 +252,7 @@ export const CodeGate = ({ open, onOpenChange, required, title, description, onV
 
               <Button
                 onClick={verify}
-                disabled={state === "checking" || state === "success"}
+                disabled={busy}
                 className="h-12 w-full rounded-2xl bg-gradient-primary text-base font-semibold shadow-glow"
               >
                 {state === "checking" ? (
