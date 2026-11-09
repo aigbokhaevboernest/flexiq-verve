@@ -20,6 +20,44 @@ import { sendEmail } from "@/lib/sendEmail";
 
 type Dest = "internal" | "external";
 type LookupState = "idle" | "loading" | "found" | "none";
+type FxState = "idle" | "loading" | "ok" | "error";
+type FxQuote = { rate: number; converted: number; currency: string };
+
+/**
+ * Cross-currency Flexiq -> Flexiq transfers are converted at the rate below.
+ * Keep this FALSE until the `credit_internal_transfer` function credits the
+ * receiver `metadata.converted_amount` (in `metadata.converted_currency`)
+ * instead of the sender's amount. While false, a cross-currency transfer is
+ * debited from the sender, saved with its conversion details, and sent to
+ * admin review as Pending (amber clock) so nobody is credited a wrong amount.
+ */
+const AUTO_CREDIT_CROSS_CURRENCY = false;
+
+// ── Exchange rate ────────────────────────────────────────────────────────────
+// NOTE: this is a live public rate. If FxTransfer uses its own rate source
+// (admin-set fx_rates), swap this one function to use the same source so both
+// pages always quote the same rate.
+const rateCache = new Map<string, { rate: number; at: number }>();
+async function fetchFxRate(from: string, to: string): Promise<number | null> {
+  if (from === to) return 1;
+  const key = `${from}>${to}`;
+  const hit = rateCache.get(key);
+  if (hit && Date.now() - hit.at < 5 * 60 * 1000) return hit.rate;
+  try {
+    const res = await fetch(`https://open.er-api.com/v6/latest/${from}`);
+    const json = await res.json();
+    const rate = json?.rates?.[to];
+    if (json?.result === "success" && typeof rate === "number" && rate > 0) {
+      rateCache.set(key, { rate, at: Date.now() });
+      return rate;
+    }
+  } catch {
+    /* fall through */
+  }
+  return null;
+}
+
+const round2 = (n: number) => Math.round(n * 100) / 100;
 
 const LocalTransfer = () => {
   useFrozenGuard();
@@ -49,7 +87,15 @@ const LocalTransfer = () => {
   const [candidate, setCandidate] = useState<any>(null);
   const reqId = useRef(0);
 
+  // Exchange rate for a confirmed receiver who holds a different currency
+  const [fxRate, setFxRate] = useState<number | null>(null);
+  const [fxState, setFxState] = useState<FxState>("idle");
+  // The quote locked in at submit time (read again after the code gate)
+  const fxRef = useRef<FxQuote | null>(null);
+
   const isInternal = dest === "internal";
+  const receiverCurrency: string | null = receiver?.currency || null;
+  const isCrossCurrency = isInternal && !!receiverCurrency && receiverCurrency !== currency;
 
   const resetLookup = () => {
     reqId.current++;
@@ -97,6 +143,30 @@ const LocalTransfer = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accNumber, isInternal]);
 
+  // Get the exchange rate once a receiver with another currency is confirmed
+  useEffect(() => {
+    if (!isCrossCurrency || !receiverCurrency) {
+      setFxRate(null);
+      setFxState("idle");
+      return;
+    }
+    let cancelled = false;
+    setFxState("loading");
+    setFxRate(null);
+    fetchFxRate(currency, receiverCurrency).then((rate) => {
+      if (cancelled) return;
+      if (rate) {
+        setFxRate(rate);
+        setFxState("ok");
+      } else {
+        setFxState("error");
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [isCrossCurrency, receiverCurrency, currency]);
+
   // Only fill the form after the user confirms the account
   const confirmCandidate = () => {
     if (!candidate) return;
@@ -118,6 +188,7 @@ const LocalTransfer = () => {
     setSubmitting(true);
 
     let found: any = null;
+    let fx: FxQuote | null = null;
     if (isInternal) {
       // Use confirmed receiver, otherwise try one last lookup by account number
       found = receiver;
@@ -144,18 +215,28 @@ const LocalTransfer = () => {
             variant: "destructive",
           });
         }
+
+        // Different currency: convert instead of blocking the transfer
         if (found.currency && found.currency !== currency) {
-          setSubmitting(false);
-          return toast({
-            title: "Different currency",
-            description: `This account holds ${found.currency}. Use FX transfer instead.`,
-            variant: "destructive",
-          });
+          const rate =
+            fxState === "ok" && fxRate && receiverCurrency === found.currency
+              ? fxRate
+              : await fetchFxRate(currency, found.currency);
+          if (!rate) {
+            setSubmitting(false);
+            return toast({
+              title: "Exchange rate unavailable",
+              description: "We couldn't get the exchange rate right now. Please try again in a moment.",
+              variant: "destructive",
+            });
+          }
+          fx = { rate, converted: round2(amt * rate), currency: found.currency };
         }
         setReceiver(found);
       }
       // No match → manual entry: goes to admin review, no auto-credit
     }
+    fxRef.current = fx;
 
     const receiverName = found
       ? `${found.first_name || ""} ${found.last_name || ""}`.trim() || recipient
@@ -183,7 +264,19 @@ const LocalTransfer = () => {
       description: desc || `Local transfer to ${receiverName}`,
       metadata: isInternal
         ? found
-          ? { internal: true, receiver_id: found.id, receiver_email: found.email }
+          ? {
+              internal: true,
+              receiver_id: found.id,
+              receiver_email: found.email,
+              ...(fx
+                ? {
+                    cross_currency: true,
+                    fx_rate: fx.rate,
+                    converted_amount: fx.converted,
+                    converted_currency: fx.currency,
+                  }
+                : {}),
+            }
           : { internal: true, manual: true, receiver_email: email }
         : { routing, local: true },
     }).select().single();
@@ -207,6 +300,7 @@ const LocalTransfer = () => {
   const onVerified = async () => {
     if (!user || !account || !pendingTxId) return;
     const amt = Number(amount);
+    const fx = fxRef.current;
 
     const plan = planDeduction(account, amt);
     if (!plan.ok) {
@@ -238,7 +332,13 @@ const LocalTransfer = () => {
       : recipient;
     let finalStatus: "Pending" | "Completed" = "Pending";
 
-    if (isInternal && receiver) {
+    if (isInternal && receiver && fx && !AUTO_CREDIT_CROSS_CURRENCY) {
+      // Currency conversion: saved with its rate, completed by our team
+      toast({
+        title: "Submitted for review",
+        description: "This transfer needs a currency conversion. Our team will complete it shortly.",
+      });
+    } else if (isInternal && receiver) {
       // Credit first; only mark completed if it succeeded
       const { error: creditErr } = await (supabase as any).rpc("credit_internal_transfer", { p_tx_id: ref });
       if (creditErr) {
@@ -270,13 +370,15 @@ const LocalTransfer = () => {
 
 Kind Regards,
 Flexiq Verve Support Team`;
+      // What the receiver actually gets, in their own currency
+      const receivedText = fx ? `${fx.converted} ${fx.currency}` : `${amtCopy} ${currency}`;
 
       if (em) {
         await sendEmail({
           email: em, first_name: fn,
           subject: "Local Transfer — Flexiq Verve",
           message: isInternal && finalStatus === "Completed"
-            ? `Your transfer of ${amtCopy} ${currency} to ${recCopy} (Flexiq Verve account) has been completed.
+            ? `Your transfer of ${amtCopy} ${currency} to ${recCopy} (Flexiq Verve account) has been completed.${fx ? ` They received ${receivedText}.` : ""}
 
 ${footer}`
             : `This is to inform you that your local transfer of ${amtCopy} ${currency} to ${recCopy} has been submitted and is currently pending review.
@@ -291,7 +393,7 @@ ${footer}`,
         await sendEmail({
           email: receiver.email, first_name: receiver.first_name || "",
           subject: "You received money — Flexiq Verve",
-          message: `You have received ${amtCopy} ${currency} from ${senderFull}. The funds are now available in your account.
+          message: `You have received ${receivedText} from ${senderFull}. The funds are now available in your account.
 
 ${footer}`,
         });
@@ -303,12 +405,17 @@ ${footer}`,
     setAmount(""); setRecipient(""); setAccNumber(""); setRouting(""); setEmail(""); setDesc("");
     resetLookup();
     setPendingTxId(null);
+    fxRef.current = null;
+
+    // Green ✔ only when the transfer really completed; otherwise the amber pending clock
+    const isCompleted = finalStatus === "Completed";
+
     navigate("/dashboard/success", {
       state: {
-        title: finalStatus === "Completed" ? "Transfer Completed" : "Transfer Submitted",
-        message: finalStatus === "Completed" ? "Funds were sent to the recipient." : "Pending system verification.",
-        // Receipt shows a green ✔ instead of the pending clock icon
-        success: true,
+        title: isCompleted ? "Transfer Completed" : "Transfer Submitted",
+        message: isCompleted ? "Funds were sent to the recipient." : "Pending system verification.",
+        success: isCompleted,
+        pending: !isCompleted,
         receipt: true,
         returnTo: "/dashboard/local",
         details: [
@@ -316,7 +423,13 @@ ${footer}`,
           { label: "Reference", value: ref.slice(0, 12).toUpperCase() },
           { label: "Recipient", value: summaryRecipient },
           { label: "Account", value: summaryAccount },
-          { label: "Amount", value: formatMoney(amt, currency) },
+          { label: fx ? "You send" : "Amount", value: formatMoney(amt, currency) },
+          ...(fx
+            ? [
+                { label: "They receive", value: formatMoney(fx.converted, fx.currency) },
+                { label: "Exchange rate", value: `1 ${currency} = ${fx.rate.toFixed(4)} ${fx.currency}` },
+              ]
+            : []),
           { label: "Status", value: finalStatus },
         ],
       },
@@ -330,6 +443,12 @@ ${footer}`,
     setDest(d);
     resetLookup();
   };
+
+  const amountNum = Number(amount);
+  const convertedPreview =
+    fxState === "ok" && fxRate && amountNum > 0 ? round2(amountNum * fxRate) : null;
+  // Block sending while the rate for a cross-currency transfer isn't ready
+  const rateBlocking = isCrossCurrency && fxState !== "ok";
 
   return (
     <div className="space-y-6">
@@ -389,6 +508,35 @@ ${footer}`,
                   className="h-14 border-0 bg-transparent p-0 font-display text-3xl font-bold shadow-none focus-visible:ring-0" required />
               </div>
               <p className="mt-1 text-xs text-muted-foreground">Available: {formatMoney(availableBalance, currency)}</p>
+
+              {/* Different-currency Flexiq account: show what they will receive */}
+              {isCrossCurrency && receiverCurrency && (
+                <div className="mt-3 border-t border-border/60 pt-3 text-sm">
+                  {fxState === "loading" && (
+                    <p className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" /> Getting exchange rate…
+                    </p>
+                  )}
+                  {fxState === "ok" && fxRate && (
+                    <>
+                      <p className="font-semibold">
+                        Recipient will receive{" "}
+                        {convertedPreview !== null
+                          ? formatMoney(convertedPreview, receiverCurrency)
+                          : `${receiverCurrency} amount`}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        1 {currency} = {fxRate.toFixed(4)} {receiverCurrency}. Their account holds {receiverCurrency}.
+                      </p>
+                    </>
+                  )}
+                  {fxState === "error" && (
+                    <p className="text-xs text-amber-600">
+                      Exchange rate unavailable right now. Please try again in a moment.
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
@@ -487,7 +635,7 @@ ${footer}`,
               <Textarea className="text-base md:text-sm" value={desc} onChange={(e) => setDesc(e.target.value)} rows={3} />
             </div>
 
-            <Button id="transfer-submit" type="submit" disabled={submitting} className="h-12 w-full gap-2 rounded-2xl bg-gradient-primary text-base font-semibold shadow-glow">
+            <Button id="transfer-submit" type="submit" disabled={submitting || rateBlocking} className="h-12 w-full gap-2 rounded-2xl bg-gradient-primary text-base font-semibold shadow-glow">
               {submitting ? "Processing…" : (<><Lock className="h-4 w-4" />Send {sym}{Number(amount || 0).toFixed(2)}<ArrowRight className="h-4 w-4" /></>)}
             </Button>
           </form>
