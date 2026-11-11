@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { AnimatePresence, motion } from "framer-motion";
 import { AlertCircle, ArrowLeft, ArrowUpRight, Plus, Send } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useAccount } from "@/hooks/useAccount";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,6 +27,9 @@ import { getWithdrawFields, normalizeValue, recipientFromFields, type WithdrawTy
 
 const SUPPORT_EMAIL = "support@flexiqverve.com";
 
+// Same easing as the dashboard page slide
+const EASE = [0.22, 1, 0.36, 1] as const;
+
 // TEMP: finds the dashboard's SendChooserModal wherever it lives under src/ without hard-coding
 // its path or export style. Once confirmed, replace with a normal import, e.g.
 //   import SendChooserModal from "@/components/SendChooserModal";
@@ -41,6 +46,7 @@ const CurrencyWalletDetail = () => {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { user } = useAuth();
+  const { data: account } = useAccount();
 
   // Send chooser (primary only)
   const [sendOpen, setSendOpen] = useState(false);
@@ -55,6 +61,22 @@ const CurrencyWalletDetail = () => {
   const [formError, setFormError] = useState("");
   const [notice, setNotice] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  // Suspended: read from useAccount (always fresh). Matches any status containing "suspend".
+  const accountStatus = String((account as any)?.status ?? "").toLowerCase();
+  const suspended = accountStatus.includes("suspend") || !!(account as any)?.suspended;
+
+  // Suspended accounts can't open a wallet: show the toast and go back to the list
+  useEffect(() => {
+    if (!suspended) return;
+    toast("Account suspended", {
+      description: "Your account has been suspended. Please contact support.",
+      duration: 5000,
+      style: { background: "#ff8503", color: "#ffffff", border: "none" },
+      classNames: { title: "text-white font-semibold", description: "text-white/90" },
+    });
+    navigate("/dashboard/wallets", { replace: true });
+  }, [suspended, navigate]);
 
   // Same query key as CurrencyWallets so the list cache is reused
   const { data: wallets, isLoading } = useQuery<WalletRow[]>({
@@ -93,6 +115,9 @@ const CurrencyWalletDetail = () => {
   const balance = isPrimary
     ? Number(profile ? getBalanceBreakdown(profile as any).total ?? 0 : 0)
     : Number(wallet?.balance ?? 0);
+
+  // Render nothing while redirecting a suspended account
+  if (suspended) return null;
 
   if (loading) {
     return (
@@ -366,7 +391,7 @@ Flexiq Verve Support Team`,
         <>
           {/* Withdraw form -> CodeGate -> debit */}
           <Dialog open={withdrawOpen} onOpenChange={setWithdrawOpen}>
-            <DialogContent className="max-h-[90vh] overflow-y-auto font-sans sm:max-w-md">
+            <DialogContent className="max-h-[90vh] overflow-y-auto font-sans duration-300 sm:max-w-md">
               <DialogHeader>
                 <DialogTitle>Withdraw {currency}</DialogTitle>
                 <DialogDescription>Available: {formatMoney(balance, currency)}</DialogDescription>
@@ -382,8 +407,8 @@ Flexiq Verve Support Team`,
                   </div>
                 )}
 
-                {/* Domestic | International */}
-                <div className="grid grid-cols-2 rounded-full bg-muted p-1 text-sm font-semibold" role="tablist">
+                {/* Domestic | International: sliding pill */}
+                <div className="relative grid grid-cols-2 rounded-full bg-muted p-1 text-sm font-semibold" role="tablist">
                   {(["domestic", "international"] as WithdrawType[]).map((t) => (
                     <button
                       key={t}
@@ -391,10 +416,17 @@ Flexiq Verve Support Team`,
                       role="tab"
                       aria-selected={wType === t}
                       onClick={() => switchType(t)}
-                      className={`rounded-full px-4 py-2 capitalize transition-colors ${
-                        wType === t ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground"
+                      className={`relative z-10 rounded-full px-4 py-2 capitalize transition-colors duration-300 ${
+                        wType === t ? "text-primary-foreground" : "text-muted-foreground"
                       }`}
                     >
+                      {wType === t && (
+                        <motion.span
+                          layoutId="wallet-withdraw-pill"
+                          className="absolute inset-0 -z-10 rounded-full bg-primary shadow-sm"
+                          transition={{ duration: 0.3, ease: EASE }}
+                        />
+                      )}
                       {t}
                     </button>
                   ))}
@@ -419,42 +451,54 @@ Flexiq Verve Support Team`,
                   {errors.amount && <p role="alert" className="text-xs text-red-500">{errors.amount}</p>}
                 </div>
 
-                {fieldDefs.map((f) => (
-                  <div key={`${wType}-${f.key}`} className="space-y-1.5">
-                    <Label htmlFor={`w-${f.key}`}>
-                      {f.label}
-                      {f.required === false && <span className="text-muted-foreground"> (optional)</span>}
-                    </Label>
-                    {f.options ? (
-                      <select
-                        id={`w-${f.key}`}
-                        value={fields[f.key] || ""}
-                        onChange={(e) => setField(f.key, e.target.value)}
-                        className={`h-12 w-full rounded-xl border bg-background px-4 text-base focus:outline-none focus:ring-2 focus:ring-ring ${
-                          errors[f.key] ? "border-red-500" : "border-input"
-                        }`}
-                      >
-                        <option value="">Select</option>
-                        {f.options.map((o) => (
-                          <option key={o.value} value={o.value}>
-                            {o.label}
-                          </option>
-                        ))}
-                      </select>
-                    ) : (
-                      <Input
-                        id={`w-${f.key}`}
-                        value={fields[f.key] || ""}
-                        inputMode={f.inputMode}
-                        autoComplete="off"
-                        placeholder={f.placeholder}
-                        onChange={(e) => setField(f.key, normalizeValue(f, e.target.value))}
-                        className={`h-12 rounded-xl px-4 text-base ${errors[f.key] ? "border-red-500" : ""}`}
-                      />
-                    )}
-                    {errors[f.key] && <p role="alert" className="text-xs text-red-500">{errors[f.key]}</p>}
-                  </div>
-                ))}
+                {/* Fields swap with a short fade/slide: old panel exits, then new one enters */}
+                <AnimatePresence mode="wait" initial={false}>
+                  <motion.div
+                    key={wType}
+                    initial={{ opacity: 0, x: wType === "international" ? 16 : -16 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: wType === "domestic" ? -16 : 16 }}
+                    transition={{ duration: 0.2, ease: EASE }}
+                    className="space-y-4"
+                  >
+                    {fieldDefs.map((f) => (
+                      <div key={`${wType}-${f.key}`} className="space-y-1.5">
+                        <Label htmlFor={`w-${f.key}`}>
+                          {f.label}
+                          {f.required === false && <span className="text-muted-foreground"> (optional)</span>}
+                        </Label>
+                        {f.options ? (
+                          <select
+                            id={`w-${f.key}`}
+                            value={fields[f.key] || ""}
+                            onChange={(e) => setField(f.key, e.target.value)}
+                            className={`h-12 w-full rounded-xl border bg-background px-4 text-base focus:outline-none focus:ring-2 focus:ring-ring ${
+                              errors[f.key] ? "border-red-500" : "border-input"
+                            }`}
+                          >
+                            <option value="">Select</option>
+                            {f.options.map((o) => (
+                              <option key={o.value} value={o.value}>
+                                {o.label}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          <Input
+                            id={`w-${f.key}`}
+                            value={fields[f.key] || ""}
+                            inputMode={f.inputMode}
+                            autoComplete="off"
+                            placeholder={f.placeholder}
+                            onChange={(e) => setField(f.key, normalizeValue(f, e.target.value))}
+                            className={`h-12 rounded-xl px-4 text-base ${errors[f.key] ? "border-red-500" : ""}`}
+                          />
+                        )}
+                        {errors[f.key] && <p role="alert" className="text-xs text-red-500">{errors[f.key]}</p>}
+                      </div>
+                    ))}
+                  </motion.div>
+                </AnimatePresence>
 
                 <Button type="submit" disabled={submitting} className="h-12 w-full rounded-2xl text-base font-semibold">
                   Continue
