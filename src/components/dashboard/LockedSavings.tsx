@@ -37,6 +37,9 @@ const fmtDate = (iso: string) =>
   new Date(iso).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
 const daysLeft = (iso: string) => Math.max(0, Math.ceil((new Date(iso).getTime() - Date.now()) / DAY));
 const refOf = (id: string) => id.slice(0, 8).toUpperCase();
+// 730 -> "2 years", 365 -> "1 year", anything else -> "N days"
+const durationLabel = (d: number) =>
+  d % 365 === 0 ? `${d / 365} year${d / 365 > 1 ? "s" : ""}` : `${d} days`;
 const progressOf = (l: LockRow) => {
   const start = new Date(l.created_at).getTime();
   const end = new Date(l.maturity_at).getTime();
@@ -57,6 +60,7 @@ const LockedSavings = () => {
   const [planDays, setPlanDays] = useState<number | null>(null);
   const [amount, setAmount] = useState("");
   const [name, setName] = useState("");
+  const [showName, setShowName] = useState(false);
   const [createErr, setCreateErr] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -203,6 +207,7 @@ const LockedSavings = () => {
     setPlanDays(plans[0]?.duration_days ?? null);
     setAmount("");
     setName("");
+    setShowName(false);
     setCreateErr("");
     setCreateOpen(true);
   };
@@ -303,7 +308,7 @@ const LockedSavings = () => {
           <Flag currency={l.currency} className="h-10 w-10" />
           <div className="min-w-0">
             <p className="truncate text-xs font-bold uppercase tracking-widest text-muted-foreground">
-              {l.name || `${l.duration_days}-day lock`}
+              {l.name || `${durationLabel(l.duration_days)} lock`}
             </p>
             <p className="mt-1 truncate text-xl font-bold">{formatMoney(l.amount, l.currency)}</p>
             <p className="text-xs text-muted-foreground">
@@ -420,17 +425,20 @@ const LockedSavings = () => {
         <div className="space-y-3">{shown.map(row)}</div>
       )}
 
-      {/* Create */}
+      {/* Create (compact) */}
       <Dialog open={createOpen} onOpenChange={(o) => !busy && setCreateOpen(o)}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto font-sans sm:max-w-md">
-          <DialogHeader>
+        <DialogContent className="max-h-[85vh] gap-3 overflow-y-auto p-5 font-sans sm:max-w-md">
+          <DialogHeader className="space-y-1">
             <DialogTitle>Lock funds</DialogTitle>
-            <DialogDescription>Locked money can't be spent until the unlock date.</DialogDescription>
+            <DialogDescription className="text-xs">
+              Locked money can't be spent until the unlock date. Breaking early forfeits the interest and needs an
+              unlock code from support.
+            </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-3">
             {createErr && errBox(createErr)}
 
-            <div className="space-y-1.5">
+            <div className="space-y-1">
               <Label htmlFor="l-src">Lock from</Label>
               <select
                 id="l-src"
@@ -439,7 +447,7 @@ const LockedSavings = () => {
                   setSrcKey(e.target.value);
                   setCreateErr("");
                 }}
-                className="h-12 w-full rounded-xl border border-input bg-background px-4 text-base focus:outline-none focus:ring-2 focus:ring-ring"
+                className="h-11 w-full rounded-xl border border-input bg-background px-4 text-base focus:outline-none focus:ring-2 focus:ring-ring"
               >
                 {sources.map((s) => (
                   <option key={s.key} value={s.key}>
@@ -449,9 +457,9 @@ const LockedSavings = () => {
               </select>
             </div>
 
-            <div className="space-y-1.5">
+            <div className="space-y-1">
               <Label>Lock period</Label>
-              <div className="grid grid-cols-2 gap-2">
+              <div className={`grid gap-2 ${plans.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}>
                 {plans.map((p) => (
                   <button
                     key={p.duration_days}
@@ -460,11 +468,11 @@ const LockedSavings = () => {
                       setPlanDays(p.duration_days);
                       setCreateErr("");
                     }}
-                    className={`rounded-2xl border px-3 py-3 text-left transition-colors ${
+                    className={`rounded-2xl border px-3 py-2 text-left transition-colors ${
                       planDays === p.duration_days ? "border-primary bg-primary/10" : "border-border/60 hover:bg-muted"
                     }`}
                   >
-                    <span className="block text-sm font-semibold">{p.duration_days} days</span>
+                    <span className="block text-sm font-semibold">{durationLabel(p.duration_days)}</span>
                     <span className="block text-xs text-muted-foreground">
                       {p.annual_rate}% p.a. · {p.label}
                     </span>
@@ -473,7 +481,7 @@ const LockedSavings = () => {
               </div>
             </div>
 
-            <div className="space-y-1.5">
+            <div className="space-y-1">
               <Label htmlFor="l-amt">Amount{src ? ` (${src.currency})` : ""}</Label>
               <Input
                 id="l-amt"
@@ -483,20 +491,23 @@ const LockedSavings = () => {
                 value={amount}
                 onChange={(e) => onAmountChange(e.target.value)}
                 placeholder="0.00"
-                className="h-12 rounded-xl px-4 text-base"
+                className="h-11 rounded-xl px-4 text-base"
               />
-              <div className="grid grid-cols-4 gap-2">
-                {[25, 50, 75, 100].map((p) => (
-                  <button
-                    key={p}
-                    type="button"
-                    onClick={() => setPct(p)}
-                    className="rounded-xl border border-border/60 py-1.5 text-xs font-semibold hover:bg-muted"
-                  >
-                    {p === 100 ? "Max" : `${p}%`}
-                  </button>
-                ))}
-              </div>
+              {/* Quick-fill chips disappear once an amount is entered, keeping the dialog short */}
+              {!(amt > 0) && (
+                <div className="grid grid-cols-4 gap-2">
+                  {[25, 50, 75, 100].map((p) => (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => setPct(p)}
+                      className="rounded-xl border border-border/60 py-1.5 text-xs font-semibold hover:bg-muted"
+                    >
+                      {p === 100 ? "Max" : `${p}%`}
+                    </button>
+                  ))}
+                </div>
+              )}
               {src && (
                 <p className="text-xs text-muted-foreground">
                   Available: {formatMoney(src.balance, src.currency)}
@@ -505,38 +516,48 @@ const LockedSavings = () => {
               )}
             </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="l-name">
-                Goal name <span className="text-muted-foreground">(optional)</span>
-              </Label>
-              <Input
-                id="l-name"
-                value={name}
-                maxLength={40}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. Rent, Emergency"
-                className="h-12 rounded-xl px-4 text-base"
-              />
-            </div>
+            {showName ? (
+              <div className="space-y-1">
+                <Label htmlFor="l-name">
+                  Goal name <span className="text-muted-foreground">(optional)</span>
+                </Label>
+                <Input
+                  id="l-name"
+                  value={name}
+                  maxLength={40}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="e.g. Rent, Emergency"
+                  className="h-11 rounded-xl px-4 text-base"
+                />
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setShowName(true)}
+                className="text-xs font-medium text-primary"
+              >
+                + Add goal name
+              </button>
+            )}
 
             {plan && amt > 0 && src && (
-              <div className="rounded-2xl bg-muted/50 p-4 text-sm">
+              <div className="rounded-xl bg-muted/50 px-3 py-2 text-xs">
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Interest at maturity</span>
-                  <span className="font-semibold">{formatMoney(estInterest, src.currency)}</span>
+                  <span className="text-muted-foreground">Interest</span>
+                  <b>{formatMoney(estInterest, src.currency)}</b>
                 </div>
-                <div className="mt-1 flex justify-between">
+                <div className="flex justify-between">
                   <span className="text-muted-foreground">You receive</span>
-                  <span className="font-semibold">{formatMoney(amt + estInterest, src.currency)}</span>
+                  <b>{formatMoney(amt + estInterest, src.currency)}</b>
                 </div>
-                <p className="mt-2 text-xs text-muted-foreground">
-                  Funds are locked until {fmtDate(new Date(Date.now() + plan.duration_days * DAY).toISOString())}.
-                  Breaking early forfeits the interest and needs an unlock code from support.
-                </p>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Unlocks</span>
+                  <b>{fmtDate(new Date(Date.now() + plan.duration_days * DAY).toISOString())}</b>
+                </div>
               </div>
             )}
 
-            <Button onClick={submitLock} disabled={busy} className="h-12 w-full rounded-2xl text-base font-semibold">
+            <Button onClick={submitLock} disabled={busy} className="h-11 w-full rounded-2xl text-base font-semibold">
               {busy ? "Locking…" : "Confirm lock"}
             </Button>
           </div>
@@ -549,9 +570,9 @@ const LockedSavings = () => {
           {selected && (
             <>
               <DialogHeader>
-                <DialogTitle>{selected.name || `${selected.duration_days}-day lock`}</DialogTitle>
+                <DialogTitle>{selected.name || `${durationLabel(selected.duration_days)} lock`}</DialogTitle>
                 <DialogDescription>
-                  {selected.annual_rate}% p.a. · {selected.duration_days} days
+                  {selected.annual_rate}% p.a. · {durationLabel(selected.duration_days)}
                 </DialogDescription>
               </DialogHeader>
 
