@@ -75,14 +75,13 @@ const CurrencyWallets = () => {
   const primary = profile?.currency ? profile.currency.toUpperCase() : null;
   const isPrimary = (c: string) => !!primary && c === primary;
 
-  // Suspended: read from useAccount (always fresh), same source as the frozen check.
-  // Matches any status containing "suspend" (suspended, Suspended, account_suspended...).
-  const accountStatus = String((account as any)?.status ?? "").toLowerCase();
-  const suspended = accountStatus.includes("suspend") || !!(account as any)?.suspended;
+  // Frozen: same field and source as DashboardLayout (useAccount always fetches it fresh)
+  const frozen = !!(account as any)?.frozen;
 
-  const suspendedToast = () => {
-    toast("Account suspended", {
-      description: "Your account has been suspended. Please contact support.",
+  const frozenToast = () => {
+    toast("Account frozen", {
+      description:
+        "Your account has been frozen. most transactions and features are disabled. Please contact support.",
       duration: 5000,
       style: { background: "#ff8503", color: "#ffffff", border: "none" },
       classNames: { title: "text-white font-semibold", description: "text-white/90" },
@@ -90,8 +89,8 @@ const CurrencyWallets = () => {
   };
 
   const openWallet = (currency: string) => {
-    if (suspended) {
-      suspendedToast();
+    if (frozen) {
+      frozenToast();
       return;
     }
     navigate(`/dashboard/wallets/${currency}`);
