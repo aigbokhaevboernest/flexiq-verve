@@ -21,6 +21,7 @@ import {
   Settings,
   Sun,
   Wallet,
+  WalletCards,
   ArrowRightLeft,
   Smartphone,
   Building2,
@@ -153,6 +154,9 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
 
         <NavLink to="/dashboard/local" onClick={handleFrozenNav} className={linkClass}>
           <Repeat className="h-4 w-4" /> Local Transfer
+        </NavLink>
+        <NavLink to="/dashboard/send" end onClick={handleFrozenNav} className={linkClass}>
+          <WalletCards className="h-4 w-4" /> Digital wallet
         </NavLink>
         <NavLink to="/dashboard/receive" onClick={onNavigate} className={linkClass}>
           <Wallet className="h-4 w-4" /> Add money
