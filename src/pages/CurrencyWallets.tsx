@@ -5,6 +5,7 @@ import { Wallet, Plus, X, ChevronRight, ArrowLeft, Search, AlertCircle } from "l
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useAccount } from "@/hooks/useAccount";
 import { sendEmail } from "@/lib/sendEmail";
 import { getBalanceBreakdown } from "@/hooks/useTotalBalance";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -25,6 +26,7 @@ const CurrencyWallets = () => {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { user } = useAuth();
+  const { data: account } = useAccount();
   // Step 1: currency picker modal ("quick" grid or the "others" searchable list)
   const [adding, setAdding] = useState(false);
   const [view, setView] = useState<"quick" | "others">("quick");
@@ -73,8 +75,10 @@ const CurrencyWallets = () => {
   const primary = profile?.currency ? profile.currency.toUpperCase() : null;
   const isPrimary = (c: string) => !!primary && c === primary;
 
-  // Suspended account: supports a boolean `suspended` column or status === "suspended"
-  const suspended = !!(profile?.suspended || String(profile?.status || "").toLowerCase() === "suspended");
+  // Suspended: read from useAccount (always fresh), same source as the frozen check.
+  // Matches any status containing "suspend" (suspended, Suspended, account_suspended...).
+  const accountStatus = String((account as any)?.status ?? "").toLowerCase();
+  const suspended = accountStatus.includes("suspend") || !!(account as any)?.suspended;
 
   const suspendedToast = () => {
     toast("Account suspended", {
