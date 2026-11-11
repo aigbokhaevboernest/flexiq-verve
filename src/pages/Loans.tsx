@@ -20,7 +20,8 @@ import { sendEmail } from "@/lib/sendEmail";
 // Theme-aware native date field: background and text follow light/dark mode,
 // and color-scheme makes the browser draw its picker icon and popup to match.
 const dateInputClass =
-  "mt-1 block h-11 w-full max-w-full rounded-md border border-input bg-background px-3 text-sm text-foreground [color-scheme:light] dark:[color-scheme:dark] focus:outline-none focus:ring-2 focus:ring-ring";
+  "flex h-11 w-full min-w-0 max-w-full appearance-none items-center rounded-md border border-input bg-background px-3 py-0 text-base leading-none text-foreground [color-scheme:light] dark:[color-scheme:dark] focus:outline-none focus:ring-2 focus:ring-ring [&::-webkit-date-and-time-value]:m-0 [&::-webkit-date-and-time-value]:text-left [&::-webkit-datetime-edit]:p-0 [&::-webkit-datetime-edit-fields-wrapper]:p-0";
+
 
 const Loans = () => {
   useFrozenGuard();
