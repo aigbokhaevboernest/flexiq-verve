@@ -39,9 +39,11 @@ const quickActions: Array<{
   disabled?: boolean;
   /** "send" opens the Local / Digital / Wire / FX chooser instead of navigating */
   action?: "send";
+  /** Stays faint when the account is frozen/suspended, but still navigates */
+  allowWhenFrozen?: boolean;
 }> = [
   { icon: Send, label: "Send", to: "/dashboard/send", action: "send" },
-  { icon: Wallet, label: "Add money", to: "/dashboard/receive" },
+  { icon: Wallet, label: "Add money", to: "/dashboard/receive", allowWhenFrozen: true },
   { icon: FileText, label: "Bills", to: "/dashboard/bills", disabled: true },
   { icon: Banknote, label: "Loans", to: "/dashboard/loans" },
 ];
@@ -403,15 +405,19 @@ const DashboardHome = () => {
 
                   {/* Balance */}
                   <p className={`mt-8 text-base ${cardTheme.muted}`}>Available balance</p>
-                  <div className="mt-1">
+                  {/* Fixed-height slot: the amount and the hidden bullets share it, so toggling
+                      hide/show never changes the card height or moves the controls below. */}
+                  <div className="mt-1 flex h-14 items-center overflow-hidden tabular-nums">
                     {!balanceKnown || !currency ? (
-                      <Skeleton className={`h-12 w-56 ${cardTheme.skeleton}`} />
+                      <Skeleton className={`h-10 w-56 ${cardTheme.skeleton}`} />
                     ) : (
-                      <FitAmount
-                        variant="hero"
-                        text={hidden ? "••••••" : formatMoney(balanceValue, currency)}
-                        title={formatMoney(balanceValue, currency)}
-                      />
+                      <div className="w-full min-w-0">
+                        <FitAmount
+                          variant="hero"
+                          text={hidden ? "••••••" : formatMoney(balanceValue, currency)}
+                          title={formatMoney(balanceValue, currency)}
+                        />
+                      </div>
                     )}
                   </div>
 
@@ -429,6 +435,15 @@ const DashboardHome = () => {
                           <span className="whitespace-nowrap text-xs font-medium">{a.label}</span>
                         </>
                       );
+
+                      // Add money: faint when frozen/suspended, but still opens the add-funds page
+                      if (isFrozen && a.allowWhenFrozen) {
+                        return (
+                          <Link key={a.label} to={a.to} className={cls + " opacity-50"}>
+                            {inner}
+                          </Link>
+                        );
+                      }
 
                       if (isFrozen || a.disabled) {
                         return (
@@ -474,7 +489,8 @@ const DashboardHome = () => {
                   </div>
                 </div>
 
-                {/* Currency wallet footer: darker band for separation */}
+                {/* Currency wallet footer: darker band for separation.
+                    Fixed height + items-center keeps it centered whether the balance is shown or hidden. */}
                 <div
                   role="link"
                   tabIndex={0}
@@ -482,7 +498,7 @@ const DashboardHome = () => {
                   onKeyDown={(e) => {
                     if (e.key === "Enter") goToWallets();
                   }}
-                  className={`flex cursor-pointer items-center justify-center gap-2 px-8 py-4 text-sm font-medium transition-colors ${cardTheme.footer}`}
+                  className={`flex h-14 shrink-0 cursor-pointer items-center justify-center gap-2 px-8 text-sm font-medium transition-colors ${cardTheme.footer}`}
                 >
                   <ArrowLeftRight className="h-4 w-4" />
                   <span>View currency wallet</span>
