@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useEffect, useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowDownLeft, ArrowUpRight, Bell, Inbox as InboxIcon } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -26,12 +26,15 @@ const STATUS_COLOR: Record<string, string> = {
   failed: "#ef4444",
 };
 
-// Wallet fund requests use their own status words; map them onto the inbox ones.
-const depositStatus = (s: string) => {
+// One normalizer for transactions AND wallet fund requests, so real
+// status values (approved, success, awaiting_code, ...) map onto the
+// four inbox statuses. Completed items are never forced to "pending".
+const normalizeStatus = (s: string) => {
   const v = String(s || "").toLowerCase();
-  if (["approved", "completed", "confirmed", "paid"].includes(v)) return "completed";
-  if (["declined", "rejected", "failed", "cancelled"].includes(v)) return "failed";
-  return "pending";
+  if (["approved", "completed", "confirmed", "paid", "success", "successful", "paid_out"].includes(v)) return "completed";
+  if (["declined", "rejected", "failed", "cancelled", "canceled"].includes(v)) return "failed";
+  if (["processing", "in_review", "under_review"].includes(v)) return "processing";
+  return "pending"; // pending, awaiting_code, unknown
 };
 
 const activityTitle = (type: string, t?: any) => {
@@ -43,13 +46,19 @@ const activityTitle = (type: string, t?: any) => {
   if (type === "lock_break") return "Lock broken early";
   if (type === "transfer_in") return "Money received";
   if (type === "transfer_out") return "Transfer sent";
+  if (type === "wire_transfer") return "Wire transfer";
+  if (type === "fx") return "FX transfer";
+  if (type === "bill_payment") return "Bill payment";
+  if (type === "refund") return "Refund received";
+  if (type === "card_created") return "Virtual card created";
   if (type === "loan_disbursement") return "Loan disbursed";
   if (type === "deposit") return "Money added";
-  return type.replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase());
+  return String(type || "Activity").replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase());
 };
 
 const Inbox = () => {
   const { user } = useAuth();
+  const qc = useQueryClient();
   const [filter, setFilter] = useState<Filter>("all");
 
   const { data: notes = [], isLoading: notesLoading } = useQuery({
@@ -101,6 +110,32 @@ const Inbox = () => {
     },
   });
 
+  // Live updates: new transfers, status changes and notifications appear without a refresh
+  useEffect(() => {
+    if (!user) return;
+    const ch = supabase
+      .channel("inbox-live")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "transactions", filter: `user_id=eq.${user.id}` },
+        () => qc.invalidateQueries({ queryKey: ["inbox-transactions", user.id] }),
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
+        () => qc.invalidateQueries({ queryKey: ["inbox-notifications", user.id] }),
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "wallet_deposit_requests", filter: `user_id=eq.${user.id}` },
+        () => qc.invalidateQueries({ queryKey: ["inbox-wallet-deposits", user.id] }),
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(ch);
+    };
+  }, [user, qc]);
+
   const items = useMemo<InboxItem[]>(() => {
     const messages: InboxItem[] = notes.map((n: any) => ({
       id: `n-${n.id}`,
@@ -111,7 +146,6 @@ const Inbox = () => {
     }));
     const activity: InboxItem[] = txs.map((t: any) => {
       const amt = Number(t.amount);
-      const status = t.status === "awaiting_code" ? "pending" : t.status === "rejected" ? "processing" : t.status;
       return {
         id: `t-${t.id}`,
         kind: "activity",
@@ -119,7 +153,7 @@ const Inbox = () => {
         body: `${formatMoney(Math.abs(amt), t.currency || "USD")}${t.description ? " · " + t.description : ""}`,
         at: t.created_at,
         direction: amt > 0 ? "in" : "out",
-        status,
+        status: normalizeStatus(t.status),
       };
     });
     const fundRequests: InboxItem[] = deposits.map((d: any) => ({
@@ -129,7 +163,7 @@ const Inbox = () => {
       body: `${formatMoney(Math.abs(Number(d.amount)), d.wallet_currency || "USD")}${d.crypto ? " · via " + d.crypto : ""}`,
       at: d.created_at,
       direction: "in",
-      status: depositStatus(d.status),
+      status: normalizeStatus(d.status),
     }));
     return [...messages, ...activity, ...fundRequests]
       .filter((i) => filter === "all" || (filter === "messages" ? i.kind === "message" : i.kind === "activity"))
@@ -137,6 +171,11 @@ const Inbox = () => {
   }, [notes, txs, deposits, filter]);
 
   const loading = notesLoading || txLoading || depLoading;
+
+  const emptyCopy =
+    filter === "messages"
+      ? "Messages from our team will appear here."
+      : "Transfers, deposits and status updates appear here as they happen.";
 
   const chip = (value: Filter, label: string) => (
     <button
@@ -176,9 +215,7 @@ const Inbox = () => {
               <InboxIcon className="h-5 w-5" />
             </span>
             <p className="mt-3 font-medium">Nothing here yet</p>
-            <p className="mt-1 max-w-xs text-sm text-muted-foreground">
-              Transfers, deposits and status updates will show up as they happen.
-            </p>
+            <p className="mt-1 max-w-xs text-sm text-muted-foreground">{emptyCopy}</p>
           </div>
         ) : (
           <ul className="divide-y divide-border/60">
