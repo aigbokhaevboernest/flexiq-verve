@@ -73,6 +73,26 @@ const CurrencyWallets = () => {
   const primary = profile?.currency ? profile.currency.toUpperCase() : null;
   const isPrimary = (c: string) => !!primary && c === primary;
 
+  // Suspended account: supports a boolean `suspended` column or status === "suspended"
+  const suspended = !!(profile?.suspended || String(profile?.status || "").toLowerCase() === "suspended");
+
+  const suspendedToast = () => {
+    toast("Account suspended", {
+      description: "Your account has been suspended. Please contact support.",
+      duration: 5000,
+      style: { background: "#ff8503", color: "#ffffff", border: "none" },
+      classNames: { title: "text-white font-semibold", description: "text-white/90" },
+    });
+  };
+
+  const openWallet = (currency: string) => {
+    if (suspended) {
+      suspendedToast();
+      return;
+    }
+    navigate(`/dashboard/wallets/${currency}`);
+  };
+
   const addWallet = useMutation({
     mutationFn: async (rawCurrency: string) => {
       // Always store the ISO code uppercase so it matches the /wallets/:currency lookup
@@ -191,7 +211,7 @@ Flexiq Verve Support Team`,
             <button
               key={w.id}
               type="button"
-              onClick={() => navigate(`/dashboard/wallets/${w.currency}`)}
+              onClick={() => openWallet(w.currency)}
               className="flex w-full items-center justify-between rounded-3xl bg-card p-5 text-left shadow-elev transition-colors hover:bg-muted/40"
             >
               <div className="flex min-w-0 items-center gap-3">
