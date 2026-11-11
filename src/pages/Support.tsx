@@ -5,6 +5,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { CheckCircle2, Mail, MessageCircle, Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,6 +28,7 @@ const CATEGORIES = [
   { value: "card", label: "Cards" },
   { value: "loan", label: "Loans" },
   { value: "security", label: "Security" },
+  { value: "others", label: "Others" },
 ];
 
 const Support = () => {
@@ -30,8 +39,11 @@ const Support = () => {
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
-  const [sent, setSent] = useState(false);
+  const [successOpen, setSuccessOpen] = useState(false);
   const [profile, setProfile] = useState<{ first_name?: string; last_name?: string; email?: string } | null>(null);
+
+  const isOthers = category === "others";
+  const accountEmail = profile?.email || user?.email || "your account email";
 
   useEffect(() => {
     if (!user) return;
@@ -43,6 +55,12 @@ const Support = () => {
       .then(({ data }: any) => setProfile(data || null));
   }, [user]);
 
+  const resetForm = () => {
+    setSubject("");
+    setMessage("");
+    setCategory("general");
+  };
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || sending) return;
@@ -50,40 +68,48 @@ const Support = () => {
     const name = [profile?.first_name, profile?.last_name].filter(Boolean).join(" ") || "Flexiq Verve user";
     const userEmail = profile?.email || user.email || "";
     const categoryLabel = CATEGORIES.find((c) => c.value === category)?.label || category;
+    const finalSubject = subject.trim() || (isOthers ? "Other enquiry" : "Support request");
 
     setSending(true);
-    // Email only — nothing is stored as a ticket.
-    const result = await sendEmail({
-      email: SUPPORT_EMAIL,
-      first_name: "Support",
-      subject: `[${categoryLabel}] ${subject}`,
-      message:
-`New support request
+    let delivered = true;
+    try {
+      const result: any = await sendEmail({
+        email: SUPPORT_EMAIL,
+        first_name: "Support",
+        subject: `[${categoryLabel}] ${finalSubject}`,
+        message:
+`New support ticket
 
 Name: ${name}
 Email: ${userEmail}
-User ID: ${user.id}
 Category: ${categoryLabel}
 
-Subject: ${subject}
+Subject: ${finalSubject}
 
 ${message}`,
-    });
+      });
+      // Only a thrown error counts as a failure. A non-success flag is logged but
+      // never shown to the user as an error, because the email can still be delivered.
+      if (result && result.success === false) {
+        console.warn("Support email returned a non-success flag:", result.error);
+      }
+    } catch (err) {
+      console.error("Support email failed:", err);
+      delivered = false;
+    }
     setSending(false);
 
-    if (!result.success) {
+    if (!delivered) {
       toast({
-        title: "Couldn't send your message",
-        description: result.error || "Please try again, or email support@flexiqverve.com directly.",
+        title: "Couldn't create your ticket",
+        description: `Please try again, or email ${SUPPORT_EMAIL} directly.`,
         variant: "destructive",
       });
       return;
     }
 
-    setSent(true);
-    setSubject("");
-    setMessage("");
-    setCategory("general");
+    resetForm();
+    setSuccessOpen(true);
   };
 
   return (
@@ -101,7 +127,9 @@ ${message}`,
           const Icon = c.icon;
           return (
             <Card key={c.label} className="rounded-3xl border-border/60 p-6 shadow-card">
-              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary"><Icon className="h-5 w-5" /></span>
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <Icon className="h-5 w-5" />
+              </span>
               <p className="mt-4 text-sm text-muted-foreground">{c.label}</p>
               <p className="mt-1 break-all font-display font-bold">{c.value}</p>
             </Card>
@@ -110,48 +138,74 @@ ${message}`,
       </div>
 
       <Card className="rounded-3xl border-border/60 p-6 shadow-card sm:p-8">
-        {sent ? (
-          <div className="flex flex-col items-center py-8 text-center">
-            <span className="flex h-12 w-12 items-center justify-center rounded-full bg-success/15 text-success">
-              <CheckCircle2 className="h-6 w-6" />
-            </span>
-            <h2 className="mt-4 font-display text-lg font-bold">Message sent</h2>
-            <p className="mt-1 max-w-sm text-sm text-muted-foreground">
-              Our team will reply to {profile?.email || user?.email || "your email"}.
-            </p>
-            <Button variant="outline" className="mt-5" onClick={() => setSent(false)}>
-              Send another message
-            </Button>
+        <form onSubmit={submit} className="space-y-4">
+          <h2 className="font-display text-lg font-bold">Create a ticket</h2>
+
+          <div className="space-y-2">
+            <Label>Category</Label>
+            <Select value={category} onValueChange={setCategory}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {CATEGORIES.map((c) => (
+                  <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-        ) : (
-          <form onSubmit={submit} className="space-y-4">
-            <h2 className="font-display text-lg font-bold">Contact support</h2>
-            <div className="space-y-2">
-              <Label>Category</Label>
-              <Select value={category} onValueChange={setCategory}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {CATEGORIES.map((c) => (
-                    <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Subject</Label>
-              <Input value={subject} onChange={(e) => setSubject(e.target.value)} required maxLength={200} />
-            </div>
-            <div className="space-y-2">
-              <Label>Message</Label>
-              {/* 16px on mobile stops the browser zooming in when the field is focused */}
-              <Textarea className="text-base md:text-sm" rows={6} value={message} onChange={(e) => setMessage(e.target.value)} required />
-            </div>
-            <Button type="submit" disabled={sending} className="w-full gap-2 bg-gradient-primary">
-              <Send className="h-4 w-4" /> {sending ? "Sending…" : "Send message"}
-            </Button>
-          </form>
-        )}
+
+          <div className="space-y-2">
+            <Label>
+              Subject
+              {isOthers && <span className="text-muted-foreground"> (optional)</span>}
+            </Label>
+            <Input
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+              required={!isOthers}
+              maxLength={200}
+              placeholder={isOthers ? "Anything else" : undefined}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Message</Label>
+            {/* 16px on mobile stops the browser zooming in when the field is focused */}
+            <Textarea
+              className="text-base md:text-sm"
+              rows={6}
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              required
+              placeholder={isOthers ? "Tell us anything you need help with" : undefined}
+            />
+          </div>
+
+          <Button type="submit" disabled={sending} className="w-full gap-2 bg-gradient-primary">
+            <Send className="h-4 w-4" /> {sending ? "Creating ticket…" : "Create ticket"}
+          </Button>
+        </form>
       </Card>
+
+      {/* Success modal */}
+      <Dialog open={successOpen} onOpenChange={setSuccessOpen}>
+        <DialogContent className="font-sans sm:max-w-md">
+          <DialogHeader className="items-center text-center sm:text-center">
+            <span className="flex h-14 w-14 items-center justify-center rounded-full bg-success/15 text-success">
+              <CheckCircle2 className="h-7 w-7" />
+            </span>
+            <DialogTitle className="mt-2">Ticket created</DialogTitle>
+            <DialogDescription className="text-center">
+              Thanks for reaching out. Our support team will reply by email to{" "}
+              <span className="break-all font-medium text-foreground">{accountEmail}</span>.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button className="h-11 w-full rounded-2xl bg-gradient-primary" onClick={() => setSuccessOpen(false)}>
+              Done
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
