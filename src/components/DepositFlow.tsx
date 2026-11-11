@@ -38,7 +38,19 @@ type Props = {
   onSubmit: (data: DepositSubmit) => Promise<string | null>;
 };
 
+// Ethereum diamond logo (inline SVG, no network request)
+const EthLogo = ({ className = "h-6 w-6" }: { className?: string }) => (
+  <svg viewBox="0 0 256 417" className={className} aria-hidden="true">
+    <polygon fill="#627eea" opacity=".8" points="127.961,0 125.166,9.5 125.166,285.168 127.961,287.958 255.923,212.32" />
+    <polygon fill="#627eea" points="127.962,0 0,212.32 127.962,287.959 127.962,154.158" />
+    <polygon fill="#627eea" opacity=".8" points="127.961,312.187 126.386,314.107 126.386,412.306 127.961,416.907 255.999,236.587" />
+    <polygon fill="#627eea" points="127.962,416.905 127.962,312.185 0,236.585" />
+  </svg>
+);
+
 // Class names are written out in full so Tailwind can detect them.
+// NOTE: ETH deliberately uses arbitrary hex values (#627eea) instead of violet-*/indigo-*/purple-*
+// classes, because src/index.css remaps every class containing those names to the solid brand blue.
 const ASSETS: Record<
   Asset,
   { name: string; sub: string; card: string; iconWrap: string; panel: string; code: string; button: string; accent: string }
@@ -56,12 +68,12 @@ const ASSETS: Record<
   ETH: {
     name: "Ethereum (ETH)",
     sub: "Ethereum network",
-    card: "border-violet-500/40 bg-violet-500/5 hover:bg-violet-500/10",
-    iconWrap: "bg-violet-500/15 text-violet-600",
-    panel: "border-violet-500/50 bg-violet-500/5",
-    code: "border border-violet-500/30",
-    button: "bg-violet-600 text-white hover:bg-violet-700",
-    accent: "text-violet-600",
+    card: "border-[#627eea]/40 bg-[#627eea]/5 hover:bg-[#627eea]/10",
+    iconWrap: "bg-[#627eea]/15 text-[#627eea]",
+    panel: "border-[#627eea]/50 bg-[#627eea]/5",
+    code: "border border-[#627eea]/30",
+    button: "bg-[#627eea] text-white hover:bg-[#4f67c9]",
+    accent: "text-[#627eea]",
   },
   USDT: {
     name: "USDT (TRON)",
@@ -193,7 +205,13 @@ const DepositFlow = ({ title, currency, fundTarget, onExit, onSubmit }: Props) =
         className={`flex w-full min-w-0 items-center gap-4 rounded-3xl border px-5 py-4 text-left transition-colors ${t.card}`}
       >
         <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-sm font-bold ${t.iconWrap}`}>
-          {a === "BTC" ? <Bitcoin className="h-6 w-6" /> : a}
+          {a === "BTC" ? (
+            <Bitcoin className="h-6 w-6" />
+          ) : a === "ETH" ? (
+            <EthLogo className="h-6 w-6" />
+          ) : (
+            a
+          )}
         </span>
         <span className="min-w-0 flex-1">
           <span className="block font-semibold">{t.name}</span>
@@ -280,9 +298,20 @@ const DepositFlow = ({ title, currency, fundTarget, onExit, onSubmit }: Props) =
             className="space-y-5"
           >
             <div className="flex items-center justify-between gap-3">
-              <div className="min-w-0">
-                <p className={`font-semibold ${theme.accent}`}>{theme.name}</p>
-                <p className="text-sm text-muted-foreground">{theme.sub}</p>
+              <div className="flex min-w-0 items-center gap-3">
+                <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${theme.iconWrap}`}>
+                  {crypto === "BTC" ? (
+                    <Bitcoin className="h-5 w-5" />
+                  ) : crypto === "ETH" ? (
+                    <EthLogo className="h-5 w-5" />
+                  ) : (
+                    <span className="text-xs font-bold">USDT</span>
+                  )}
+                </span>
+                <div className="min-w-0">
+                  <p className={`font-semibold ${theme.accent}`}>{theme.name}</p>
+                  <p className="text-sm text-muted-foreground">{theme.sub}</p>
+                </div>
               </div>
               <div className="shrink-0 text-right">
                 <p className="text-xs text-muted-foreground">Amount</p>
