@@ -12,6 +12,7 @@ import { useTotalBalance } from "@/hooks/useTotalBalance";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
+import { sendEmail } from "@/lib/sendEmail";
 
 const cardGradients = [
   "linear-gradient(135deg,#4f46e5 0%,#9333ea 50%,#ec4899 100%)",
@@ -30,6 +31,7 @@ const Cards = () => {
   const qc = useQueryClient();
   const [topIndex, setTopIndex] = useState(0);
   const [showDetails, setShowDetails] = useState(false);
+  const [creating, setCreating] = useState(false);
 
   const { data: cards = [], isLoading } = useQuery<any[]>({
     queryKey: ["cards", user?.id],
@@ -51,7 +53,8 @@ const Cards = () => {
   };
 
   const newCard = async () => {
-    if (!user) return;
+    if (!user || creating) return;
+    setCreating(true);
     const num = "4" + Array.from({ length: 15 }, () => Math.floor(Math.random() * 10)).join("");
     const cvv = String(Math.floor(Math.random() * 1000)).padStart(3, "0");
     const exp = `${String(Math.floor(Math.random() * 12) + 1).padStart(2, "0")}/${String(new Date().getFullYear() + 4).slice(-2)}`;
@@ -66,9 +69,34 @@ const Cards = () => {
       card_type: "virtual",
       status: "active",
     });
-    if (error) return toast.error("Could not create card", { description: error.message });
+    if (error) {
+      setCreating(false);
+      return toast.error("Could not create card", { description: error.message });
+    }
     qc.invalidateQueries({ queryKey: ["cards"] });
     toast.success("Virtual card created");
+
+    // Confirmation email (best-effort: never blocks or fails the card creation)
+    try {
+      const last4 = num.slice(-4);
+      const em = (profile as any)?.email || user.email || "";
+      if (em) {
+        await sendEmail({
+          email: em,
+          first_name: firstName,
+          subject: "Virtual Card Created — Flexiq Verve",
+          message: `Your new virtual card ending in ${last4} has been created successfully and is ready to use.
+
+You can view your card details and freeze or unfreeze it at any time from the Cards page on your dashboard.
+
+For more information or complaints, please contact support@flexiqverve.com or make use of the Live Chat on your dashboard for assistance.
+
+Kind Regards,
+Flexiq Verve Support Team`,
+        });
+      }
+    } catch {}
+    setCreating(false);
   };
 
   if (isLoading) {
@@ -96,7 +124,7 @@ const Cards = () => {
     return (
       <Card className="rounded-3xl p-10 text-center">
         <p className="text-muted-foreground">No cards yet.</p>
-        <Button onClick={newCard} className="mt-4 gap-2 bg-gradient-primary"><Plus className="h-4 w-4" />Create card</Button>
+        <Button onClick={newCard} disabled={creating} className="mt-4 gap-2 bg-gradient-primary"><Plus className="h-4 w-4" />Create card</Button>
       </Card>
     );
   }
@@ -110,7 +138,7 @@ const Cards = () => {
           <h1 className="font-display text-2xl font-bold sm:text-3xl">Cards</h1>
           <p className="mt-1 text-sm text-muted-foreground">Swipe to flip through your cards. Standard credit card size.</p>
         </div>
-        <Button onClick={newCard} className="gap-2 rounded-2xl bg-gradient-primary shadow-glow">
+        <Button onClick={newCard} disabled={creating} className="gap-2 rounded-2xl bg-gradient-primary shadow-glow">
           <Plus className="h-4 w-4" /> New virtual card
         </Button>
       </div>
