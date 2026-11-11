@@ -20,6 +20,18 @@ import { sendEmail } from "@/lib/sendEmail";
 import { saveBeneficiary } from "@/lib/beneficiaries";
 import { SavedBeneficiaries } from "@/components/SavedBeneficiaries";
 
+// Account type options: Others is always last. Old saved "personal" values map to "others".
+const ACCOUNT_TYPES = [
+  { value: "checking", label: "Checking" },
+  { value: "savings", label: "Savings" },
+  { value: "business", label: "Business" },
+  { value: "others", label: "Others" },
+];
+const normalizeAccountType = (v?: string | null) => {
+  const t = String(v || "").toLowerCase();
+  if (!t || t === "personal") return t === "personal" ? "others" : "checking";
+  return ACCOUNT_TYPES.some((o) => o.value === t) ? t : "others";
+};
 
 const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
   <div className="space-y-4">
@@ -74,7 +86,7 @@ const WireTransfer = () => {
       zipCode: b.zip_code || "",
       bankName: b.bank_name || "",
       accountName: b.account_name || "",
-      accountType: b.account_type || "checking",
+      accountType: normalizeAccountType(b.account_type),
       accountNumber: b.account_number || "",
       iban: b.iban || "",
       routing: b.routing_number || "",
@@ -239,10 +251,9 @@ Flexiq Verve Support Team`,
               <Select value={form.accountType} onValueChange={(v) => set("accountType", v)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="personal">Personal</SelectItem>
-                  <SelectItem value="checking">Checking</SelectItem>
-                  <SelectItem value="savings">Savings</SelectItem>
-                  <SelectItem value="business">Business</SelectItem>
+                  {ACCOUNT_TYPES.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
