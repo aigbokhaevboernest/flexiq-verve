@@ -17,6 +17,7 @@ const ASSETS: { key: Asset; name: string; field: string }[] = [
   { key: "USDT", name: "USDT", field: "usdt_wallet_address" },
 ];
 
+// Renders "BTC", "ETH" or "USDT (TRON)". The parentheses live only here.
 const AssetLabel = ({ asset }: { asset: Asset }) =>
   asset === "USDT" ? (
     <>USDT (<span className="font-semibold text-red-500">TRON</span>)</>
@@ -93,8 +94,9 @@ export const NotificationsPanel = () => {
                   <Wallet className="h-4 w-4" />
                 </span>
                 <div className="min-w-0 flex-1">
+                  {/* No wrapping parentheses: USDT already renders as "USDT (TRON)" */}
                   <p className="text-sm font-semibold">
-                    Deposit wallet (<AssetLabel asset={active.key} />)
+                    Deposit wallet: <AssetLabel asset={active.key} />
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {revealed ? "Tap to hide" : "Tap to reveal address"}
