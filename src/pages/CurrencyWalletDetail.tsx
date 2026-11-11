@@ -62,21 +62,21 @@ const CurrencyWalletDetail = () => {
   const [notice, setNotice] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  // Suspended: read from useAccount (always fresh). Matches any status containing "suspend".
-  const accountStatus = String((account as any)?.status ?? "").toLowerCase();
-  const suspended = accountStatus.includes("suspend") || !!(account as any)?.suspended;
+  // Frozen: same field and source as DashboardLayout (useAccount always fetches it fresh)
+  const frozen = !!(account as any)?.frozen;
 
-  // Suspended accounts can't open a wallet: show the toast and go back to the list
+  // Frozen accounts can't open a wallet: show the frozen toast and go back to the list
   useEffect(() => {
-    if (!suspended) return;
-    toast("Account suspended", {
-      description: "Your account has been suspended. Please contact support.",
+    if (!frozen) return;
+    toast("Account frozen", {
+      description:
+        "Your account has been frozen. most transactions and features are disabled. Please contact support.",
       duration: 5000,
       style: { background: "#ff8503", color: "#ffffff", border: "none" },
       classNames: { title: "text-white font-semibold", description: "text-white/90" },
     });
     navigate("/dashboard/wallets", { replace: true });
-  }, [suspended, navigate]);
+  }, [frozen, navigate]);
 
   // Same query key as CurrencyWallets so the list cache is reused
   const { data: wallets, isLoading } = useQuery<WalletRow[]>({
@@ -116,8 +116,8 @@ const CurrencyWalletDetail = () => {
     ? Number(profile ? getBalanceBreakdown(profile as any).total ?? 0 : 0)
     : Number(wallet?.balance ?? 0);
 
-  // Render nothing while redirecting a suspended account
-  if (suspended) return null;
+  // Render nothing while redirecting a frozen account
+  if (frozen) return null;
 
   if (loading) {
     return (
