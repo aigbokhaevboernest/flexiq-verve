@@ -24,7 +24,8 @@ import {
   WalletCards,
   ArrowRightLeft,
   Smartphone,
-  Building2,
+  Building2
+  ArrowLeftRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -67,7 +68,7 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
   const frozenToast = () => {
     toast("Account frozen", {
       description:
-        "Your account has been frozen by an administrator. All transactions and features are disabled. Please contact support.",
+        "Your account has been frozen. most transactions and features are disabled. Please contact support.",
       duration: 5000,
       style: { background: "#ff8503", color: "#ffffff", border: "none" },
       classNames: { title: "text-white font-semibold", description: "text-white/90" },
@@ -156,7 +157,7 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
           <Repeat className="h-4 w-4" /> Local Transfer
         </NavLink>
         <NavLink to="/dashboard/wallets" onClick={onNavigate} className={linkClass}>
-          <ArrowleftRight className="h-4 w-4" /> Wallets
+          <ArrowLeftRight className="h-4 w-4" /> Wallets
         </NavLink>
         <NavLink to="/dashboard/receive" onClick={onNavigate} className={linkClass}>
           <Wallet className="h-4 w-4" /> Add money
