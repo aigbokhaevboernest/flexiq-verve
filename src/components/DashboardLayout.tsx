@@ -24,7 +24,7 @@ import {
   WalletCards,
   ArrowRightLeft,
   Smartphone,
-  Building2
+  Building2,
   ArrowLeftRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -130,7 +130,11 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
                   key={s.to}
                   to={s.to}
                   end
-                  onClick={handleFrozenNav}
+                  onClick={
+                    s.to === "/dashboard/send"
+                      ? () => onNavigate?.()
+                      : handleFrozenNav
+                  }
                   className={({ isActive }) =>
                     `flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 ${
                       isActive
