@@ -19,6 +19,20 @@ import { sendEmail } from "@/lib/sendEmail";
 import { saveBeneficiary } from "@/lib/beneficiaries";
 import { SavedBeneficiaries } from "@/components/SavedBeneficiaries";
 
+// Account type options: Others is always last. Old saved "personal" values map to "others".
+const ACCOUNT_TYPES = [
+  { value: "checking", label: "Checking" },
+  { value: "savings", label: "Savings" },
+  { value: "business", label: "Business" },
+  { value: "others", label: "Others" },
+];
+const normalizeAccountType = (v?: string | null) => {
+  const t = String(v || "").toLowerCase();
+  if (!t) return "checking";
+  if (t === "personal") return "others";
+  return ACCOUNT_TYPES.some((o) => o.value === t) ? t : "others";
+};
+
 const FxTransfer = () => {
   useFrozenGuard();
 
@@ -88,7 +102,7 @@ const FxTransfer = () => {
       address: b.address || "",
       zip: b.zip_code || "",
       country: b.country || "",
-      accountType: b.account_type || "checking",
+      accountType: normalizeAccountType(b.account_type),
     });
   };
 
@@ -137,7 +151,7 @@ const FxTransfer = () => {
       country: recipient.country,
       account_type: recipient.accountType,
       description: `FX ${amount} ${from} → ${converted} ${to}`,
-      metadata: { swift: recipient.swift, from, to },
+      metadata: { swift: recipient.swift, from, to, account_type: recipient.accountType },
     }).select().single();
 
     if (error || !tx) return toast({ title: "Failed", description: error?.message, variant: "destructive" });
@@ -288,10 +302,9 @@ Flexiq Verve Support Team`,
                 <Select value={recipient.accountType} onValueChange={(v) => setRecipient({ ...recipient, accountType: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="personal">Personal</SelectItem>
-                    <SelectItem value="checking">Checking</SelectItem>
-                    <SelectItem value="savings">Savings</SelectItem>
-                    <SelectItem value="business">Business</SelectItem>
+                    {ACCOUNT_TYPES.map((o) => (
+                      <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
