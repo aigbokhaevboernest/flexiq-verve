@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import {
   ArrowDownLeft,
   ArrowLeftRight,
+  WalletCards,
   ArrowUpRight,
   Banknote,
   ChevronRight,
@@ -500,7 +501,7 @@ const DashboardHome = () => {
                   }}
                   className={`flex h-14 shrink-0 cursor-pointer items-center justify-center gap-2 px-8 text-sm font-medium leading-none transition-colors ${cardTheme.footer}`}
                 >
-                  <ArrowLeftRight className="h-4 w-4 shrink-0" />
+                  <WalletCards className="h-4 w-4 shrink-0" />
                   <span>View currency wallet</span>
                   <motion.span
                     className="flex shrink-0"
