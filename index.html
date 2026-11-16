@@ -93,24 +93,23 @@
      });
    </script>
 
-   <!-- Start of Tidio chat code -->
-   <script src="//code.tidio.co/adycjwsvby1wec0c9es41p7uepd8z3co.js" async></script>
-   <!-- Lift the Tidio bubble above the mobile bottom nav. Not lifted when the bottom nav
-        is hidden (Support page) or when the chat window is open. -->
-   <style>
-     @media (max-width: 767px) {
-       html:not(.tidio-open):not(.no-bottom-nav) #tidio-chat-iframe,
-       html:not(.tidio-open):not(.no-bottom-nav) #tidio-chat iframe {
-         transform: translateY(calc(-96px - env(safe-area-inset-bottom, 0px))) !important;
-       }
-     }
-   </style>
+   <!-- Start of live chat code -->
    <script>
-     document.addEventListener("tidioChat-ready", function () {
-       window.tidioChatApi.on("open", function () { document.documentElement.classList.add("tidio-open"); });
-       window.tidioChatApi.on("close", function () { document.documentElement.classList.remove("tidio-open"); });
-     });
-   </script>
-   <!-- End of Tidio chat code -->
+  (function(d,t) {
+    var BASE_URL="https://app.chatwoot.com";
+    var g=d.createElement(t),s=d.getElementsByTagName(t)[0];
+    g.src=BASE_URL+"/packs/js/sdk.js";
+    g.async = true;
+    s.parentNode.insertBefore(g,s);
+    g.onload=function(){
+      window.chatwootSDK.run({
+        websiteToken: 'Ub8tuhebse3vptsdP3z3KGND',
+        baseUrl: BASE_URL
+      })
+    }
+  })(document,"script");
+</script>
+
+   <!-- End of live chat code -->
  </body>
 </html>
