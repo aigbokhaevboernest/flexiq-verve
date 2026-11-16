@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { Component, useEffect, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -62,6 +63,26 @@ const SessionGuard = ({ children }: { children: React.ReactNode }) => {
   useSessionTimeout();
   return <>{children}</>;
 };
+
+/**
+ * Renders nothing if its children throw, so a failing third-party widget
+ * (e.g. live chat) can never blank the whole app.
+ */
+class SilentBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+
+  componentDidCatch(error: unknown) {
+    console.warn("SilentBoundary caught an error:", error);
+  }
+
+  render() {
+    return this.state.failed ? null : this.props.children;
+  }
+}
 
 /**
  * The one app-start splash. It stays up until BOTH are true:
@@ -204,8 +225,11 @@ const App = () => (
             only shows on public pages (see HIDE_ON_PREFIXES in the component). */}
         <LanguageSwitcher />
 
-        {/* Tidio visibility controller: public pages + /dashboard/support only */}
-        <LiveChat />
+        {/* Chatwoot visibility controller: public pages + /dashboard/support only.
+            Wrapped in a boundary so a chat failure can never blank the app. */}
+        <SilentBoundary>
+          <LiveChat />
+        </SilentBoundary>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
