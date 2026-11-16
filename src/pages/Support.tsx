@@ -127,11 +127,12 @@ const Support = () => {
     return () => clearTimeout(t);
   }, [hash]);
 
+  // Chatwoot: show the bubble and open the chat window
   const openLiveChat = () => {
-    const api = (window as any).tidioChatApi;
-    if (api) {
-      api.show();
-      api.open();
+    const cw = (window as any).$chatwoot;
+    if (cw) {
+      cw.toggleBubbleVisibility?.("show");
+      cw.toggle?.("open");
     } else {
       toast({
         title: "Live chat is loading",
