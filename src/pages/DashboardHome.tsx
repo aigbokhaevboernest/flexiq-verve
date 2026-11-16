@@ -358,8 +358,8 @@ const DashboardHome = () => {
               <div
                 className={`flex h-full flex-col overflow-hidden rounded-3xl shadow-elev ${cardTheme.surface}`}
               >
-                {/* Main content */}
-                <div className="flex-1 p-8 pb-6">
+                {/* Main content. Tighter vertical spacing on mobile so the footer below is never clipped. */}
+                <div className="min-h-0 flex-1 p-6 pb-4 sm:p-8 sm:pb-6">
                   {/* Header: icon chip + account name/number, eye toggle on the right */}
                   <div className="flex items-center justify-between gap-4">
                     <div className="flex min-w-0 items-center gap-4">
@@ -404,7 +404,7 @@ const DashboardHome = () => {
                   )}
 
                   {/* Balance */}
-                  <p className={`mt-8 text-base ${cardTheme.muted}`}>Available balance</p>
+                  <p className={`mt-6 text-base sm:mt-8 ${cardTheme.muted}`}>Available balance</p>
                   {/* Fixed-height slot: the amount and the hidden bullets share it, so toggling
                       hide/show never changes the card height or moves the controls below. */}
                   <div className="mt-1 flex h-14 items-center overflow-hidden tabular-nums">
@@ -421,7 +421,7 @@ const DashboardHome = () => {
                     )}
                   </div>
 
-                  <div className="mt-8 grid grid-cols-4 gap-3">
+                  <div className="mt-6 grid grid-cols-4 gap-3 sm:mt-8">
                     {quickActions.map((a) => {
                       const Icon = a.icon;
                       const cls = `group flex flex-col items-center gap-2 rounded-2xl p-3 text-center transition-smooth ${cardTheme.tile}`;
@@ -498,12 +498,12 @@ const DashboardHome = () => {
                   onKeyDown={(e) => {
                     if (e.key === "Enter") goToWallets();
                   }}
-                  className={`flex h-14 shrink-0 cursor-pointer items-center justify-center gap-2 px-8 text-sm font-medium transition-colors ${cardTheme.footer}`}
+                  className={`flex h-14 shrink-0 cursor-pointer items-center justify-center gap-2 px-8 text-sm font-medium leading-none transition-colors ${cardTheme.footer}`}
                 >
-                  <ArrowLeftRight className="h-4 w-4" />
+                  <ArrowLeftRight className="h-4 w-4 shrink-0" />
                   <span>View currency wallet</span>
                   <motion.span
-                    className="flex"
+                    className="flex shrink-0"
                     animate={{ x: [0, 4, 0] }}
                     transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
                   >
