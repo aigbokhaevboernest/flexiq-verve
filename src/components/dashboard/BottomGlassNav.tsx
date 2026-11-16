@@ -1,16 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Send, Wallet, Home,ArrowLeftRight, Banknote, CreditCard } from "lucide-react";
+import { Send, Wallet, Home, ArrowLeftRight, Banknote } from "lucide-react";
 import { toast } from "sonner";
 import { useAccount } from "@/hooks/useAccount";
 import { SendChooserModal } from "@/components/dashboard/SendChooserModal";
 
-
-// Set to true to always use the smoky dark glass with white icons,
+// Set to true to always use the dark glass with white icons,
 // whatever the site theme is.
 const FORCE_DARK_STYLE = false;
 
-const ACTIVE_COLOR = "hsl(var(--primary))";
+// Set to true to tint the selected tab with your brand colour instead of
+// iOS system blue.
+const USE_BRAND_COLOR = false;
+const BRAND_COLOR = "hsl(var(--primary))";
 
 // `to` is where the tab goes (null = opens the Send chooser modal);
 // `matches` keeps the tab highlighted on sub-pages. `exact` stops Home from
@@ -32,31 +34,46 @@ const items: Array<{
 const COUNT = items.length;
 const SPRING = "cubic-bezier(0.34, 1.4, 0.64, 1)";
 
-// Glass looks: clear, light blur so the page shows through.
+// Liquid Glass looks. The capsule is nearly clear: a modest blur, a lift in
+// saturation and brightness so the page glows through, a gradient specular
+// rim (bright top-left and bottom-right, dim in between) and a soft float
+// shadow. No big inset glows: those wash out the rounded ends.
 const THEMES = {
   dark: {
     fg: "255,255,255",
-    rim: "255,255,255",
-    rimBase: 0.3,
+    active: "#0A84FF",
+    rimBase: 0.32,
     rimGain: 0.3,
-    bar: "linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.02) 50%, rgba(255,255,255,0.05)), rgba(28,28,32,0.2)",
-    barBorder: "1px solid rgba(255,255,255,0.2)",
+    lensFill: "rgba(255,255,255,0.14)",
+    lensHi: 0.3,
+    bar: "linear-gradient(180deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.03) 45%, rgba(255,255,255,0.06) 100%), rgba(30,30,36,0.16)",
     barShadow:
-      "0 10px 30px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.35), inset 0 -1px 0 rgba(255,255,255,0.1), inset 0 0 18px rgba(255,255,255,0.06)",
-    lens: "linear-gradient(180deg, rgba(255,255,255,0.22), rgba(255,255,255,0.04) 45%, rgba(255,255,255,0.1))",
-    iconFilter: "drop-shadow(0 1px 2px rgba(0,0,0,0.5))",
+      "0 12px 32px rgba(0,0,0,0.38), 0 2px 6px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.28), inset 0 -1px 0 rgba(255,255,255,0.08)",
+    rimGradient:
+      "linear-gradient(135deg, rgba(255,255,255,0.75) 0%, rgba(255,255,255,0.12) 28%, rgba(255,255,255,0.04) 55%, rgba(255,255,255,0.14) 78%, rgba(255,255,255,0.55) 100%)",
+    sheen:
+      "linear-gradient(115deg, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0) 32%, rgba(255,255,255,0) 70%, rgba(255,255,255,0.07) 100%)",
+    textShadow: "0 1px 2px rgba(0,0,0,0.45)",
+    iconFilter: "drop-shadow(0 1px 2px rgba(0,0,0,0.45))",
+    base: 0.72,
   },
   light: {
-    fg: "17,17,20",
-    rim: "60,60,70",
-    rimBase: 0.1,
-    rimGain: 0.25,
-    bar: "linear-gradient(180deg, rgba(255,255,255,0.55), rgba(255,255,255,0.12) 50%, rgba(255,255,255,0.25)), rgba(255,255,255,0.1)",
-    barBorder: "1px solid rgba(255,255,255,0.75)",
+    fg: "10,10,14",
+    active: "#007AFF",
+    rimBase: 0.14,
+    rimGain: 0.26,
+    lensFill: "rgba(255,255,255,0.34)",
+    lensHi: 0.85,
+    bar: "linear-gradient(180deg, rgba(255,255,255,0.42) 0%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.2) 100%), rgba(255,255,255,0.06)",
     barShadow:
-      "0 10px 30px rgba(20,20,40,0.16), 0 0 0 0.5px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.9), inset 0 -1px 0 rgba(255,255,255,0.5), inset 0 0 18px rgba(255,255,255,0.35)",
-    lens: "linear-gradient(180deg, rgba(255,255,255,0.7), rgba(255,255,255,0.18) 45%, rgba(255,255,255,0.4))",
-    iconFilter: "drop-shadow(0 1px 1px rgba(255,255,255,0.6))",
+      "0 12px 32px rgba(20,20,40,0.16), 0 2px 6px rgba(20,20,40,0.08), inset 0 1px 0 rgba(255,255,255,0.95), inset 0 -1px 0 rgba(255,255,255,0.45)",
+    rimGradient:
+      "linear-gradient(135deg, rgba(255,255,255,1) 0%, rgba(255,255,255,0.3) 28%, rgba(255,255,255,0.1) 55%, rgba(255,255,255,0.35) 78%, rgba(255,255,255,0.95) 100%)",
+    sheen:
+      "linear-gradient(115deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0) 32%, rgba(255,255,255,0) 70%, rgba(255,255,255,0.2) 100%)",
+    textShadow: "0 0 6px rgba(255,255,255,0.55)",
+    iconFilter: "drop-shadow(0 0 3px rgba(255,255,255,0.5))",
+    base: 0.8,
   },
 };
 
@@ -113,6 +130,9 @@ export const BottomGlassNav = ({ hidden = false }: Props) => {
   const theme = dark ? THEMES.dark : THEMES.light;
   const themeRef = useRef(theme);
   themeRef.current = theme;
+  const activeColor = USE_BRAND_COLOR ? BRAND_COLOR : theme.active;
+  const activeColorRef = useRef(activeColor);
+  activeColorRef.current = activeColor;
 
   const clean = pathname.replace(/\/$/, "");
   const activeIdx = items.findIndex((i) =>
@@ -153,38 +173,39 @@ export const BottomGlassNav = ({ hidden = false }: Props) => {
     if (!lens) return;
 
     const speed = Math.abs(s.v);
-    // Stretch a little along the direction of travel. Kept small, and the
-    // track clips the lens, so it can never poke out past the capsule.
-    const stretch = Math.min(0.2, speed * 0.04);
-    const sx = 1 + 0.04 * s.p + stretch;
-    const sy = 1 + 0.03 * s.p - stretch * 0.15;
+    // Liquid stretch along the direction of travel, plus a swell on press.
+    const stretch = Math.min(0.14, speed * 0.035);
+    const sx = 1 + 0.1 * s.p + stretch;
+    const sy = 1 + 0.12 * s.p - stretch * 0.2;
     lens.style.transform = `translate3d(${s.x * 100}%,0,0) scale(${sx},${sy})`;
     lens.style.opacity =
       activeRef.current >= 0 || s.dragging || s.p > 0.02 ? "1" : "0";
 
-    // Refraction fringes get stronger the faster the lens moves
-    const f = Math.min(1, speed * 0.28 + s.p * 0.55);
+    // The lens turns clearer and its edges brighter the more it is pressed
+    // or moving, like glass lifting off the bar.
+    const f = Math.min(1, speed * 0.28 + s.p * 0.6);
     lens.style.boxShadow = [
-      `inset 0 0 0 1px rgba(${th.rim},${th.rimBase + th.rimGain * f})`,
-      `inset 3px 0 7px rgba(0,210,255,${0.12 + 0.4 * f})`,
-      `inset -3px 0 7px rgba(255,60,200,${0.1 + 0.35 * f})`,
-      `inset 0 -3px 7px rgba(255,220,80,${0.06 + 0.2 * f})`,
-      `inset 0 2px 6px rgba(255,255,255,${0.25 + 0.15 * f})`,
+      `inset 0 0 0 1px rgba(255,255,255,${th.rimBase + th.rimGain * f})`,
+      `inset 0 1.5px 1px rgba(255,255,255,${th.lensHi * (0.5 + 0.5 * f)})`,
+      `inset 0 -1.5px 2px rgba(255,255,255,${0.2 + 0.2 * f})`,
+      `inset 2px 0 6px rgba(0,200,255,${0.04 + 0.22 * f})`,
+      `inset -2px 0 6px rgba(255,70,200,${0.04 + 0.2 * f})`,
+      `0 ${4 + 6 * f}px ${14 + 10 * f}px rgba(0,0,0,${0.06 + 0.08 * f})`,
     ].join(",");
 
     if (barRef.current) {
-      barRef.current.style.transform = `scale(${1 + 0.015 * s.p})`;
+      barRef.current.style.transform = `scale(${1 + 0.012 * s.p})`;
     }
 
-    // Icon under the lens grows slightly; the selected tab is purple
+    // Icon under the lens grows slightly; the selected tab is tinted
     btnRefs.current.forEach((el, i) => {
       if (!el) return;
       const prox = Math.max(0, 1 - Math.abs(i - s.x));
-      el.style.transform = `scale(${1 + prox * (0.06 + 0.06 * s.p)})`;
+      el.style.transform = `scale(${1 + prox * (0.06 + 0.08 * s.p)})`;
       el.style.color =
         i === activeRef.current && !s.dragging
-          ? ACTIVE_COLOR
-          : `rgba(${th.fg},${0.62 + 0.38 * prox})`;
+          ? activeColorRef.current
+          : `rgba(${th.fg},${th.base + (1 - th.base) * prox})`;
     });
   }, []);
 
@@ -327,7 +348,7 @@ export const BottomGlassNav = ({ hidden = false }: Props) => {
         aria-hidden={!shown}
         className="fixed inset-x-4 z-50 md:hidden"
         style={{
-          bottom: "calc(env(safe-area-inset-bottom, 0px) + 14px)",
+          bottom: "calc(env(safe-area-inset-bottom, 0px) + 18px)",
           transformOrigin: "50% 100%",
           transform: shown
             ? "translateY(0) scale(1)"
@@ -351,23 +372,46 @@ export const BottomGlassNav = ({ hidden = false }: Props) => {
           className="relative mx-auto h-16 max-w-md select-none"
           style={{ touchAction: "none" }}
         >
-          {/* Liquid glass capsule: nearly clear, light blur so the page shows through */}
+          {/* Liquid glass capsule. Light blur + saturation/brightness lift so
+              the page glows through. The shadow lives on a separate layer so
+              the glass layer itself never gets an inner white haze. */}
           <div
             ref={barRef}
             className="absolute inset-0 rounded-full"
             style={{
               background: theme.bar,
-              backdropFilter: "blur(4px) saturate(1.8)",
-              WebkitBackdropFilter: "blur(4px) saturate(1.8)",
-              border: theme.barBorder,
+              backdropFilter: "blur(6px) saturate(1.6) brightness(1.06)",
+              WebkitBackdropFilter: "blur(6px) saturate(1.6) brightness(1.06)",
               boxShadow: theme.barShadow,
+              isolation: "isolate",
               willChange: "transform",
             }}
-          />
+          >
+            {/* Diagonal sheen across the whole capsule */}
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-0 rounded-full"
+              style={{ background: theme.sheen }}
+            />
+            {/* Specular rim: a 1px gradient ring, bright at the top-left and
+                bottom-right corners, faint in between */}
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-0 rounded-full"
+              style={{
+                padding: 1,
+                background: theme.rimGradient,
+                WebkitMask:
+                  "linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)",
+                WebkitMaskComposite: "xor",
+                mask: "linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0)",
+              }}
+            />
+          </div>
 
-          {/* Track: 4px inside the capsule on every side. It clips the lens, so the
-              bright edge can never be longer than the bar. */}
-          <div className="absolute inset-1 overflow-hidden rounded-full">
+          {/* Track: 4px inside the capsule on every side. Not clipped, so the
+              lens can swell past the edge a hair while it is pressed. */}
+          <div className="absolute inset-1 rounded-full">
             {/* Glass lens: exactly one slot wide (100% / COUNT) */}
             <div
               ref={lensRef}
@@ -378,9 +422,9 @@ export const BottomGlassNav = ({ hidden = false }: Props) => {
                 zIndex: 3,
                 willChange: "transform, box-shadow",
                 transition: "opacity 200ms",
-                background: theme.lens,
-                backdropFilter: "saturate(1.5) brightness(1.12)",
-                WebkitBackdropFilter: "saturate(1.5) brightness(1.12)",
+                background: `linear-gradient(180deg, rgba(255,255,255,0.18), rgba(255,255,255,0) 50%, rgba(255,255,255,0.1)), ${theme.lensFill}`,
+                backdropFilter: "blur(1px) saturate(1.9) brightness(1.14)",
+                WebkitBackdropFilter: "blur(1px) saturate(1.9) brightness(1.14)",
               }}
             />
 
@@ -410,14 +454,20 @@ export const BottomGlassNav = ({ hidden = false }: Props) => {
                       }}
                       type="button"
                       tabIndex={shown ? 0 : -1}
-                      onClick={() => go(i)}
+                      // Pointer taps are handled in onUp; detail === 0 means
+                      // keyboard activation (Enter/Space), which still needs go().
+                      onClick={(e) => {
+                        if (e.detail === 0) go(i);
+                      }}
+                      aria-label={label}
                       aria-current={active ? "page" : undefined}
                       className={`flex flex-1 flex-col items-center justify-center gap-0.5 whitespace-nowrap text-[11px] ${
                         active ? "font-semibold" : "font-medium"
                       }`}
                       style={{
-                        color: active ? ACTIVE_COLOR : `rgba(${theme.fg},0.7)`,
+                        color: active ? activeColor : `rgba(${theme.fg},${theme.base})`,
                         filter: theme.iconFilter,
+                        textShadow: theme.textShadow,
                         willChange: "transform",
                       }}
                     >
