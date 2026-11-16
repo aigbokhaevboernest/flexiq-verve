@@ -2,14 +2,19 @@ import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 
 /**
- * Live chat (Tidio) visibility:
- *  - public pages            -> visible
- *  - /dashboard/support(/*)  -> visible (bottom nav hidden there)
- *  - every other /dashboard, /pin, /pending -> hidden
+ * Live chat (Chatwoot) visibility:
+ *  - public pages                       -> visible
+ *  - /login, /signup, /pin, /pending    -> hidden
+ *  - /dashboard/support (and sub-paths) -> visible
+ *  - every other /dashboard page        -> hidden
  */
+const HIDDEN_EXACT = ["/login", "/signup", "/pin", "/pending"];
+
 export const shouldShowChat = (pathname: string) => {
-  if (pathname === "/dashboard/support" || pathname.startsWith("/dashboard/support/")) return true;
-  if (pathname.startsWith("/dashboard") || pathname === "/pin" || pathname === "/pending") return false;
+  const p = pathname.replace(/\/+$/, "") || "/";
+  if (p === "/dashboard/support" || p.startsWith("/dashboard/support/")) return true;
+  if (p.startsWith("/dashboard")) return false;
+  if (HIDDEN_EXACT.includes(p)) return false;
   return true;
 };
 
@@ -18,24 +23,31 @@ export const LiveChat = () => {
 
   useEffect(() => {
     const show = shouldShowChat(pathname);
-    const root = document.documentElement;
-    root.classList.toggle("chat-hidden", !show);
-    root.classList.toggle("no-bottom-nav", pathname.startsWith("/dashboard/support"));
+
+    // CSS class in index.html hides the bubble + window instantly
+    document.documentElement.classList.toggle("chat-hidden", !show);
 
     const apply = () => {
-      const api = (window as any).tidioChatApi;
-      if (!api) return;
-      if (show) api.show();
-      else {
-        api.close?.();
-        api.hide();
+      const cw = (window as any).$chatwoot;
+      if (!cw) return;
+      if (show) {
+        cw.toggleBubbleVisibility?.("show");
+      } else {
+        cw.toggle?.("close");
+        cw.toggleBubbleVisibility?.("hide");
       }
     };
 
     apply();
-    // If Tidio isn't loaded yet, apply as soon as it is
-    document.addEventListener("tidioChat-ready", apply);
-    return () => document.removeEventListener("tidioChat-ready", apply);
+
+    // Chatwoot loads late: apply again as soon as it is ready
+    window.addEventListener("chatwoot:ready", apply);
+    const timers = [500, 1500, 3500].map((ms) => setTimeout(apply, ms));
+
+    return () => {
+      window.removeEventListener("chatwoot:ready", apply);
+      timers.forEach(clearTimeout);
+    };
   }, [pathname]);
 
   return null;
