@@ -27,14 +27,20 @@ export const LiveChat = () => {
     // CSS class in index.html hides the bubble + window instantly
     document.documentElement.classList.toggle("chat-hidden", !show);
 
+    // Best-effort only: the Chatwoot SDK can throw while its bubble DOM is
+    // not rendered yet. That must never be fatal to the app.
     const apply = () => {
-      const cw = (window as any).$chatwoot;
-      if (!cw) return;
-      if (show) {
-        cw.toggleBubbleVisibility?.("show");
-      } else {
-        cw.toggle?.("close");
-        cw.toggleBubbleVisibility?.("hide");
+      try {
+        const cw = (window as any).$chatwoot;
+        if (!cw) return;
+        if (show) {
+          cw.toggleBubbleVisibility?.("show");
+        } else {
+          cw.toggle?.("close");
+          cw.toggleBubbleVisibility?.("hide");
+        }
+      } catch {
+        // bubble DOM not ready yet; the ready event / timers will retry
       }
     };
 
