@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Send, Wallet, Home, ArrowLeftRight, Banknote } from "lucide-react";
+import { Send, Wallet, Home, ArrowLeftRight, WalletCards, Banknote } from "lucide-react";
 import { toast } from "sonner";
 import { useAccount } from "@/hooks/useAccount";
 import { SendChooserModal } from "@/components/dashboard/SendChooserModal";
@@ -28,7 +28,7 @@ const items: Array<{
   { to: "/dashboard/receive", matches: ["/dashboard/receive"], label: "Add money", icon: Wallet },
   { to: "/dashboard", matches: ["/dashboard"], exact: true, label: "Home", icon: Home },
   { to: "/dashboard/loans", matches: ["/dashboard/loans"], label: "Loan", icon: Banknote },
-  { to: "/dashboard/wallets", matches: ["/dashboard/wallets"], label: "Wallets", icon: ArrowLeftRight },
+  { to: "/dashboard/wallets", matches: ["/dashboard/wallets"], label: "Wallets", icon: WalletCards },
 ];
 
 const COUNT = items.length;
