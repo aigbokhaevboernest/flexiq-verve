@@ -52,6 +52,7 @@ import LockedSavings from "./components/dashboard/LockedSavings.tsx";
 import { SplashScreen } from "./components/SplashScreen";
 import { useSessionTimeout } from "./hooks/useSessionTimeout";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import LiveChat from "@/components/LiveChat";
 import GuestOnly from "@/components/GuestOnly";
 import ScrollToTop from "@/components/ScrollToTop";
 
@@ -202,6 +203,9 @@ const App = () => (
             translation engine persists across every route. The button itself
             only shows on public pages (see HIDE_ON_PREFIXES in the component). */}
         <LanguageSwitcher />
+
+        {/* Tidio visibility controller: public pages + /dashboard/support only */}
+        <LiveChat />
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
