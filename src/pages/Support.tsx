@@ -1,10 +1,17 @@
 import { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import {
   Dialog,
   DialogContent,
@@ -31,9 +38,64 @@ const CATEGORIES = [
   { value: "others", label: "Others" },
 ];
 
+const HOW_IT_WORKS = [
+  {
+    title: "Send money",
+    body: "Open Send Money and choose Digital Payments, Wire Transfer or FX Transfer. Enter the recipient and amount, review the details, then confirm with your PIN.",
+  },
+  {
+    title: "Add funds",
+    body: "Go to Add money to see your account details and deposit options. Funds appear in your balance once the deposit is confirmed.",
+  },
+  {
+    title: "Currency wallets",
+    body: "Wallets lets you hold and manage balances in different currencies. Open a wallet to view its activity or make a deposit into it.",
+  },
+  {
+    title: "Lock funds",
+    body: "Lock funds sets money aside for a period you choose. Locked money can't be spent until the lock period ends.",
+  },
+  {
+    title: "Cards",
+    body: "Open Cards to view your cards, check their status and manage them.",
+  },
+  {
+    title: "Quick loans",
+    body: "Open Quick Loans, choose an amount and follow the steps to apply. You'll be notified once your request is reviewed.",
+  },
+];
+
+const HELP_ARTICLES = [
+  {
+    title: "How do I verify my identity?",
+    body: "Open Verify from your dashboard and follow the steps. Verification helps keep your account secure and unlocks all features.",
+  },
+  {
+    title: "How long do transfers take?",
+    body: "Local and digital transfers are usually quick. Wire and FX transfers can take longer depending on the destination and the receiving bank.",
+  },
+  {
+    title: "I forgot my password",
+    body: "On the login page choose Forgot password and enter your email. We'll send you a link to set a new one.",
+  },
+  {
+    title: "My account is frozen. What now?",
+    body: "A frozen account limits most transactions and features. Create a ticket below or use live chat and our team will help you.",
+  },
+  {
+    title: "How do I update my profile or photo?",
+    body: "Open your profile from the avatar at the top right of the dashboard. You can update your details and photo there.",
+  },
+  {
+    title: "How do I contact support?",
+    body: `Use live chat on this page, create a ticket below, or email ${SUPPORT_EMAIL}. We reply to tickets by email.`,
+  },
+];
+
 const Support = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { hash } = useLocation();
 
   const [category, setCategory] = useState("general");
   const [subject, setSubject] = useState("");
@@ -54,6 +116,29 @@ const Support = () => {
       .maybeSingle()
       .then(({ data }: any) => setProfile(data || null));
   }, [user]);
+
+  // Deep links such as /dashboard/support#how-it-works
+  useEffect(() => {
+    if (!hash) return;
+    const id = hash.replace("#", "");
+    const t = setTimeout(() => {
+      document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 350); // wait for the page slide-in
+    return () => clearTimeout(t);
+  }, [hash]);
+
+  const openLiveChat = () => {
+    const api = (window as any).tidioChatApi;
+    if (api) {
+      api.show();
+      api.open();
+    } else {
+      toast({
+        title: "Live chat is loading",
+        description: "Please try again in a moment, or create a ticket below.",
+      });
+    }
+  };
 
   const resetForm = () => {
     setSubject("");
@@ -119,72 +204,123 @@ ${message}`,
         <p className="mt-1 text-sm text-muted-foreground">We're here to help, 24/7.</p>
       </div>
 
+      {/* Contact options */}
       <div className="grid gap-4 sm:grid-cols-2">
-        {[
-          { icon: Mail, label: "Email", value: SUPPORT_EMAIL },
-          { icon: MessageCircle, label: "Live chat", value: "Available 24/7" },
-        ].map((c) => {
-          const Icon = c.icon;
-          return (
-            <Card key={c.label} className="rounded-3xl border-border/60 p-6 shadow-card">
-              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                <Icon className="h-5 w-5" />
-              </span>
-              <p className="mt-4 text-sm text-muted-foreground">{c.label}</p>
-              <p className="mt-1 break-all font-display font-bold">{c.value}</p>
-            </Card>
-          );
-        })}
+        <Card className="rounded-3xl border-border/60 p-6 shadow-card">
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <Mail className="h-5 w-5" />
+          </span>
+          <p className="mt-4 text-sm text-muted-foreground">Email</p>
+          <p className="mt-1 break-all font-display font-bold">{SUPPORT_EMAIL}</p>
+        </Card>
+
+        <Card
+          role="button"
+          tabIndex={0}
+          onClick={openLiveChat}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              openLiveChat();
+            }
+          }}
+          className="cursor-pointer rounded-3xl border-border/60 p-6 shadow-card transition-smooth hover:border-primary/40"
+        >
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <MessageCircle className="h-5 w-5" />
+          </span>
+          <p className="mt-4 text-sm text-muted-foreground">Live chat</p>
+          <p className="mt-1 font-display font-bold">Available 24/7</p>
+        </Card>
       </div>
 
-      <Card className="rounded-3xl border-border/60 p-6 shadow-card sm:p-8">
-        <form onSubmit={submit} className="space-y-4">
-          <h2 className="font-display text-lg font-bold">Create a ticket</h2>
+      {/* How it works */}
+      <section id="how-it-works" className="scroll-mt-24">
+        <Card className="rounded-3xl border-border/60 p-6 shadow-card sm:p-8">
+          <h2 className="font-display text-lg font-bold">How it works</h2>
+          <p className="mt-1 text-sm text-muted-foreground">A quick guide to the main features.</p>
+          <ol className="mt-5 space-y-4">
+            {HOW_IT_WORKS.map((s, i) => (
+              <li key={s.title} className="flex gap-4">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
+                  {i + 1}
+                </span>
+                <div>
+                  <p className="font-semibold">{s.title}</p>
+                  <p className="mt-0.5 text-sm text-muted-foreground">{s.body}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </Card>
+      </section>
 
-          <div className="space-y-2">
-            <Label>Category</Label>
-            <Select value={category} onValueChange={setCategory}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {CATEGORIES.map((c) => (
-                  <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+      {/* Help articles */}
+      <section id="help-articles" className="scroll-mt-24">
+        <Card className="rounded-3xl border-border/60 p-6 shadow-card sm:p-8">
+          <h2 className="font-display text-lg font-bold">Help articles</h2>
+          <Accordion type="single" collapsible className="mt-2">
+            {HELP_ARTICLES.map((a, i) => (
+              <AccordionItem key={a.title} value={`article-${i}`}>
+                <AccordionTrigger className="text-left">{a.title}</AccordionTrigger>
+                <AccordionContent className="text-sm text-muted-foreground">{a.body}</AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+        </Card>
+      </section>
 
-          <div className="space-y-2">
-            <Label>
-              Subject
-              {isOthers && <span className="text-muted-foreground"> (optional)</span>}
-            </Label>
-            <Input
-              value={subject}
-              onChange={(e) => setSubject(e.target.value)}
-              required={!isOthers}
-              maxLength={200}
-              placeholder={isOthers ? "Anything else" : undefined}
-            />
-          </div>
+      {/* Ticket form */}
+      <section id="create-ticket" className="scroll-mt-24">
+        <Card className="rounded-3xl border-border/60 p-6 shadow-card sm:p-8">
+          <form onSubmit={submit} className="space-y-4">
+            <h2 className="font-display text-lg font-bold">Create a ticket</h2>
 
-          <div className="space-y-2">
-            <Label>Message</Label>
-            {/* 16px on mobile stops the browser zooming in when the field is focused */}
-            <Textarea
-              className="text-base md:text-sm"
-              rows={6}
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              required
-              placeholder={isOthers ? "Tell us anything you need help with" : undefined}
-            />
-          </div>
+            <div className="space-y-2">
+              <Label>Category</Label>
+              <Select value={category} onValueChange={setCategory}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {CATEGORIES.map((c) => (
+                    <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-          <Button type="submit" disabled={sending} className="w-full gap-2 bg-gradient-primary">
-            <Send className="h-4 w-4" /> {sending ? "Creating ticket…" : "Create ticket"}
-          </Button>
-        </form>
-      </Card>
+            <div className="space-y-2">
+              <Label>
+                Subject
+                {isOthers && <span className="text-muted-foreground"> (optional)</span>}
+              </Label>
+              <Input
+                value={subject}
+                onChange={(e) => setSubject(e.target.value)}
+                required={!isOthers}
+                maxLength={200}
+                placeholder={isOthers ? "Anything else" : undefined}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Message</Label>
+              {/* 16px on mobile stops the browser zooming in when the field is focused */}
+              <Textarea
+                className="text-base md:text-sm"
+                rows={6}
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                required
+                placeholder={isOthers ? "Tell us anything you need help with" : undefined}
+              />
+            </div>
+
+            <Button type="submit" disabled={sending} className="w-full gap-2 bg-gradient-primary">
+              <Send className="h-4 w-4" /> {sending ? "Creating ticket…" : "Create ticket"}
+            </Button>
+          </form>
+        </Card>
+      </section>
 
       {/* Success modal */}
       <Dialog open={successOpen} onOpenChange={setSuccessOpen}>
