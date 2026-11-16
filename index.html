@@ -12,24 +12,35 @@
    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
    <link rel="preload" as="image" href="/logo.png">
 
-   <!-- Decide chat visibility BEFORE first paint so the bubble never flashes on dashboard pages.
-        The React LiveChat component keeps this in sync on every route change. -->
+   <!-- Decide chat visibility BEFORE first paint so the bubble never flashes where it is not allowed.
+        The React LiveChat component keeps this in sync on every route change. Keep both rules identical.
+        Visible: public pages + /dashboard/support.
+        Hidden: /login, /signup, /pin, /pending and every other /dashboard page. -->
    <script>
      (function () {
-       var p = location.pathname;
+       var p = location.pathname.replace(/\/+$/, "") || "/";
        var support = p === "/dashboard/support" || p.indexOf("/dashboard/support/") === 0;
-       var hide = !support && (p.indexOf("/dashboard") === 0 || p === "/pin" || p === "/pending");
-       if (hide) document.documentElement.classList.add("chat-hidden");
-       if (p.indexOf("/dashboard/support") === 0) document.documentElement.classList.add("no-bottom-nav");
+       var hide =
+         !support &&
+         (p.indexOf("/dashboard") === 0 ||
+           p === "/login" || p === "/signup" || p === "/pin" || p === "/pending");
+       if (hide) {
+         document.documentElement.classList.add("chat-hidden");
+         // Tell Chatwoot not to draw the bubble at all on first load
+         window.chatwootSettings = { hideMessageBubble: true };
+       }
      })();
    </script>
    <style>
-     /* Hide the Tidio launcher + window wherever chat is not allowed */
-     html.chat-hidden #tidio-chat,
-     html.chat-hidden #tidio-chat-iframe,
-     html.chat-hidden #tidio-chat iframe {
+     /* Hide the Chatwoot bubble + window wherever chat is not allowed */
+     html.chat-hidden .woot--bubble-holder,
+     html.chat-hidden .woot-widget-bubble,
+     html.chat-hidden .woot-widget-holder,
+     html.chat-hidden #cw-widget-holder,
+     html.chat-hidden iframe[name="chatwoot_live_chat_widget"] {
        display: none !important;
        visibility: hidden !important;
+       pointer-events: none !important;
      }
    </style>
  </head>
@@ -109,7 +120,6 @@
     }
   })(document,"script");
 </script>
-
    <!-- End of live chat code -->
  </body>
 </html>
