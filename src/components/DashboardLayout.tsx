@@ -230,6 +230,9 @@ export const DashboardLayout = () => {
   const navigate = useNavigate();
   const { pathname } = useLocation();
 
+  // No bottom nav anywhere under /dashboard/support (the live chat lives there instead)
+  const hideBottomNav = pathname.startsWith("/dashboard/support");
+
   // Slide direction: +1 = new page enters from the right, -1 = from the left.
   const prevRank = useRef(tabRank(pathname));
   const direction = useRef(1);
@@ -355,9 +358,13 @@ export const DashboardLayout = () => {
           </div>
         </header>
 
-        {/* Extra bottom padding on mobile so the floating glass bar never covers content.
+        {/* Extra bottom padding on mobile only while the floating glass bar is showing.
             overflow-x-clip keeps the slide from creating a sideways scrollbar. */}
-        <main className="overflow-x-clip p-4 pb-28 sm:p-6 sm:pb-28 md:pb-6 lg:p-8">
+        <main
+          className={`overflow-x-clip p-4 sm:p-6 lg:p-8 ${
+            hideBottomNav ? "pb-8 sm:pb-8" : "pb-28 sm:pb-28 md:pb-6"
+          }`}
+        >
           <motion.div
             key={pathname}
             initial={{ opacity: 0, x: direction.current * 48 }}
@@ -369,8 +376,8 @@ export const DashboardLayout = () => {
         </main>
       </div>
 
-      {/* Mobile glass bottom bar */}
-      <BottomGlassNav />
+      {/* Mobile glass bottom bar (hidden on Support) */}
+      {!hideBottomNav && <BottomGlassNav />}
     </div>
   );
 };
