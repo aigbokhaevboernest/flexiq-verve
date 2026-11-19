@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { sendEmail } from "@/lib/sendEmail";
 
 const DEVICE_KEY = "flexiq_device_id";
 
@@ -54,14 +55,18 @@ const getGeo = async () => {
   }
 };
 
-/** Call right after a successful sign-in. Never throws and never blocks login. */
+/**
+ * Call right after a successful sign-in. Never throws and never blocks login.
+ * Records the login; if it is from a new device and/or new location, it also
+ * emails the user automatically (the admin sees it in History either way).
+ */
 export const recordLoginEvent = async () => {
   try {
     const ua = navigator.userAgent;
     const { browser, os } = parseUserAgent(ua);
     const geo = await getGeo();
 
-    await (supabase as any).rpc("record_login_event", {
+    const { data, error } = await (supabase as any).rpc("record_login_event", {
       _device_id: getDeviceId(),
       _ip: geo?.ip ?? null,
       _city: geo?.city ?? null,
@@ -71,6 +76,36 @@ export const recordLoginEvent = async () => {
       _browser: browser,
       _os: os,
     });
+
+    if (error) {
+      console.error("Login event failed:", error.message);
+      return;
+    }
+    if (!data?.id || !(data.new_device || data.new_location)) return;
+
+    // Flagged: email the user automatically
+    const { data: userData } = await supabase.auth.getUser();
+    const user = userData?.user;
+    if (!user?.email) return;
+
+    const place = [geo?.city, geo?.region, geo?.country].filter(Boolean).join(", ") || "Unknown location";
+
+    const res = await sendEmail({
+      email: user.email,
+      first_name: (user.user_metadata as any)?.first_name ?? "",
+      subject: "New Login to Your Account — Flexiq Verve",
+      message:
+`We noticed a new sign-in to your Flexiq Verve account.<br/><br/>
+<strong>Time:</strong> ${new Date().toLocaleString()}<br/>
+<strong>Device:</strong> ${browser} on ${os}<br/>
+<strong>Location:</strong> ${place}<br/>
+<strong>IP address:</strong> ${geo?.ip || "Unknown"}<br/><br/>
+If this was you, no action is needed. If you do not recognize this activity, please contact <a href="mailto:support@flexiqverve.com" style="color:#2563eb;">support@flexiqverve.com</a> immediately or use the Live Chat on your dashboard, and change your password.`,
+    });
+
+    if (res?.success) {
+      await (supabase as any).rpc("mark_login_email_sent", { _id: data.id });
+    }
   } catch (e) {
     console.error("Login event failed:", e);
   }
