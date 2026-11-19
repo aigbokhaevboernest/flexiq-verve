@@ -9,6 +9,7 @@ import { Eye, EyeOff, ShieldCheck, ArrowLeft, Loader2, CheckCircle2, User, Lock 
 import { supabase } from "@/integrations/supabase/client";
 import { BrandLogo } from "@/components/BrandLogo";
 import { sendEmail } from "@/lib/sendEmail";
+import { recordLoginEvent } from "@/lib/loginEvents";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -616,6 +617,10 @@ const Login = () => {
       setFormError("Could not establish session. Please try again.");
       return;
     }
+
+    // Log this sign-in (device + location). New device/location shows up in admin History.
+    // Fire and forget: it never blocks or breaks login.
+    void recordLoginEvent();
 
     setSubmitting(false);
     sessionStorage.removeItem("flexiq_pin_ok");
