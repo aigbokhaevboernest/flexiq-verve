@@ -45,8 +45,11 @@ const INPUT_BASE = `h-12 rounded-xl border-white/15 bg-white/5 text-white placeh
 const INPUT_ERROR =
   "h-12 rounded-xl border-red-400 bg-white/5 text-white placeholder:text-white/40 focus-visible:border-red-400 focus-visible:ring-2 focus-visible:ring-red-400/40 focus-visible:ring-offset-0";
 
+// The [&_option] classes give the dropdown list a solid dark background and full-white
+// text on desktop browsers (otherwise options inherit the faded placeholder colour and
+// the OS list background, which looks washed out / invisible on PC).
 const SELECT_BASE =
-  "mt-1 h-12 w-full min-w-0 rounded-xl border bg-white/5 px-3 text-sm [color-scheme:dark] focus:outline-none focus:ring-2 focus:ring-[rgba(74,144,226,0.35)]";
+  "mt-1 h-12 w-full min-w-0 rounded-xl border bg-white/5 px-3 text-sm [color-scheme:dark] focus:outline-none focus:ring-2 focus:ring-[rgba(74,144,226,0.35)] [&_option]:bg-[#17233F] [&_option]:text-white";
 
 // Date field: the visible box is a plain flex div (so the text is centered both ways on
 // every browser, including iOS Safari). A transparent native date input sits on top of it,
@@ -255,6 +258,16 @@ const Signup = () => {
     `${SELECT_BASE} ${errors[name] ? "border-red-400" : "border-white/15"} ${
       form[name] ? "text-white" : "text-white/40"
     }`;
+
+  // Desktop Chrome/Edge only open the native date picker when the calendar icon is
+  // clicked. Calling showPicker() makes a click anywhere on the field open it.
+  const openDatePicker = (e: React.MouseEvent<HTMLInputElement> | React.FocusEvent<HTMLInputElement>) => {
+    try {
+      (e.currentTarget as HTMLInputElement & { showPicker?: () => void }).showPicker?.();
+    } catch {
+      // showPicker can throw if already open or not user-initiated; the native behaviour still works.
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -501,8 +514,8 @@ Flexiq Verve Support Team`,
                 </div>
                 {/*
                   Visible box = centered flex div. The native date input sits on top at
-                  opacity-0, so a tap anywhere opens the native picker, and the text is
-                  centered horizontally and vertically on iOS, Android and desktop.
+                  opacity-0, so a click anywhere opens the native picker (showPicker() for
+                  desktop Chrome/Edge), and the text is centered on iOS, Android and desktop.
                 */}
                 <div className="relative mt-1 h-12 w-full min-w-0">
                   <input
@@ -512,6 +525,7 @@ Flexiq Verve Support Team`,
                     value={form.date_of_birth}
                     onChange={(e) => update("date_of_birth")(e.target.value)}
                     onBlur={onBlur("date_of_birth")}
+                    onClick={openDatePicker}
                     aria-invalid={!!errors.date_of_birth}
                     className="peer absolute inset-0 z-10 block h-full w-full min-w-0 max-w-full cursor-pointer appearance-none opacity-0 [color-scheme:dark]"
                     style={{ WebkitAppearance: "none", appearance: "none" }}
