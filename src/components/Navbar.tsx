@@ -79,7 +79,7 @@ export const Navbar = () => {
         }`}
       >
         <div
-          className={`border-b border-white/10 bg-[#18223E] px-6 pb-6 pt-2 text-white shadow-xl transition-transform duration-500 ease-in-out ${
+          className={`max-h-[calc(100vh-5rem)] overflow-y-auto border-b border-white/10 bg-[#18223E] px-6 pb-4 pt-1 text-white shadow-xl transition-transform duration-500 ease-in-out ${
             open ? "translate-y-0" : "-translate-y-full"
           }`}
         >
@@ -89,16 +89,17 @@ export const Navbar = () => {
                 key={l.href}
                 href={l.href}
                 onClick={() => setOpen(false)}
-                className="border-b border-white/10 py-4 text-base font-medium uppercase tracking-wide text-white/90 hover:text-white"
+                className="border-b border-white/10 py-2.5 text-sm font-medium uppercase tracking-wide text-white/90 hover:text-white"
               >
                 {l.label}
               </a>
             ))}
           </nav>
 
-          <div className="mt-6 flex gap-3">
+          <div className="mt-4 flex gap-3">
             <Button
               variant="outline"
+              size="sm"
               asChild
               className="border-white/30 bg-transparent text-white hover:bg-white/10 hover:text-white"
             >
@@ -106,7 +107,11 @@ export const Navbar = () => {
                 Login
               </Link>
             </Button>
-            <Button asChild className="bg-gradient-primary text-primary-foreground">
+            <Button
+              size="sm"
+              asChild
+              className="bg-gradient-primary text-primary-foreground"
+            >
               <Link to="/signup" onClick={() => setOpen(false)}>
                 Open Account
               </Link>
