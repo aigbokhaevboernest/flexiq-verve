@@ -4,18 +4,13 @@ import { Menu, X } from "lucide-react";
 import { useState } from "react";
 import { BrandLogo } from "@/components/BrandLogo";
 
-const mainLinks: { href: string; label: string }[] = [
+const links: { href: string; label: string }[] = [
   { href: "/#features", label: "Features" },
   { href: "/services", label: "Services" },
   { href: "/faq", label: "FAQ" },
-];
-
-const legalLinks: { href: string; label: string }[] = [
   { href: "/terms", label: "Terms" },
   { href: "/policies", label: "Privacy" },
 ];
-
-const desktopLinks = [...mainLinks, ...legalLinks];
 
 export const Navbar = () => {
   const [open, setOpen] = useState(false);
@@ -28,7 +23,7 @@ export const Navbar = () => {
         </Link>
 
         <nav className="hidden items-center gap-6 lg:flex">
-          {desktopLinks.map((l) => (
+          {links.map((l) => (
             <a
               key={l.href}
               href={l.href}
@@ -87,7 +82,7 @@ export const Navbar = () => {
           }`}
         >
           <nav className="flex flex-col">
-            {mainLinks.map((l) => (
+            {links.map((l) => (
               <a
                 key={l.href}
                 href={l.href}
@@ -97,20 +92,6 @@ export const Navbar = () => {
                 {l.label}
               </a>
             ))}
-
-            {/* Terms + Privacy side by side */}
-            <div className="grid grid-cols-2 border-b border-white/10">
-              {legalLinks.map((l) => (
-                <a
-                  key={l.href}
-                  href={l.href}
-                  onClick={() => setOpen(false)}
-                  className="py-2.5 text-sm font-medium uppercase tracking-wide text-white/90 hover:text-white"
-                >
-                  {l.label}
-                </a>
-              ))}
-            </div>
           </nav>
 
           <div className="mt-4 flex gap-3">
