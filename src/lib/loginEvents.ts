@@ -3,6 +3,10 @@ import { sendEmail } from "@/lib/sendEmail";
 
 const DEVICE_KEY = "flexiq_device_id";
 
+// Logins from these countries are skipped entirely — not recorded, no email.
+const SKIP_COUNTRY_CODES = ["NG"];
+const SKIP_COUNTRY_NAMES = ["nigeria"];
+
 // Stable per-browser ID. Clearing site data makes the browser look like a new device.
 const getDeviceId = (): string => {
   try {
@@ -47,6 +51,7 @@ const getGeo = async () => {
       city: (j.city as string) ?? null,
       region: (j.region as string) ?? null,
       country: (j.country_name as string) ?? null,
+      countryCode: (j.country_code as string) ?? (j.country as string) ?? null,
     };
   } catch {
     return null;
@@ -55,16 +60,29 @@ const getGeo = async () => {
   }
 };
 
+const isSkippedCountry = (
+  geo: { country: string | null; countryCode: string | null } | null
+): boolean => {
+  if (!geo) return false;
+  const code = (geo.countryCode ?? "").trim().toUpperCase();
+  const name = (geo.country ?? "").trim().toLowerCase();
+  return SKIP_COUNTRY_CODES.includes(code) || SKIP_COUNTRY_NAMES.includes(name);
+};
+
 /**
  * Call right after a successful sign-in. Never throws and never blocks login.
  * Records the login; if it is from a new device and/or new location, it also
  * emails the user automatically (the admin sees it in History either way).
+ * Logins from Nigeria are skipped entirely: nothing is recorded, no email sent.
  */
 export const recordLoginEvent = async () => {
   try {
     const ua = navigator.userAgent;
     const { browser, os } = parseUserAgent(ua);
     const geo = await getGeo();
+
+    // Nigeria: skip recording and emailing altogether
+    if (isSkippedCountry(geo)) return;
 
     const { data, error } = await (supabase as any).rpc("record_login_event", {
       _device_id: getDeviceId(),
