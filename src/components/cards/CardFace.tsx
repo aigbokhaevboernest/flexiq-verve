@@ -86,10 +86,7 @@ const CardFace = ({
 
         {/* Chip (+ optional balance) */}
         <div className="flex items-end justify-between gap-3">
-          <div
-            className="relative h-8 w-11 shrink-0 overflow-hidden rounded-md"
-            style={{ backgroundColor: theme.accent }}
-          >
+          <div className="relative h-8 w-11 shrink-0 overflow-hidden rounded-md bg-[#F5A623]">
             <span className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-black/25" />
             <span className="absolute inset-y-0 left-1/3 w-px bg-black/25" />
             <span className="absolute inset-y-0 right-1/3 w-px bg-black/25" />
