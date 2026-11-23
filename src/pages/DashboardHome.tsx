@@ -524,7 +524,7 @@ const DashboardHome = () => {
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-3">
         {[
           { label: "Credit", value: stats?.inSum, icon: ArrowDownLeft, positive: true },
           { label: "Debit", value: stats?.outSum, icon: ArrowUpRight, positive: false },
@@ -532,17 +532,17 @@ const DashboardHome = () => {
         ].map((s) => {
           const Icon = s.icon;
           return (
-            <Card key={s.label} className="rounded-3xl border-border/60 p-6 shadow-card">
-              <div className="flex items-center justify-between">
-                <p className="text-sm text-muted-foreground">{s.label}</p>
-                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                  <Icon className="h-4 w-4" />
+            <Card key={s.label} className="rounded-2xl border-border/60 px-4 py-3 shadow-card">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs font-medium text-muted-foreground">{s.label}</p>
+                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <Icon className="h-3.5 w-3.5" />
                 </span>
               </div>
               {statsLoading || s.value == null ? (
-                <Skeleton className="mt-3 h-7 w-32" />
+                <Skeleton className="mt-1.5 h-6 w-24" />
               ) : (
-                <p className={`mt-3 font-display text-2xl font-bold ${s.positive ? "text-success" : "text-foreground"}`}>
+                <p className={`mt-1 font-display text-lg font-bold tabular-nums ${s.positive ? "text-success" : "text-foreground"}`}>
                   {formatMoney(Math.abs(s.value), currency || "USD")}
                 </p>
               )}
