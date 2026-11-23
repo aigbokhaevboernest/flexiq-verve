@@ -2,10 +2,9 @@ import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { Copy, CreditCard, Eye, EyeOff, Plus, Snowflake, Wifi } from "lucide-react";
+import { Copy, Eye, EyeOff, Plus } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile, formatMoney } from "@/hooks/useAccount";
 import { useTotalBalance } from "@/hooks/useTotalBalance";
@@ -13,15 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { sendEmail } from "@/lib/sendEmail";
-
-const cardGradients = [
-  "linear-gradient(135deg,#4f46e5 0%,#9333ea 50%,#ec4899 100%)",
-  "linear-gradient(135deg,#0f766e 0%,#0891b2 50%,#22d3ee 100%)",
-  "linear-gradient(135deg,#ea580c 0%,#dc2626 50%,#7f1d1d 100%)",
-  "linear-gradient(135deg,#1e293b 0%,#334155 50%,#475569 100%)",
-  "linear-gradient(135deg,#7c2d12 0%,#c2410c 50%,#facc15 100%)",
-  "linear-gradient(135deg,#064e3b 0%,#16a34a 50%,#bbf7d0 100%)",
-];
+import CardFace from "@/components/cards/CardFace";
 
 const Cards = () => {
   const { user } = useAuth();
@@ -150,17 +141,9 @@ Flexiq Verve Support Team`,
               {cards.map((c: any, idx: number) => {
                 const offset = (idx - topIndex + total) % total;
                 if (offset > 2) return null;
-                const gradient = cardGradients[idx % cardGradients.length];
                 const isTop = offset === 0;
-                const last4 = (c.card_number || "").slice(-4);
-                const masked = (c.card_number || "").replace(/(.{4})/g, "$1 ").trim();
-                const cardHolder =
-                  c.card_holder?.trim() ||
-                  ((profile as any)?.first_name || "").toUpperCase() ||
-                  "—";
-
-                const expiry = c.expiry || "—";
-                const isInactive = c.status && c.status !== "active";
+                const isInactive = !!c.status && c.status !== "active";
+                const inactive = !!c.frozen || isInactive;
                 return (
                   <motion.div
                     key={c.id}
@@ -174,43 +157,25 @@ Flexiq Verve Support Team`,
                     exit={{ x: 400, opacity: 0, rotate: 12, transition: { duration: 0.55, ease: [0.4, 0, 0.2, 1] } }}
                     whileDrag={{ rotate: 6, cursor: "grabbing" }}
                     transition={{ duration: 0.55, ease: [0.4, 0, 0.2, 1] }}
-                    className={`absolute inset-0 overflow-hidden rounded-2xl p-5 text-white shadow-2xl ${isTop ? "cursor-grab" : ""} ${c.frozen || isInactive ? "opacity-60" : ""}`}
-                    style={{ background: gradient, zIndex: total - offset }}
+                    className={`absolute inset-0 rounded-2xl shadow-2xl ${isTop ? "cursor-grab" : ""}`}
+                    style={{ zIndex: total - offset }}
                   >
-                    <div className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-white/15 blur-2xl" />
-                    <div className="relative flex h-full flex-col justify-between">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <p className="text-[10px] uppercase tracking-widest opacity-80">Flexiq Verve</p>
-                          <p className="text-xs opacity-80">{c.card_type || "Virtual"} debit</p>
-                        </div>
-                        <Wifi className="h-5 w-5 rotate-90 opacity-90" />
-                      </div>
-                      <div>
-                        <p className="font-mono text-base tracking-[0.2em] sm:text-lg">{isTop && showDetails ? masked : `•••• •••• •••• ${last4 || "————"}`}</p>
-                        <p className="mt-1 text-[10px] uppercase opacity-70">Balance</p>
-                        <p className="font-display text-xl font-bold">{formatMoney(balance, currency)}</p>
-                      </div>
-                      <div className="flex items-end justify-between text-xs">
-                        <div>
-                          <p className="text-[10px] uppercase opacity-70">Cardholder</p>
-                          <p className="font-medium">{cardHolder}</p>
-                        </div>
-                        <div>
-                          <p className="text-[10px] uppercase opacity-70">Exp</p>
-                          <p className="font-mono">{expiry}</p>
-                        </div>
-                        <CreditCard className="h-5 w-5 opacity-90" />
-                      </div>
-                    </div>
-                    {(c.frozen || isInactive) && isTop && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/40">
-                        <Badge className="rounded-full bg-white text-foreground">
-                          <Snowflake className="mr-2 h-4 w-4" />
-                          {c.status === "blocked" ? "Card blocked" : c.status === "deleted" ? "Card removed" : "Card frozen"}
-                        </Badge>
-                      </div>
-                    )}
+                    <CardFace
+                      card={c}
+                      holderFallback={(profile as any)?.first_name}
+                      revealed={isTop && showDetails}
+                      balanceText={formatMoney(balance, currency)}
+                      inactive={inactive}
+                      overlayLabel={
+                        inactive && isTop
+                          ? c.status === "blocked"
+                            ? "Card blocked"
+                            : c.status === "deleted"
+                            ? "Card removed"
+                            : "Card frozen"
+                          : null
+                      }
+                    />
                   </motion.div>
                 );
               })}
