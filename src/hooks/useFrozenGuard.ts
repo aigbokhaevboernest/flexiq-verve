@@ -19,7 +19,21 @@ export const useFrozenGuard = () => {
           : status === "blocked"
           ? "Your account has been blocked. Please contact support."
           : "Your account has been frozen. Please contact support.";
-      toast.error("Account unavailable", { description: msg, duration: 5000 });
+      toast("Account unavailable", {
+        description: msg,
+        duration: 5000,
+        icon: "❄️",
+        style: {
+          background: "#ffffff",
+          color: "#0f172a",
+          border: "1.5px solid #3b82f6",
+          boxShadow: "0 8px 24px rgba(59,130,246,0.12)",
+        },
+        classNames: {
+          title: "text-slate-900 font-bold",
+          description: "text-slate-600",
+        },
+      });
       navigate("/dashboard", { replace: true });
     }
   }, [isFrozen, isBlocked, status]);
