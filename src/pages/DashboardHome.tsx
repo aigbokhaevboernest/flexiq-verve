@@ -92,20 +92,12 @@ const DashboardHome = () => {
   const isFrozen = profile?.frozen === true;
 
   const handleFrozenAction = () => {
-    toast("Account unavailable", {
-      description: "Your account has been frozen. Please contact support.",
+    toast("Account frozen", {
+      description:
+        "Your account has been frozen. All transactions and features are disabled. Please contact support.",
       duration: 5000,
-      icon: "❄️",
-      style: {
-        background: "#ffffff",
-        color: "#0f172a",
-        border: "1.5px solid #3b82f6",
-        boxShadow: "0 8px 24px rgba(59,130,246,0.12)",
-      },
-      classNames: {
-        title: "text-slate-900 font-bold",
-        description: "text-slate-600",
-      },
+      style: { background: "#ff8503", color: "#ffffff", border: "none" },
+      classNames: { title: "text-white font-semibold", description: "text-white/90" },
     });
   };
 
@@ -296,14 +288,21 @@ const DashboardHome = () => {
       </div>
 
       {isFrozen && (
-        <div className="flex items-center gap-3 rounded-2xl border border-blue-500/40 bg-white px-5 py-4 shadow-sm dark:bg-card">
-          <span className="text-xl leading-none" aria-hidden>❄️</span>
+        <div
+          className="flex items-center gap-3 rounded-2xl px-5 py-4"
+          style={{
+            border: "1px solid rgba(255, 133, 3, 0.4)",
+            backgroundColor: "rgba(255, 133, 3, 0.1)",
+          }}
+        >
+          <ShieldAlert className="h-5 w-5 shrink-0" style={{ color: "#ff8503" }} />
           <div>
-            <p className="text-sm font-bold text-slate-900 dark:text-foreground">
+            <p className="text-sm font-semibold" style={{ color: "#ff8503" }}>
               Account Frozen
             </p>
-            <p className="text-xs text-slate-600 dark:text-muted-foreground">
-              Your account has been frozen. Please contact support.
+            <p className="text-xs" style={{ color: "rgba(255, 133, 3, 0.8)" }}>
+              Your account has been frozen. All transactions and features are
+              disabled. Please contact support.
             </p>
           </div>
         </div>
