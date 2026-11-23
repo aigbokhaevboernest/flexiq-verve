@@ -1,7 +1,19 @@
 import { Snowflake, Wifi } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
+/** One solid base + accent per card. Picked by the card's position in the list. */
+export const cardThemes = [
+  { bg: "#0f1b33", accent: "#F5A623" }, // navy + gold
+  { bg: "#0b3d2e", accent: "#34d399" }, // emerald
+  { bg: "#4a1428", accent: "#fb7185" }, // burgundy
+  { bg: "#18181b", accent: "#F5A623" }, // graphite + gold
+  { bg: "#2e1a5c", accent: "#a78bfa" }, // violet
+  { bg: "#0c3b4a", accent: "#22d3ee" }, // deep teal
+];
+
 type CardFaceProps = {
+  /** Position of the card in the list; decides its color */
+  index?: number;
   card?: any;
   /** Used when the card row has no holder name (e.g. profile first name) */
   holderFallback?: string;
@@ -31,7 +43,9 @@ const CardFace = ({
   overlayLabel,
   loading = false,
   className = "",
+  index = 0,
 }: CardFaceProps) => {
+  const theme = cardThemes[Math.abs(index) % cardThemes.length];
   const raw = String(card?.card_number || "").replace(/\D/g, "");
   const last4 = raw.slice(-4);
   const masked = `•••• •••• •••• ${last4 || "————"}`;
@@ -46,12 +60,16 @@ const CardFace = ({
 
   return (
     <div
-      className={`relative h-full w-full overflow-hidden rounded-2xl bg-[#0f1b33] p-5 text-white transition-all duration-300 ${
+      className={`relative h-full w-full overflow-hidden rounded-2xl p-5 text-white transition-all duration-300 ${
         inactive ? "opacity-60 grayscale" : ""
       } ${className}`}
+      style={{ backgroundColor: theme.bg }}
     >
       <span className="pointer-events-none absolute -right-12 -top-12 h-44 w-44 rounded-full bg-white/[0.05]" />
-      <span className="pointer-events-none absolute -bottom-20 -left-12 h-56 w-56 rounded-full bg-[#F5A623]/10" />
+      <span
+        className="pointer-events-none absolute -bottom-20 -left-12 h-56 w-56 rounded-full"
+        style={{ backgroundColor: `${theme.accent}22` }}
+      />
       <span className="pointer-events-none absolute inset-0 rounded-2xl border border-white/10" />
 
       <div className="relative flex h-full flex-col justify-between">
@@ -68,7 +86,10 @@ const CardFace = ({
 
         {/* Chip (+ optional balance) */}
         <div className="flex items-end justify-between gap-3">
-          <div className="relative h-8 w-11 shrink-0 overflow-hidden rounded-md bg-[#F5A623]">
+          <div
+            className="relative h-8 w-11 shrink-0 overflow-hidden rounded-md"
+            style={{ backgroundColor: theme.accent }}
+          >
             <span className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-black/25" />
             <span className="absolute inset-y-0 left-1/3 w-px bg-black/25" />
             <span className="absolute inset-y-0 right-1/3 w-px bg-black/25" />
