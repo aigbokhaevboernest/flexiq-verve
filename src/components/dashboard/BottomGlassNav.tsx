@@ -89,6 +89,8 @@ export const BottomGlassNav = ({ hidden = false }: Props) => {
   const btnRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const cloneBtnRefs = useRef<(HTMLDivElement | null)[]>([]);
   const trackW = useRef(0);
+  // Guards against one tap firing both pointer-up and click
+  const lastGo = useRef(0);
 
   const [dark, setDark] = useState(
     () =>
@@ -306,10 +308,15 @@ export const BottomGlassNav = ({ hidden = false }: Props) => {
   };
 
   const go = (i: number) => {
+    // One tap fires both pointer-up and click: ignore the second call
+    const now = Date.now();
+    if (now - lastGo.current < 400) return;
+    lastGo.current = now;
+
     const item = items[i];
     if (item.to === null) {
       if (frozen) {
-        // One shared toast; it can only show once even if go() is reached twice for one tap
+        // One shared toast (Snowflake icon, shows once)
         showFrozenToast();
         return;
       }
