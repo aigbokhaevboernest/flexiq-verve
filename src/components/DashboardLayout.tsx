@@ -73,8 +73,8 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
       style: {
         background: "#ffffff",
         color: "#0f172a",
-        border: "1.5px solid #3b82f6",
-        boxShadow: "0 8px 24px rgba(59,130,246,0.12)",
+        border: "1.5px solid #A7E8FF",
+        boxShadow: "0 8px 24px rgba(167,232,255,0.45)",
       },
       classNames: {
         title: "text-slate-900 font-bold",
