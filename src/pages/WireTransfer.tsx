@@ -256,7 +256,7 @@ const WireTransfer = () => {
               <div className="relative">
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 font-display text-2xl font-bold text-muted-foreground">{sym}</span>
                 <Input type="number" step="0.01" value={form.amount} onChange={(e) => set("amount", e.target.value)} placeholder="0.00"
-                  className="h-16 rounded-2xl pl-10 text-center font-display text-2xl font-bold keep-font" required />
+                  className="h-16 rounded-2xl pl-10 text-center font-display text-2xl md:text-2xl font-bold keep-font" required />
               </div>
               <p className="text-xs text-muted-foreground">Available: {formatMoney(availableBalance, currency)}</p>
             </div>
