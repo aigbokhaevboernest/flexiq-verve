@@ -66,12 +66,20 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
   const frozen = !!(profile as any)?.frozen;
 
   const frozenToast = () => {
-    toast("Account frozen", {
-      description:
-        "Your account has been frozen. most transactions and features are disabled. Please contact support.",
+    toast("Account unavailable", {
+      description: "Your account has been frozen. Please contact support.",
       duration: 5000,
-      style: { background: "#ff8503", color: "#ffffff", border: "none" },
-      classNames: { title: "text-white font-semibold", description: "text-white/90" },
+      icon: "❄️",
+      style: {
+        background: "#ffffff",
+        color: "#0f172a",
+        border: "1.5px solid #3b82f6",
+        boxShadow: "0 8px 24px rgba(59,130,246,0.12)",
+      },
+      classNames: {
+        title: "text-slate-900 font-bold",
+        description: "text-slate-600",
+      },
     });
   };
 
@@ -101,7 +109,8 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
 
   return (
     <div className="flex h-full flex-col font-sans">
-      <div className="flex h-16 items-center border-b border-sidebar-border px-5">
+      {/* Slightly dull header so the light logo stays readable on white/light themes */}
+      <div className="flex h-16 items-center border-b border-sidebar-border bg-slate-200/90 px-5 dark:bg-sidebar">
         <BrandLogo className="h-9 w-auto object-contain" />
       </div>
       <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
@@ -120,10 +129,10 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
           >
             <Send className="h-4 w-4" /> Send Money
             <ChevronDown
-              className={`ml-auto h-4 w-4 transition-transform duration-300 ${sendOpen ? "rotate-180" : ""}`}
+              className={`ml-auto h-4 w-4 transition-transform duration-300 ease-out ${sendOpen ? "rotate-180" : ""}`}
             />
           </CollapsibleTrigger>
-          <CollapsibleContent className="overflow-hidden data-[state=open]:animate-[accordion-down_550ms_cubic-bezier(0.22,1,0.36,1)] data-[state=closed]:animate-[accordion-up_500ms_cubic-bezier(0.22,1,0.36,1)]">
+          <CollapsibleContent className="overflow-hidden data-[state=open]:animate-[collapsible-down_400ms_cubic-bezier(0.32,0.72,0,1)] data-[state=closed]:animate-[collapsible-up_320ms_cubic-bezier(0.32,0.72,0,1)]">
             <div className="ml-4 mt-1 space-y-0.5 border-l-2 border-primary/30 pl-3">
               {sendItems.map((s) => (
                 <NavLink
@@ -138,7 +147,7 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
                   className={({ isActive }) =>
                     `flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 ${
                       isActive
-                        ? "border-l-2 -ml-[14px] pl-[26px] border-primary bg-primary/10 text-primary"
+                        ? "bg-primary/10 text-primary"
                         : "text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
                     }`
                   }
