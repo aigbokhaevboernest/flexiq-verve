@@ -162,6 +162,7 @@ Flexiq Verve Support Team`,
                   >
                     <CardFace
                       card={c}
+                      index={idx}
                       holderFallback={(profile as any)?.first_name}
                       revealed={isTop && showDetails}
                       balanceText={formatMoney(balance, currency)}
