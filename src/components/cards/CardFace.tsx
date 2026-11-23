@@ -62,8 +62,9 @@ const CardFace = ({
     <div
       className={`relative h-full w-full overflow-hidden rounded-2xl p-5 text-white transition-all duration-300 ${
         // No opacity here: a see-through front card let the cards stacked
-        // behind it show through (doubled text). Grey + dim instead.
-        inactive ? "grayscale brightness-[0.65]" : ""
+        // behind it show through (doubled text). Keep the card's own color,
+        // just mute it slightly (no full grayscale).
+        inactive ? "saturate-[0.7] brightness-[0.85]" : ""
       } ${className}`}
       style={{ backgroundColor: theme.bg }}
     >
