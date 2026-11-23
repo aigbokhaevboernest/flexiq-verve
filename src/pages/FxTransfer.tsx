@@ -1,5 +1,5 @@
 import { useFrozenGuard } from "@/hooks/useFrozenGuard";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,6 +18,7 @@ import { SectionLabel } from "@/components/SectionLabel";
 import { sendEmail } from "@/lib/sendEmail";
 import { saveBeneficiary } from "@/lib/beneficiaries";
 import { SavedBeneficiaries } from "@/components/SavedBeneficiaries";
+import { showFrozenToast } from "@/lib/frozenToast";
 
 // Account type options: Others is always last. Old saved "personal" values map to "others".
 const ACCOUNT_TYPES = [
@@ -50,6 +51,9 @@ const FxTransfer = () => {
 
   const [gateOpen, setGateOpen] = useState(false);
   const [pendingTxId, setPendingTxId] = useState<string | null>(null);
+  // Refs mirror the gate state so the verify / close callbacks never read a stale value
+  const pendingTxRef = useRef<string | null>(null);
+  const verifiedRef = useRef(false);
 
   const { data: liveRates } = useQuery({
     queryKey: ["fx_live"],
@@ -111,7 +115,8 @@ const FxTransfer = () => {
     const amt = Number(amount);
     if (!amt || amt <= 0) return toast({ title: "Enter amount", variant: "destructive" });
     if (!recipient.name || !recipient.iban) return toast({ title: "Recipient details required", variant: "destructive" });
-    if (account?.frozen) return toast({ title: "Account frozen", variant: "destructive" });
+    // Single shared frozen toast (fires once, Snowflake icon)
+    if (account?.frozen) return showFrozenToast();
 
     const fromInBase = toBase(amt);
     if (fromInBase > availableBalance) {
@@ -155,16 +160,24 @@ const FxTransfer = () => {
     }).select().single();
 
     if (error || !tx) return toast({ title: "Failed", description: error?.message, variant: "destructive" });
+    verifiedRef.current = false;
+    pendingTxRef.current = tx.id;
     setPendingTxId(tx.id);
     setGateOpen(true);
   };
 
   const onVerified = async () => {
-    if (!user || !account || !pendingTxId) return;
-    const txId = pendingTxId;
-    setPendingTxId(null); // clear immediately so closing the gate won't cancel a successful verify
+    const txId = pendingTxRef.current ?? pendingTxId;
+    if (!user || !account || !txId) return;
+    // Mark verified FIRST so closing the gate can never cancel a successful verify
+    verifiedRef.current = true;
+    pendingTxRef.current = null;
+    setPendingTxId(null);
     const amt = Number(amount);
     const fromInBase = toBase(amt);
+
+    // Verified → status must be "pending" (undo any cancel that raced in as the gate closed)
+    await (supabase as any).from("transactions").update({ status: "pending" }).eq("id", txId);
 
     // Take the amount out of the combined balance exactly once.
     const plan = planDeduction(account, fromInBase);
@@ -176,7 +189,6 @@ const FxTransfer = () => {
     }
 
     await (supabase as any).from("profiles").update(plan.patch).eq("id", user.id);
-    await (supabase as any).from("transactions").update({ status: "pending" }).eq("id", txId);
     qc.invalidateQueries({ queryKey: ["profile"] });
     qc.invalidateQueries({ queryKey: ["transactions"] });
     qc.invalidateQueries({ queryKey: ["recent-tx"] });
@@ -222,6 +234,28 @@ Flexiq Verve Support Team`,
         ],
       },
     });
+  };
+
+  // Gate closed: cancel ONLY if the user abandoned it (never after a successful verify)
+  const handleGateOpenChange = (open: boolean) => {
+    if (!open && pendingTxRef.current && !verifiedRef.current) {
+      const id = pendingTxRef.current;
+      // Small delay so a successful verify (which may close the gate first) can flag itself
+      setTimeout(() => {
+        if (verifiedRef.current || pendingTxRef.current !== id) return;
+        (supabase as any)
+          .from("transactions")
+          .update({ status: "cancelled" })
+          .eq("id", id)
+          .then(() => {
+            qc.invalidateQueries({ queryKey: ["transactions"] });
+            qc.invalidateQueries({ queryKey: ["recent-tx"] });
+          });
+        pendingTxRef.current = null;
+        setPendingTxId(null);
+      }, 400);
+    }
+    setGateOpen(open);
   };
 
   const allCurrencies = Array.from(new Set([
@@ -341,20 +375,7 @@ Flexiq Verve Support Team`,
 
       <CodeGate
         open={gateOpen}
-        onOpenChange={(open) => {
-          if (!open && pendingTxId) {
-            (supabase as any)
-              .from("transactions")
-              .update({ status: "cancelled" })
-              .eq("id", pendingTxId)
-              .then(() => {
-                qc.invalidateQueries({ queryKey: ["transactions"] });
-                qc.invalidateQueries({ queryKey: ["recent-tx"] });
-              });
-            setPendingTxId(null);
-          }
-          setGateOpen(open);
-        }}
+        onOpenChange={handleGateOpenChange}
         title="Authorize FX transfer"
         onVerified={onVerified}
       />
