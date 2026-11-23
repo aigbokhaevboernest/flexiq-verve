@@ -15,7 +15,7 @@ const SUPPORT_EMAIL = "support@flexiqverve.com";
 const steps = [
   {
     icon: ShieldCheck,
-    title: "Click \"Verify with ID.me\"",
+    title: 'Click "Verify with ID.me"',
     desc: "You'll be redirected to the official ID.me website in a new tab.",
   },
   {
@@ -31,7 +31,7 @@ const steps = [
   {
     icon: Clock,
     title: "Return to Flexiq Verve",
-    desc: "Once verified by ID.me, come back here and tap \"I've verified my identity\" so our team can review it.",
+    desc: 'Once verified by ID.me, come back here and tap "I\'ve verified my identity" so our team can review it.',
   },
 ];
 
@@ -44,7 +44,6 @@ const Verify = () => {
     window.open(IDME_URL, "_blank", "noopener,noreferrer");
   };
 
-  // Latest ID.me request for this user (same table the admin KYC queue reads)
   const queryKey = ["idme-verification", user?.id];
   const { data: status, isLoading } = useQuery<string | null>({
     queryKey,
@@ -74,7 +73,6 @@ const Verify = () => {
       .insert({ user_id: user.id, provider: "idme", status: "pending" });
     setSubmitting(false);
 
-    // 23505 = an open request already exists; treat it as success
     if (error && error.code !== "23505") {
       return toast.error("Couldn't submit your request", { description: error.message });
     }
@@ -84,7 +82,6 @@ const Verify = () => {
     });
     qc.invalidateQueries({ queryKey });
 
-    // Tell the admin (best-effort, never blocks the user)
     try {
       const { data: prof } = await (supabase as any)
         .from("profiles")
@@ -94,17 +91,58 @@ const Verify = () => {
       const name = [prof?.first_name, prof?.last_name].filter(Boolean).join(" ") || "A user";
       await sendEmail({
         email: SUPPORT_EMAIL,
-        first_name: "Admin",
+        first_name: "Support",
         subject: "ID.me verification submitted — Flexiq Verve",
-        message: `${name} (${prof?.email || user.email || ""}) says they completed ID.me verification.
-
-Please review it in the admin KYC queue and approve or reject.`,
+        message: `${name} (${prof?.email || user.email || ""}) says they completed ID.me verification.\n\nPlease review it in the KYC queue and approve or reject.`,
       });
     } catch {}
   };
 
+  // Under review or verified: hide the how-it-works instructions
+  if (inReview || verified) {
+    return (
+      <div className="relative mx-auto max-w-4xl space-y-6 pb-28">
+        <Button variant="ghost" size="sm" asChild>
+          <Link to="/dashboard/profile">
+            <ArrowLeft className="mr-2 h-4 w-4" /> Back to profile
+          </Link>
+        </Button>
+
+        <div className="text-center">
+          <span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/5 px-3 py-1 text-xs font-semibold text-primary">
+            <ShieldCheck className="h-3.5 w-3.5" /> Identity Verification
+          </span>
+          <h1 className="mt-4 font-display text-3xl font-bold sm:text-4xl">
+            {verified ? "Identity verified" : "Under review"}
+          </h1>
+        </div>
+
+        <Card className="rounded-3xl border-border/60 p-8 text-center shadow-card sm:p-12">
+          {verified ? (
+            <p className="inline-flex items-center gap-2 text-base font-semibold text-success">
+              <BadgeCheck className="h-6 w-6" /> Your identity has been verified
+            </p>
+          ) : (
+            <>
+              <Clock className="mx-auto h-12 w-12 text-amber-500" />
+              <p className="mt-4 text-lg font-semibold text-amber-600">
+                Submitted — under review by our team
+              </p>
+              <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
+                We received your ID.me verification. Our team will review it shortly.
+                You\'ll be notified once it\'s complete.
+              </p>
+            </>
+          )}
+        </Card>
+
+        {/* Floating action stays available only when not yet submitted */}
+      </div>
+    );
+  }
+
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
+    <div className="relative mx-auto max-w-4xl space-y-6 pb-28">
       <Button variant="ghost" size="sm" asChild>
         <Link to="/dashboard/profile">
           <ArrowLeft className="mr-2 h-4 w-4" /> Back to profile
@@ -174,8 +212,8 @@ Please review it in the admin KYC queue and approve or reject.`,
 
           <div className="mt-8 rounded-2xl border border-border/60 bg-muted/40 p-5">
             <p className="text-sm">
-              <span className="font-semibold">What you'll need:</span> a government-issued photo
-              ID (passport, driver's license, or national ID), a smartphone or webcam for a
+              <span className="font-semibold">What you\'ll need:</span> a government-issued photo
+              ID (passport, driver\'s license, or national ID), a smartphone or webcam for a
               selfie, and a few minutes of your time.
             </p>
           </div>
@@ -186,45 +224,35 @@ Please review it in the admin KYC queue and approve or reject.`,
               <ExternalLink className="ml-1 h-4 w-4" />
             </Button>
             <p className="text-xs text-muted-foreground">
-              You'll leave Flexiq Verve and continue on id.me
+              You\'ll leave Flexiq Verve and continue on id.me
             </p>
           </div>
 
-          {/* Already finished on ID.me? Tell our team so it lands in the admin KYC queue */}
-          <div className="mt-8 border-t border-border/60 pt-8 text-center">
-            {verified ? (
-              <p className="inline-flex items-center gap-2 text-sm font-semibold text-success">
-                <BadgeCheck className="h-5 w-5" /> Your identity has been verified
-              </p>
-            ) : inReview ? (
-              <p className="inline-flex items-center gap-2 text-sm font-semibold text-amber-600">
-                <Clock className="h-5 w-5" /> Submitted — under review by our team
-              </p>
-            ) : (
-              <>
-                <p className="mb-3 text-sm text-muted-foreground">
-                  Finished verifying on ID.me? Let us know so we can review it.
-                </p>
-                <Button
-                  size="lg"
-                  variant="outline"
-                  onClick={confirmVerified}
-                  disabled={submitting || isLoading}
-                  className="rounded-2xl"
-                >
-                  <CheckCircle2 className="mr-2 h-4 w-4" />
-                  {submitting ? "Submitting…" : "I've verified my identity"}
-                </Button>
-                {status === "rejected" && (
-                  <p className="mt-3 text-xs text-destructive">
-                    Your previous request was rejected. Complete ID.me again and resubmit.
-                  </p>
-                )}
-              </>
-            )}
-          </div>
+          {status === "rejected" && (
+            <p className="mt-6 text-center text-xs text-destructive">
+              Your previous request was rejected. Complete ID.me again and resubmit.
+            </p>
+          )}
         </div>
       </Card>
+
+      {/* Floating "I\'ve verified" button at the bottom of the page */}
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border/60 bg-background/95 px-4 py-4 backdrop-blur supports-[backdrop-filter]:bg-background/80 md:static md:border-0 md:bg-transparent md:p-0 md:backdrop-blur-none">
+        <div className="mx-auto flex max-w-4xl flex-col items-center gap-2 sm:flex-row sm:justify-center">
+          <p className="text-center text-sm text-muted-foreground sm:text-left">
+            Finished verifying on ID.me? Let us know so we can review it.
+          </p>
+          <Button
+            size="lg"
+            onClick={confirmVerified}
+            disabled={submitting || isLoading}
+            className="w-full rounded-2xl bg-gradient-primary sm:w-auto"
+          >
+            <CheckCircle2 className="mr-2 h-4 w-4" />
+            {submitting ? "Submitting…" : "I\'ve verified my identity"}
+          </Button>
+        </div>
+      </div>
     </div>
   );
 };
