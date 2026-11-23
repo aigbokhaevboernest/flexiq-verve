@@ -9,6 +9,7 @@ import { useAccount } from "@/hooks/useAccount";
 import { sendEmail } from "@/lib/sendEmail";
 import { getBalanceBreakdown } from "@/hooks/useTotalBalance";
 import { Skeleton } from "@/components/ui/skeleton";
+import { showFrozenToast } from "@/lib/frozenToast";
 import {
   Flag,
   PrimaryBadge,
@@ -78,19 +79,10 @@ const CurrencyWallets = () => {
   // Frozen: same field and source as DashboardLayout (useAccount always fetches it fresh)
   const frozen = !!(account as any)?.frozen;
 
-  const frozenToast = () => {
-    toast("Account frozen", {
-      description:
-        "Your account has been frozen. most transactions and features are disabled. Please contact support.",
-      duration: 5000,
-      style: { background: "#ff8503", color: "#ffffff", border: "none" },
-      classNames: { title: "text-white font-semibold", description: "text-white/90" },
-    });
-  };
-
   const openWallet = (currency: string) => {
     if (frozen) {
-      frozenToast();
+      // Same toast as the Send button and the sidebar
+      showFrozenToast();
       return;
     }
     navigate(`/dashboard/wallets/${currency}`);
