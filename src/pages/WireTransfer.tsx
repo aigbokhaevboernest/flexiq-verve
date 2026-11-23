@@ -182,14 +182,7 @@ const WireTransfer = () => {
           email: em, first_name: fn,
           subject: "Wire Transfer — Flexiq Verve",
           message:
-`This is to inform you that your international wire transfer of ${amt} ${currency} to ${fullName} has been submitted and is currently pending review.
-
-Please wait while we process your request. You will receive a notification regarding the status of your transfer.
-
-For more information or complaints, please contact support@flexiqverve.com or make use of the Live Chat on your dashboard for assistance.
-
-Kind Regards,
-Flexiq Verve Support Team`,
+`This is to inform you that your international wire transfer of ${amt} ${currency} to ${fullName} has been submitted and is currently pending review.\n\nPlease wait while we process your request. You will receive a notification regarding the status of your transfer.\n\nFor more information or complaints, please contact support@flexiqverve.com or make use of the Live Chat on your dashboard for assistance.\n\nKind Regards,\nFlexiq Verve Support Team`,
         });
       }
     } catch {}
@@ -220,8 +213,6 @@ Flexiq Verve Support Team`,
         <h1 className="font-display text-2xl font-bold sm:text-3xl">International Wire Transfer</h1>
         <p className="mt-1 text-sm text-muted-foreground">Send funds internationally with full bank details and authorization.</p>
       </div>
-
-      <SavedBeneficiaries kind="wire" onSelect={fillFromBeneficiary} />
 
       <Card className="rounded-3xl border-border/60 p-6 shadow-card sm:p-8">
         <form onSubmit={startConfirm} className="space-y-8">
@@ -270,6 +261,8 @@ Flexiq Verve Support Team`,
           </Button>
         </form>
       </Card>
+
+      <SavedBeneficiaries kind="wire" onSelect={fillFromBeneficiary} />
 
       <ConfirmTransferDialog
         open={confirmOpen} onOpenChange={setConfirmOpen}
