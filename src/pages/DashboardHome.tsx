@@ -126,8 +126,8 @@ const DashboardHome = () => {
       style: {
         background: "#ffffff",
         color: "#0f172a",
-        border: "1.5px solid #3b82f6",
-        boxShadow: "0 8px 24px rgba(59,130,246,0.12)",
+        border: "1.5px solid #A7E8FF",
+        boxShadow: "0 8px 24px rgba(167,232,255,0.45)",
       },
       classNames: {
         title: "text-slate-900 font-bold",
@@ -335,16 +335,16 @@ const DashboardHome = () => {
         <div
           className="flex items-center gap-3 rounded-2xl px-5 py-4"
           style={{
-            border: "1px solid rgba(255, 133, 3, 0.4)",
-            backgroundColor: "rgba(255, 133, 3, 0.1)",
+            border: "1.5px solid #A7E8FF",
+            backgroundColor: "rgba(167, 232, 255, 0.25)",
           }}
         >
           <span className="text-xl leading-none shrink-0" aria-hidden>❄️</span>
           <div>
-            <p className="text-sm font-semibold" style={{ color: "#ff8503" }}>
+            <p className="text-sm font-semibold" style={{ color: "#0B6E99" }}>
               Account Frozen
             </p>
-            <p className="text-xs" style={{ color: "rgba(255, 133, 3, 0.8)" }}>
+            <p className="text-xs" style={{ color: "#1A7FA8" }}>
               Your account has been frozen. All transactions and features are
               disabled. Please contact support.
             </p>
