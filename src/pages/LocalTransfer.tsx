@@ -537,8 +537,8 @@ ${footer}`,
               <p className="text-xs uppercase tracking-wider text-muted-foreground">Amount</p>
               <div className="mt-2 flex items-center gap-2">
                 <span className="font-display text-2xl font-bold text-muted-foreground">{sym}</span>
-className="h-14 border-0 bg-transparent p-0 font-display text-3xl md:text-3xl font-bold shadow-none focus-visible:ring-0 keep-font"
-                className="h-14 border-0 bg-transparent p-0 font-display text-3xl font-bold shadow-none focus-visible:ring-0 keep-font" required />
+                <Input type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00"
+                  className="h-14 border-0 bg-transparent p-0 font-display text-3xl md:text-3xl font-bold shadow-none focus-visible:ring-0 keep-font" required />
               </div>
               <p className="mt-1 text-xs text-muted-foreground">Available: {formatMoney(availableBalance, currency)}</p>
 
