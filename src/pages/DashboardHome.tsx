@@ -17,9 +17,8 @@ import {
   TrendingUp,
   Wallet,
   ShieldAlert,
-  Wifi,
 } from "lucide-react";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -33,6 +32,7 @@ import { EmptyState } from "@/components/EmptyState";
 import AccountCarousel from "@/components/dashboard/AccountCarousel";
 import { SendChooserModal } from "@/components/dashboard/SendChooserModal";
 import FitAmount from "@/components/FitAmount";
+import CardFace from "@/components/cards/CardFace";
 
 const quickActions: Array<{
   icon: any;
@@ -111,6 +111,7 @@ const getSecondaryAccountTypes = (
 const DashboardHome = () => {
   const [hidden, setHidden] = useState(false);
   const [sendOpen, setSendOpen] = useState(false);
+  const [cardIndex, setCardIndex] = useState(0);
   const navigate = useNavigate();
   const { user } = useAuth();
   const { data: profile, isLoading: profLoading } = useAccount();
@@ -189,18 +190,17 @@ const DashboardHome = () => {
     },
   });
 
-  const { data: card, isLoading: cardLoading } = useQuery<any>({
-    queryKey: ["primary-card", user?.id],
+  // Same query key as the Cards page, so both share one cache.
+  const { data: cards = [], isLoading: cardLoading } = useQuery<any[]>({
+    queryKey: ["cards", user?.id],
     enabled: !!user,
     queryFn: async () => {
       const { data } = await (supabase as any)
         .from("cards")
         .select("*")
         .eq("user_id", user!.id)
-        .order("created_at", { ascending: true })
-        .limit(1)
-        .maybeSingle();
-      return data;
+        .order("created_at");
+      return data || [];
     },
   });
 
@@ -524,8 +524,8 @@ const DashboardHome = () => {
           />
         </div>
 
-        {/* Your card */}
-        <Card className="flex flex-col rounded-3xl border-border/60 p-6 shadow-card">
+        {/* Your card: swipeable stack, same behaviour as the Cards page */}
+        <Card className="flex flex-col overflow-hidden rounded-3xl border-border/60 p-6 shadow-card">
           <div className="flex items-center justify-between">
             <p className="text-sm font-semibold">Your card</p>
             <Button variant="ghost" size="sm" className="h-8 text-xs" asChild>
@@ -536,103 +536,106 @@ const DashboardHome = () => {
             </Button>
           </div>
           {(() => {
-            const raw = card?.card_number || (profile as any)?.card_number;
-            const expiry = card?.expiry || (profile as any)?.expiry;
-            const cardName =
-              card?.cardholder_name?.trim() || (firstName ? firstName.toUpperCase() : "");
-            const isPhysical = card?.card_type === "physical";
-            const last4 = raw ? String(raw).replace(/\D/g, "").slice(-4) : "";
-            const masked = `•••• •••• •••• ${last4 || "————"}`;
+            const total = cards.length;
+            const top = total > 0 ? cards[cardIndex % total] : null;
+            const loading = cardLoading || profLoading;
+            const fallbackCard = {
+              card_number: (profile as any)?.card_number,
+              expiry: (profile as any)?.expiry,
+            };
+            const isInactive = (c: any) =>
+              isFrozen || !!c?.frozen || (!!c?.status && c.status !== "active");
+            const topInactive = top ? isInactive(top) : isFrozen;
+            const hasCard = !!top || !!fallbackCard.card_number;
 
-            const cardInactive =
-              isFrozen || !!card?.frozen || (!!card?.status && card.status !== "active");
             const statusLabel = isFrozen
               ? "Account frozen"
-              : card?.status === "blocked"
+              : top?.status === "blocked"
               ? "Card blocked"
-              : card?.status === "deleted"
+              : top?.status === "deleted"
               ? "Card removed"
-              : card?.frozen || (card?.status && card.status !== "active")
+              : top?.frozen || (top?.status && top.status !== "active")
               ? "Card frozen"
-              : card || raw
+              : hasCard
               ? "Active"
               : "Not issued";
-            const statusColor = cardInactive
-              ? "#ff8503"
-              : card || raw
-              ? "#10b981"
-              : "#94a3b8";
-
-            const loading = cardLoading || profLoading;
+            const statusColor = topInactive ? "#ff8503" : hasCard ? "#10b981" : "#94a3b8";
+            const nextCard = () => setCardIndex((i) => (i + 1) % total);
 
             return (
               <>
-                {/* Card face: solid deep navy, gold chip, soft decorative circles */}
                 <div
-                  className={`relative mt-4 aspect-[1.586/1] w-full overflow-hidden rounded-2xl bg-[#0f1b33] p-5 text-white shadow-elev transition-all duration-300 ${
-                    cardInactive ? "opacity-60 grayscale" : ""
-                  }`}
+                  className="relative mx-auto mt-4 w-full max-w-[400px]"
+                  style={{
+                    aspectRatio: "1.586 / 1",
+                    marginBottom: `${Math.min(Math.max(total - 1, 0), 2) * 14}px`,
+                  }}
                 >
-                  <span className="pointer-events-none absolute -right-12 -top-12 h-44 w-44 rounded-full bg-white/[0.05]" />
-                  <span className="pointer-events-none absolute -bottom-20 -left-12 h-56 w-56 rounded-full bg-[#F5A623]/10" />
-                  <span className="pointer-events-none absolute inset-0 rounded-2xl border border-white/10" />
-
-                  <div className="relative flex h-full flex-col justify-between">
-                    {/* Top: type + contactless */}
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <p className="text-[10px] font-medium uppercase tracking-[0.25em] text-white/60">
-                          {isPhysical ? "Physical" : "Virtual"}
-                        </p>
-                        <p className="mt-0.5 text-sm font-semibold tracking-wide">Debit</p>
-                      </div>
-                      <Wifi className="h-5 w-5 rotate-90 text-white/70" />
+                  {total === 0 ? (
+                    <div className="absolute inset-0 rounded-2xl shadow-2xl">
+                      <CardFace
+                        card={fallbackCard}
+                        holderFallback={firstName}
+                        inactive={isFrozen}
+                        loading={loading}
+                      />
                     </div>
-
-                    {/* Chip */}
-                    <div className="relative h-8 w-11 overflow-hidden rounded-md bg-[#F5A623]">
-                      <span className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-black/25" />
-                      <span className="absolute inset-y-0 left-1/3 w-px bg-black/25" />
-                      <span className="absolute inset-y-0 right-1/3 w-px bg-black/25" />
-                      <span className="absolute inset-[5px] rounded-[3px] border border-black/25" />
-                    </div>
-
-                    {/* Number + holder/expiry */}
-                    {loading ? (
-                      <div>
-                        <Skeleton className="h-5 w-48 bg-white/25" />
-                        <div className="mt-4 flex justify-between">
-                          <Skeleton className="h-3 w-24 bg-white/25" />
-                          <Skeleton className="h-3 w-12 bg-white/25" />
-                        </div>
-                      </div>
-                    ) : (
-                      <div>
-                        <p className="font-mono text-[15px] tracking-[0.18em] sm:text-base">
-                          {masked}
-                        </p>
-                        <div className="mt-3 flex items-end justify-between gap-3">
-                          <div className="min-w-0">
-                            <p className="text-[9px] uppercase tracking-[0.2em] text-white/50">
-                              Card holder
-                            </p>
-                            <p className="mt-0.5 truncate text-xs font-medium uppercase tracking-wider">
-                              {cardName || "—"}
-                            </p>
-                          </div>
-                          <div className="shrink-0 text-right">
-                            <p className="text-[9px] uppercase tracking-[0.2em] text-white/50">
-                              Expires
-                            </p>
-                            <p className="mt-0.5 text-xs font-medium tabular-nums tracking-wider">
-                              {expiry || "—"}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                  ) : (
+                    <AnimatePresence initial={false}>
+                      {cards.map((c: any, idx: number) => {
+                        const offset = (idx - cardIndex + total) % total;
+                        if (offset > 2) return null;
+                        const isTop = offset === 0;
+                        return (
+                          <motion.div
+                            key={c.id}
+                            drag={isTop && total > 1 ? "x" : false}
+                            dragConstraints={{ left: 0, right: 0 }}
+                            onDragEnd={(_, info) => {
+                              if (Math.abs(info.offset.x) > 100) nextCard();
+                            }}
+                            initial={{ scale: 1 - offset * 0.05, y: offset * 14, opacity: 1, x: 0, rotate: 0 }}
+                            animate={{ scale: 1 - offset * 0.05, y: offset * 14, opacity: 1 - offset * 0.2, x: 0, rotate: 0 }}
+                            exit={{ x: 400, opacity: 0, rotate: 12, transition: { duration: 0.55, ease: [0.4, 0, 0.2, 1] } }}
+                            whileDrag={{ rotate: 6, cursor: "grabbing" }}
+                            transition={{ duration: 0.55, ease: [0.4, 0, 0.2, 1] }}
+                            className={`absolute inset-0 rounded-2xl shadow-2xl ${
+                              isTop && total > 1 ? "cursor-grab" : ""
+                            }`}
+                            style={{ zIndex: total - offset }}
+                          >
+                            <CardFace
+                              card={c}
+                              holderFallback={firstName}
+                              inactive={isInactive(c)}
+                            />
+                          </motion.div>
+                        );
+                      })}
+                    </AnimatePresence>
+                  )}
                 </div>
+
+                {total > 1 && (
+                  <>
+                    <div className="mt-4 flex items-center justify-center gap-2">
+                      {cards.map((c: any, i: number) => (
+                        <button
+                          key={c.id}
+                          type="button"
+                          onClick={() => setCardIndex(i)}
+                          aria-label={`Show card ${i + 1}`}
+                          className={`h-2 rounded-full transition-all ${
+                            i === cardIndex % total ? "w-6 bg-primary" : "w-2 bg-muted"
+                          }`}
+                        />
+                      ))}
+                    </div>
+                    <p className="mt-2 text-center text-xs text-muted-foreground">
+                      Swipe card or tap a dot · {(cardIndex % total) + 1} of {total}
+                    </p>
+                  </>
+                )}
 
                 {/* Status row */}
                 <div className="mt-4 flex items-center justify-between rounded-xl bg-muted/50 px-3.5 py-2.5 text-xs">
@@ -641,7 +644,7 @@ const DashboardHome = () => {
                     className="inline-flex items-center gap-1.5 font-semibold"
                     style={{ color: statusColor }}
                   >
-                    {cardInactive ? (
+                    {topInactive ? (
                       <ShieldAlert className="h-3.5 w-3.5" />
                     ) : (
                       <span
