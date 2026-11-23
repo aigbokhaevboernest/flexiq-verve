@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Send, Wallet, Home, ArrowLeftRight, WalletCards, Banknote } from "lucide-react";
-import { toast } from "sonner";
 import { useAccount } from "@/hooks/useAccount";
 import { SendChooserModal } from "@/components/dashboard/SendChooserModal";
+import { showFrozenToast } from "@/lib/frozenToast";
 
 const FORCE_DARK_STYLE = false;
 const USE_BRAND_COLOR = false;
@@ -309,21 +309,8 @@ export const BottomGlassNav = ({ hidden = false }: Props) => {
     const item = items[i];
     if (item.to === null) {
       if (frozen) {
-        toast("Account unavailable", {
-          description: "Your account has been frozen. Please contact support.",
-          duration: 5000,
-          icon: "❄️",
-          style: {
-            background: "#ffffff",
-            color: "#0f172a",
-            border: "1.5px solid #A7E8FF",
-            boxShadow: "0 8px 24px rgba(167,232,255,0.45)",
-          },
-          classNames: {
-            title: "text-slate-900 font-bold",
-            description: "text-slate-600",
-          },
-        });
+        // One shared toast; it can only show once even if go() is reached twice for one tap
+        showFrozenToast();
         return;
       }
       setSendOpen(true);
