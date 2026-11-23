@@ -39,6 +39,7 @@ import { toast } from "sonner";
 import { NotificationsPanel } from "@/components/NotificationsPanel";
 import { useRealtimeProfile } from "@/hooks/useRealtimeProfile";
 import { BottomGlassNav } from "@/components/dashboard/BottomGlassNav";
+import { showFrozenToast } from "@/lib/frozenToast";
 
 // Same order as the bottom bar, so a page slides left/right the way the tabs sit.
 const TAB_ORDER = [
@@ -65,28 +66,10 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
   const { data: profile } = useAccount();
   const frozen = !!(profile as any)?.frozen;
 
-  const frozenToast = () => {
-    toast("Account unavailable", {
-      description: "Your account has been frozen. Please contact support.",
-      duration: 5000,
-      icon: "❄️",
-      style: {
-        background: "#ffffff",
-        color: "#0f172a",
-        border: "1.5px solid #A7E8FF",
-        boxShadow: "0 8px 24px rgba(167,232,255,0.45)",
-      },
-      classNames: {
-        title: "text-slate-900 font-bold",
-        description: "text-slate-600",
-      },
-    });
-  };
-
   const handleFrozenNav = (e: React.MouseEvent) => {
     if (frozen) {
       e.preventDefault();
-      frozenToast();
+      showFrozenToast();
     } else {
       onNavigate?.();
     }
