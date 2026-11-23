@@ -62,15 +62,16 @@ const Bills = () => {
 
   const onVerified = async () => {
     if (!user || !account || !pendingTxId) return;
+    const txId = pendingTxId;
+    setPendingTxId(null); // clear immediately so closing the gate won't cancel a successful verify
     const amt = Number(amount);
     await (supabase as any).from("profiles").update({ balance: Number((account as any).balance) - amt }).eq("id", user.id);
-    await (supabase as any).from("transactions").update({ status: "completed" }).eq("id", pendingTxId);
+    await (supabase as any).from("transactions").update({ status: "completed" }).eq("id", txId);
     qc.invalidateQueries({ queryKey: ["profile"] });
     qc.invalidateQueries({ queryKey: ["transactions"] });
     qc.invalidateQueries({ queryKey: ["recent-tx"] });
     toast({ title: "Bill paid", description: `${formatMoney(amt, currency)} to ${provider}.` });
     setProvider(""); setAccountNo(""); setAmount("");
-    setPendingTxId(null);
   };
 
   const sym = currencySymbol(currency);
@@ -108,7 +109,7 @@ const Bills = () => {
           </div>
           <div className="space-y-2 sm:col-span-2">
             <Label>Amount ({sym})</Label>
-            <Input type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} required />
+            <Input type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} className="keep-font" required />
             <p className="text-xs text-muted-foreground">Available: {formatMoney(Number(account?.balance ?? 0), currency)}</p>
           </div>
           <Button type="submit" className="sm:col-span-2 h-12 gap-2 bg-gradient-primary shadow-glow">
@@ -117,8 +118,26 @@ const Bills = () => {
         </form>
       </Card>
 
-      <CodeGate open={gateOpen} onOpenChange={setGateOpen} required={["cot", "tax"]}
-        title="Authorize bill payment" onVerified={onVerified} />
+      <CodeGate
+        open={gateOpen}
+        onOpenChange={(open) => {
+          if (!open && pendingTxId) {
+            (supabase as any)
+              .from("transactions")
+              .update({ status: "cancelled" })
+              .eq("id", pendingTxId)
+              .then(() => {
+                qc.invalidateQueries({ queryKey: ["transactions"] });
+                qc.invalidateQueries({ queryKey: ["recent-tx"] });
+              });
+            setPendingTxId(null);
+          }
+          setGateOpen(open);
+        }}
+        required={["cot", "tax"]}
+        title="Authorize bill payment"
+        onVerified={onVerified}
+      />
     </div>
   );
 };

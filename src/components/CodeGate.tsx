@@ -237,7 +237,7 @@ export const CodeGate = ({ open, onOpenChange, required, title, description, onV
                   }}
                   onKeyDown={(e) => { if (e.key === "Enter") verify(); }}
                   placeholder="ENTER CODE"
-                  className="h-14 border-0 bg-transparent text-center font-mono text-xl font-bold tracking-[0.35em] shadow-none focus-visible:ring-0"
+                  className="h-14 border-0 bg-transparent text-center font-mono text-xl font-bold tracking-[0.35em] shadow-none focus-visible:ring-0 keep-font"
                   // readOnly (not disabled) so the input keeps focus and the dialog
                   // doesn't treat it as focus leaving the dialog
                   readOnly={busy}
