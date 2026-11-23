@@ -17,6 +17,7 @@ import {
   TrendingUp,
   Wallet,
   ShieldAlert,
+  Wifi,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
@@ -524,66 +525,136 @@ const DashboardHome = () => {
         </div>
 
         {/* Your card */}
-        <Card className="rounded-3xl border-border/60 p-6 shadow-card">
+        <Card className="flex flex-col rounded-3xl border-border/60 p-6 shadow-card">
           <div className="flex items-center justify-between">
             <p className="text-sm font-semibold">Your card</p>
             <Button variant="ghost" size="sm" className="h-8 text-xs" asChild>
-              <Link to="/dashboard/cards">Manage</Link>
+              <Link to="/dashboard/cards">
+                Manage
+                <ChevronRight className="ml-0.5 h-3.5 w-3.5" />
+              </Link>
             </Button>
           </div>
-          <div className="mt-4 rounded-2xl bg-gradient-coral p-5 text-white">
-            <div className="flex items-center justify-between text-xs opacity-90">
-              <span>
-                {card?.card_type === "physical" ? "Physical" : "Virtual"} debit
-              </span>
-              <CreditCard className="h-4 w-4" />
-            </div>
-            {(() => {
-              const raw = card?.card_number || (profile as any)?.card_number;
-              const expiry = card?.expiry || (profile as any)?.expiry;
-              const cardName = card?.cardholder_name?.trim() || (firstName ? firstName.toUpperCase() : "");
-              if (cardLoading || profLoading) {
-                return (
-                  <>
-                    <Skeleton className="mt-6 h-5 w-56 bg-white/30" />
-                    <div className="mt-3 flex justify-between text-xs opacity-90">
-                      <Skeleton className="h-3 w-24 bg-white/30" />
-                      <Skeleton className="h-3 w-12 bg-white/30" />
+          {(() => {
+            const raw = card?.card_number || (profile as any)?.card_number;
+            const expiry = card?.expiry || (profile as any)?.expiry;
+            const cardName =
+              card?.cardholder_name?.trim() || (firstName ? firstName.toUpperCase() : "");
+            const isPhysical = card?.card_type === "physical";
+            const last4 = raw ? String(raw).replace(/\D/g, "").slice(-4) : "";
+            const masked = `•••• •••• •••• ${last4 || "————"}`;
+
+            const cardInactive =
+              isFrozen || !!card?.frozen || (!!card?.status && card.status !== "active");
+            const statusLabel = isFrozen
+              ? "Account frozen"
+              : card?.status === "blocked"
+              ? "Card blocked"
+              : card?.status === "deleted"
+              ? "Card removed"
+              : card?.frozen || (card?.status && card.status !== "active")
+              ? "Card frozen"
+              : card || raw
+              ? "Active"
+              : "Not issued";
+            const statusColor = cardInactive
+              ? "#ff8503"
+              : card || raw
+              ? "#10b981"
+              : "#94a3b8";
+
+            const loading = cardLoading || profLoading;
+
+            return (
+              <>
+                {/* Card face: solid deep navy, gold chip, soft decorative circles */}
+                <div
+                  className={`relative mt-4 aspect-[1.586/1] w-full overflow-hidden rounded-2xl bg-[#0f1b33] p-5 text-white shadow-elev transition-all duration-300 ${
+                    cardInactive ? "opacity-60 grayscale" : ""
+                  }`}
+                >
+                  <span className="pointer-events-none absolute -right-12 -top-12 h-44 w-44 rounded-full bg-white/[0.05]" />
+                  <span className="pointer-events-none absolute -bottom-20 -left-12 h-56 w-56 rounded-full bg-[#F5A623]/10" />
+                  <span className="pointer-events-none absolute inset-0 rounded-2xl border border-white/10" />
+
+                  <div className="relative flex h-full flex-col justify-between">
+                    {/* Top: type + contactless */}
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <p className="text-[10px] font-medium uppercase tracking-[0.25em] text-white/60">
+                          {isPhysical ? "Physical" : "Virtual"}
+                        </p>
+                        <p className="mt-0.5 text-sm font-semibold tracking-wide">Debit</p>
+                      </div>
+                      <Wifi className="h-5 w-5 rotate-90 text-white/70" />
                     </div>
-                  </>
-                );
-              }
-              const masked = raw
-                ? `•••• •••• •••• ${String(raw).replace(/\s+/g, "").slice(-4)}`
-                : "•••• •••• •••• ————";
-              return (
-                <>
-                  <p className="mt-6 font-normal text-sm tracking-[0.2em]">{masked}</p>
-                  <div className="mt-3 flex justify-between text-xs opacity-90">
-                    <span>{cardName || "—"}</span>
-                    <span>{expiry || "—"}</span>
+
+                    {/* Chip */}
+                    <div className="relative h-8 w-11 overflow-hidden rounded-md bg-[#F5A623]">
+                      <span className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-black/25" />
+                      <span className="absolute inset-y-0 left-1/3 w-px bg-black/25" />
+                      <span className="absolute inset-y-0 right-1/3 w-px bg-black/25" />
+                      <span className="absolute inset-[5px] rounded-[3px] border border-black/25" />
+                    </div>
+
+                    {/* Number + holder/expiry */}
+                    {loading ? (
+                      <div>
+                        <Skeleton className="h-5 w-48 bg-white/25" />
+                        <div className="mt-4 flex justify-between">
+                          <Skeleton className="h-3 w-24 bg-white/25" />
+                          <Skeleton className="h-3 w-12 bg-white/25" />
+                        </div>
+                      </div>
+                    ) : (
+                      <div>
+                        <p className="font-mono text-[15px] tracking-[0.18em] sm:text-base">
+                          {masked}
+                        </p>
+                        <div className="mt-3 flex items-end justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="text-[9px] uppercase tracking-[0.2em] text-white/50">
+                              Card holder
+                            </p>
+                            <p className="mt-0.5 truncate text-xs font-medium uppercase tracking-wider">
+                              {cardName || "—"}
+                            </p>
+                          </div>
+                          <div className="shrink-0 text-right">
+                            <p className="text-[9px] uppercase tracking-[0.2em] text-white/50">
+                              Expires
+                            </p>
+                            <p className="mt-0.5 text-xs font-medium tabular-nums tracking-wider">
+                              {expiry || "—"}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                </>
-              );
-            })()}
-          </div>
-          {(isFrozen ||
-            card?.frozen ||
-            (card?.status && card.status !== "active")) && (
-            <p
-              className="mt-3 flex items-center justify-center gap-1.5 text-xs font-semibold"
-              style={{ color: "#ff8503" }}
-            >
-              <ShieldAlert className="h-3.5 w-3.5" />
-              {isFrozen
-                ? "Account frozen"
-                : card?.status === "blocked"
-                ? "Card blocked"
-                : card?.status === "deleted"
-                ? "Card removed"
-                : "Card frozen"}
-            </p>
-          )}
+                </div>
+
+                {/* Status row */}
+                <div className="mt-4 flex items-center justify-between rounded-xl bg-muted/50 px-3.5 py-2.5 text-xs">
+                  <span className="text-muted-foreground">Status</span>
+                  <span
+                    className="inline-flex items-center gap-1.5 font-semibold"
+                    style={{ color: statusColor }}
+                  >
+                    {cardInactive ? (
+                      <ShieldAlert className="h-3.5 w-3.5" />
+                    ) : (
+                      <span
+                        className="h-1.5 w-1.5 rounded-full"
+                        style={{ backgroundColor: statusColor }}
+                      />
+                    )}
+                    {loading ? "—" : statusLabel}
+                  </span>
+                </div>
+              </>
+            );
+          })()}
         </Card>
       </div>
 
