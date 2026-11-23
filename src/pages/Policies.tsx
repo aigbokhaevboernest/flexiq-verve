@@ -9,8 +9,8 @@ const sections = [
   { id: "share", icon: Shield, title: "Sharing & Disclosure", body: "We share data only with vetted processors (KYC, payments, cloud), regulators when required by law, and partners you explicitly authorize." },
   { id: "cookies", icon: Cookie, title: "Cookies & Tracking", body: "We use essential cookies for authentication and analytics cookies to improve UX. You can manage preferences in your browser settings." },
   { id: "security", icon: Lock, title: "Security", body: "Bank-grade encryption in transit (TLS 1.2+) and at rest (AES-256). Continuous monitoring, MFA, and biometric authentication." },
-  { id: "rights", icon: UserCheck, title: "Your Rights", body: "Access, correct, export, or delete your data anytime by contacting privacy@flexiqverve.com." },
-  { id: "contact", icon: Mail, title: "Contact", body: "Privacy questions? Email privacy@flexiqverve.com." },
+  { id: "rights", icon: UserCheck, title: "Your Rights", body: "Access, correct, export, or delete your data anytime by contacting support@flexiqverve.com." },
+  { id: "contact", icon: Mail, title: "Contact", body: "Privacy questions? Email support@flexiqverve.com." },
 ];
 
 const Policies = () => (
