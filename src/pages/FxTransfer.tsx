@@ -282,8 +282,7 @@ Flexiq Verve Support Team`,
               </div>
               <div className="mt-2 flex items-center gap-3">
                 <Input type="number" value={amount} onChange={(e) => setAmount(e.target.value)}
-                  className="h-14 border-0 bg-transparent p-0 font-display text-3xl font-bold shadow-none focus-visible:ring-0 keep-font" />
-                <Select value={from} onValueChange={setFrom}>
+className="h-16 rounded-2xl pl-10 text-center font-display text-2xl md:text-2xl font-bold keep-font"                <Select value={from} onValueChange={setFrom}>
                   <SelectTrigger className="h-12 w-[130px] rounded-xl"><SelectValue /></SelectTrigger>
                   <SelectContent className="max-h-72">
                     {allCurrencies.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
