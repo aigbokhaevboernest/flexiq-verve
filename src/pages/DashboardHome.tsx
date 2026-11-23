@@ -32,7 +32,7 @@ import { EmptyState } from "@/components/EmptyState";
 import AccountCarousel from "@/components/dashboard/AccountCarousel";
 import { SendChooserModal } from "@/components/dashboard/SendChooserModal";
 import FitAmount from "@/components/FitAmount";
-import CardFace from "@/components/cards/CardFace";
+import CardFace, { cardThemes } from "@/components/cards/CardFace";
 
 const quickActions: Array<{
   icon: any;
@@ -372,7 +372,8 @@ const DashboardHome = () => {
                 className={`flex h-full flex-col overflow-hidden rounded-3xl shadow-elev ${cardTheme.surface}`}
               >
                 {/* Main content. Compact spacing so nothing is clipped and there's no dead space. */}
-                <div className="min-h-0 flex-1 p-5 pb-3 sm:p-6 sm:pb-4">
+                <div className="flex min-h-0 flex-1 flex-col justify-between gap-3 p-5 pb-4 sm:p-6 sm:pb-5">
+                  <div>
                   {/* Header: icon chip + account name/number, eye toggle on the right */}
                   <div className="flex items-center justify-between gap-4">
                     <div className="flex min-w-0 items-center gap-3">
@@ -416,8 +417,11 @@ const DashboardHome = () => {
                     </span>
                   )}
 
+                  </div>
+
+                  <div>
                   {/* Balance */}
-                  <p className={`mt-4 text-base sm:mt-5 ${cardTheme.muted}`}>Available balance</p>
+                  <p className={`text-base ${cardTheme.muted}`}>Available balance</p>
                   {/* Fixed-height slot: the amount and the hidden bullets share it, so toggling
                       hide/show never changes the card height or moves the controls below. */}
                   <div className="mt-0.5 flex h-12 items-center overflow-hidden tabular-nums">
@@ -434,7 +438,9 @@ const DashboardHome = () => {
                     )}
                   </div>
 
-                  <div className="mt-4 grid grid-cols-4 gap-2 sm:mt-5 sm:gap-3">
+                  </div>
+
+                  <div className="grid grid-cols-4 gap-2 sm:gap-3">
                     {quickActions.map((a) => {
                       const Icon = a.icon;
                       const cls = `group flex flex-col items-center gap-1.5 rounded-2xl p-2.5 text-center transition-smooth ${cardTheme.tile}`;
@@ -529,7 +535,7 @@ const DashboardHome = () => {
         </div>
 
         {/* Your card: swipeable stack, same behaviour as the Cards page */}
-        <Card className="flex flex-col overflow-hidden rounded-3xl border-border/60 p-6 shadow-card">
+        <Card className="flex flex-col overflow-hidden rounded-3xl border-border/60 px-6 pb-4 pt-6 shadow-card">
           <div className="flex items-center justify-between">
             <p className="text-sm font-semibold">Your card</p>
             <Button variant="ghost" size="sm" className="h-8 text-xs" asChild>
@@ -569,7 +575,7 @@ const DashboardHome = () => {
             return (
               <>
                 <div
-                  className="relative mx-auto mt-4 w-full max-w-[400px]"
+                  className="relative mx-auto mt-3 w-full max-w-[400px]"
                   style={{
                     aspectRatio: "1.586 / 1",
                     marginBottom: `${Math.min(Math.max(total - 1, 0), 2) * 14}px`,
@@ -623,27 +629,36 @@ const DashboardHome = () => {
 
                 {total > 1 && (
                   <>
-                    <div className="mt-4 flex items-center justify-center gap-2">
-                      {cards.map((c: any, i: number) => (
-                        <button
-                          key={c.id}
-                          type="button"
-                          onClick={() => setCardIndex(i)}
-                          aria-label={`Show card ${i + 1}`}
-                          className={`h-2 rounded-full transition-all ${
-                            i === cardIndex % total ? "w-6 bg-primary" : "w-2 bg-muted"
-                          }`}
-                        />
-                      ))}
+                    <div className="mt-2 flex items-center justify-center gap-1.5">
+                      {cards.map((c: any, i: number) => {
+                        const isActiveDot = i === cardIndex % total;
+                        return (
+                          <button
+                            key={c.id}
+                            type="button"
+                            onClick={() => setCardIndex(i)}
+                            aria-label={`Show card ${i + 1}`}
+                            className={`h-1.5 rounded-full transition-all ${
+                              isActiveDot ? "w-4" : "w-1.5 bg-muted"
+                            }`}
+                            // Active dot takes the accent color of the card on top
+                            style={
+                              isActiveDot
+                                ? { backgroundColor: cardThemes[i % cardThemes.length].accent }
+                                : undefined
+                            }
+                          />
+                        );
+                      })}
                     </div>
-                    <p className="mt-2 text-center text-xs text-muted-foreground">
+                    <p className="mt-1 text-center text-[11px] text-muted-foreground">
                       Swipe card or tap a dot · {(cardIndex % total) + 1} of {total}
                     </p>
                   </>
                 )}
 
                 {/* Status row */}
-                <div className="mt-4 flex items-center justify-between rounded-xl bg-muted/50 px-3.5 py-2.5 text-xs">
+                <div className="mt-3 flex items-center justify-between rounded-xl bg-muted/50 px-3.5 py-2 text-xs">
                   <span className="text-muted-foreground">Status</span>
                   <span
                     className="inline-flex items-center gap-1.5 font-semibold"
