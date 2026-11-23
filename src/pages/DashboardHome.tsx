@@ -28,7 +28,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Skeleton } from "@/components/ui/skeleton";
-import { EmptyState } from "@/components/EmptyState";
 import AccountCarousel from "@/components/dashboard/AccountCarousel";
 import { SendChooserModal } from "@/components/dashboard/SendChooserModal";
 import FitAmount from "@/components/FitAmount";
@@ -508,7 +507,7 @@ const DashboardHome = () => {
             </div>
             <div className="mt-4 space-y-3">
               {!txs || txs.length === 0 ? (
-                <EmptyState title="No recent activity" description="Your transfers will show up here." />
+                <p className="py-6 text-center text-sm text-muted-foreground">No recent activity</p>
               ) : (
                 txs.slice(0, 5).map((t: any) => (
                   <div key={t.id} className="flex items-center justify-between gap-3 text-sm">
