@@ -34,6 +34,27 @@ interface Submission {
   rejection_reason: string | null;
 }
 
+const COLUMNS =
+  "id, document_type, status, submitted_at, rejection_reason, document_front_url, selfie_url, legal_first_name, legal_last_name, date_of_birth";
+
+// ID.me rows (legal name / date of birth, no uploaded documents) belong to the ID.me flow,
+// so this page ignores them. Only the document-upload rows decide the KYC state here.
+const isIdmeRow = (r: any) =>
+  !r?.document_front_url &&
+  !r?.selfie_url &&
+  !!(r?.legal_first_name || r?.legal_last_name || r?.date_of_birth);
+
+// Approved always wins, then the most recently submitted row
+const pickSubmission = (rows: any[]): Submission | null => {
+  const kycRows = rows.filter((r) => !isIdmeRow(r));
+  if (kycRows.length === 0) return null;
+  const approved = kycRows.find((r) => r.status === "approved");
+  if (approved) return approved as Submission;
+  return [...kycRows].sort(
+    (a, b) => new Date(b.submitted_at ?? 0).getTime() - new Date(a.submitted_at ?? 0).getTime()
+  )[0] as Submission;
+};
+
 const FileSlot = ({
   label,
   file,
@@ -100,6 +121,7 @@ export default function Kyc() {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [submission, setSubmission] = useState<Submission | null>(null);
+  const [profileApproved, setProfileApproved] = useState(false);
   const [loadingStatus, setLoadingStatus] = useState(true);
   const [loading, setLoading] = useState(false);
 
@@ -111,16 +133,26 @@ export default function Kyc() {
 
   useEffect(() => {
     if (!user) return;
+    let cancelled = false;
     setLoadingStatus(true);
-    (supabase as any)
-      .from("id_verifications")
-      .select("id, document_type, status, submitted_at, rejection_reason")
-      .eq("user_id", user.id)
-      .maybeSingle()
-      .then(({ data }: any) => {
-        setSubmission((data as Submission) ?? null);
-        setLoadingStatus(false);
-      });
+    (async () => {
+      try {
+        // Read every row (no maybeSingle: two rows used to make this return nothing,
+        // which sent an approved user back to "Not started"), plus the profile status.
+        const [{ data: rows }, { data: prof }] = await Promise.all([
+          (supabase as any).from("id_verifications").select(COLUMNS).eq("user_id", user.id),
+          (supabase as any).from("profiles").select("kyc_status").eq("id", user.id).maybeSingle(),
+        ]);
+        if (cancelled) return;
+        setSubmission(pickSubmission((rows as any[]) ?? []));
+        setProfileApproved(prof?.kyc_status === "approved");
+      } finally {
+        if (!cancelled) setLoadingStatus(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [user]);
 
   // Uploads to the private bucket and returns a long-lived signed URL
@@ -143,6 +175,8 @@ export default function Kyc() {
 
   const submit = async () => {
     if (!user) return;
+    // Approved users can never resubmit
+    if (isApproved) return;
     if (!docNumber.trim() || !front || !selfie) {
       toast.error("Please fill all required fields");
       return;
@@ -165,13 +199,13 @@ export default function Kyc() {
         reviewed_at: null,
       };
 
-      // One row per user: update an existing row (created at signup, or after a rejection),
-      // insert only if there is none
-      const { data: existing } = await (supabase as any)
+      // One KYC row per user: update the existing document row (created at signup, or after a
+      // rejection), insert only if there is none. ID.me rows are left alone.
+      const { data: existingRows } = await (supabase as any)
         .from("id_verifications")
-        .select("id")
-        .eq("user_id", user.id)
-        .maybeSingle();
+        .select(COLUMNS)
+        .eq("user_id", user.id);
+      const existing = ((existingRows as any[]) ?? []).find((r) => !isIdmeRow(r));
 
       const { data, error } = existing
         ? await (supabase as any)
@@ -217,16 +251,30 @@ export default function Kyc() {
     }
   };
 
-  // "Not started" = no row yet, or a row that exists only from signup (no documents submitted)
-  const isNotStarted = !submission || submission.status === "not_started";
-  const isRejected = !!submission && submission.status === "rejected";
+  // Approved if the document row OR the profile says so, so it can never fall back to "Not started"
+  const isApproved = submission?.status === "approved" || profileApproved;
+  const displaySubmission: Submission | null = isApproved
+    ? submission?.status === "approved"
+      ? submission
+      : {
+          id: submission?.id ?? "approved",
+          document_type: submission?.document_type ?? null,
+          status: "approved",
+          submitted_at: submission?.submitted_at ?? null,
+          rejection_reason: null,
+        }
+    : submission;
 
-  // Status cards appear once the status is known
+  // "Not started" = no row yet, or a row that exists only from signup (no documents submitted)
+  const isNotStarted = !isApproved && (!submission || submission.status === "not_started");
+  const isRejected = !isApproved && !!submission && submission.status === "rejected";
+
+  // Nothing is decided until the status is known, so no card or form flashes in and out
   const showNotStartedCard = !loadingStatus && isNotStarted;
-  const showStatusCard = !loadingStatus && !!submission && !isNotStarted && !isRejected;
+  const showStatusCard = !loadingStatus && !!displaySubmission && !isNotStarted && !isRejected;
   const showRejected = !loadingStatus && isRejected;
-  // The form is fully visible by default, and hidden only when a submission is under review / approved
-  const showForm = loadingStatus || isNotStarted || isRejected;
+  // The form shows only for not started / rejected. Approved or under review: it stays closed.
+  const showForm = !loadingStatus && (isNotStarted || isRejected);
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
@@ -247,6 +295,13 @@ export default function Kyc() {
         </p>
       </div>
 
+      {loadingStatus && (
+        <div className="space-y-4">
+          <div className="h-[76px] animate-pulse rounded-2xl bg-muted" />
+          <div className="h-64 animate-pulse rounded-2xl bg-muted" />
+        </div>
+      )}
+
       {showNotStartedCard && (
         <div className="flex items-center gap-4 rounded-2xl border border-border bg-muted/40 p-5">
           <ShieldQuestion className="h-5 w-5 text-muted-foreground" />
@@ -259,25 +314,29 @@ export default function Kyc() {
         </div>
       )}
 
-      {showStatusCard && submission && (
+      {showStatusCard && displaySubmission && (
         <div
           className={`flex items-center gap-4 rounded-2xl border p-5 ${
-            submission.status === "approved"
+            displaySubmission.status === "approved"
               ? "border-emerald-500/30 bg-emerald-500/5"
               : "border-yellow-500/30 bg-yellow-500/5"
           }`}
         >
-          {submission.status === "approved" ? (
+          {displaySubmission.status === "approved" ? (
             <ShieldCheck className="h-5 w-5 text-emerald-600" />
           ) : (
             <Clock className="h-5 w-5 text-yellow-600" />
           )}
           <div className="flex-1">
-            <p className="text-[14px] font-medium capitalize">Status: {submission.status}</p>
+            <p className="text-[14px] font-medium capitalize">Status: {displaySubmission.status}</p>
             <p className="text-[12px] text-muted-foreground">
-              {submission.document_type}
-              {submission.submitted_at &&
-                ` · submitted ${new Date(submission.submitted_at).toLocaleDateString()}`}
+              {displaySubmission.status === "approved"
+                ? "Your identity has been verified. No further action is needed."
+                : `${displaySubmission.document_type ?? "Documents"}${
+                    displaySubmission.submitted_at
+                      ? ` · submitted ${new Date(displaySubmission.submitted_at).toLocaleDateString()}`
+                      : ""
+                  }`}
             </p>
           </div>
         </div>
