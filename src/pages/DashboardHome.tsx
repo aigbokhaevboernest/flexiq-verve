@@ -372,7 +372,7 @@ const DashboardHome = () => {
                 className={`flex h-full flex-col overflow-hidden rounded-3xl shadow-elev ${cardTheme.surface}`}
               >
                 {/* Main content. Compact spacing so nothing is clipped and there's no dead space. */}
-                <div className="flex min-h-0 flex-1 flex-col justify-between gap-3 p-5 pb-4 sm:p-6 sm:pb-5">
+                <div className="flex min-h-0 flex-1 flex-col justify-evenly px-5 py-2 sm:px-6">
                   <div>
                   {/* Header: icon chip + account name/number, eye toggle on the right */}
                   <div className="flex items-center justify-between gap-4">
