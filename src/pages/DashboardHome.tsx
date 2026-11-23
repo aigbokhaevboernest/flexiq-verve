@@ -606,6 +606,7 @@ const DashboardHome = () => {
                           >
                             <CardFace
                               card={c}
+                              index={idx}
                               holderFallback={firstName}
                               inactive={isInactive(c)}
                             />
