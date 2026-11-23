@@ -8,7 +8,7 @@ const sections = [
   { id: "use", icon: Scale, title: "Acceptable Use", body: "You agree not to misuse the platform, attempt unauthorized access, or use Flexiq Verve for unlawful activity, fraud, or money laundering." },
   { id: "fees", icon: AlertCircle, title: "Fees & Charges", body: "Most personal accounts have no monthly fee. Specific transaction or service fees are disclosed before you confirm any operation." },
   { id: "liability", icon: Shield, title: "Limitation of Liability", body: "Flexiq Verve is not liable for indirect, incidental, or consequential damages arising from use of the service to the maximum extent permitted by law." },
-  { id: "contact", icon: Mail, title: "Contact", body: "Questions about these Terms? Email legal@flexiqverve.com." },
+  { id: "contact", icon: Mail, title: "Contact", body: "Questions about these Terms? Email support@flexiqverve.com." },
 ];
 
 const Terms = () => (
