@@ -1,5 +1,5 @@
 import { useFrozenGuard } from "@/hooks/useFrozenGuard";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,6 +19,7 @@ import { SectionLabel } from "@/components/SectionLabel";
 import { sendEmail } from "@/lib/sendEmail";
 import { saveBeneficiary } from "@/lib/beneficiaries";
 import { SavedBeneficiaries } from "@/components/SavedBeneficiaries";
+import { showFrozenToast } from "@/lib/frozenToast";
 
 // Account type options: Others is always last. Old saved "personal" values map to "others".
 const ACCOUNT_TYPES = [
@@ -69,6 +70,9 @@ const WireTransfer = () => {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [gateOpen, setGateOpen] = useState(false);
   const [pendingTxId, setPendingTxId] = useState<string | null>(null);
+  // Refs mirror the gate state so the verify / close callbacks never read a stale value
+  const pendingTxRef = useRef<string | null>(null);
+  const verifiedRef = useRef(false);
 
   const set = (k: keyof typeof form, v: string) => setForm((s) => ({ ...s, [k]: v }));
   const sym = currencySymbol(currency);
@@ -98,7 +102,8 @@ const WireTransfer = () => {
   const startConfirm = (e: React.FormEvent) => {
     e.preventDefault();
     if (!amt || amt <= 0) return toast({ title: "Enter a valid amount", variant: "destructive" });
-    if (account?.frozen) return toast({ title: "Account frozen", variant: "destructive" });
+    // Single shared frozen toast (fires once, Snowflake icon)
+    if (account?.frozen) return showFrozenToast();
     if (amt > availableBalance) return toast({ title: "Insufficient funds", variant: "destructive" });
 
     // Save the entered recipient details as soon as Continue is clicked
@@ -147,14 +152,22 @@ const WireTransfer = () => {
       },
     }).select().single();
     if (error || !tx) return toast({ title: "Could not start transfer", description: error?.message, variant: "destructive" });
+    verifiedRef.current = false;
+    pendingTxRef.current = tx.id;
     setPendingTxId(tx.id);
     setGateOpen(true);
   };
 
   const onVerified = async () => {
-    if (!user || !account || !pendingTxId) return;
-    const txId = pendingTxId;
-    setPendingTxId(null); // clear immediately so closing the gate won't cancel a successful verify
+    const txId = pendingTxRef.current ?? pendingTxId;
+    if (!user || !account || !txId) return;
+    // Mark verified FIRST so closing the gate can never cancel a successful verify
+    verifiedRef.current = true;
+    pendingTxRef.current = null;
+    setPendingTxId(null);
+
+    // Verified → status must be "pending" (undo any cancel that raced in as the gate closed)
+    await (supabase as any).from("transactions").update({ status: "pending" }).eq("id", txId);
 
     // Take the amount out of the combined balance exactly once.
     const plan = planDeduction(account, amt);
@@ -166,7 +179,6 @@ const WireTransfer = () => {
     }
 
     await (supabase as any).from("profiles").update(plan.patch).eq("id", user.id);
-    await (supabase as any).from("transactions").update({ status: "pending" }).eq("id", txId);
     qc.invalidateQueries({ queryKey: ["profile"] });
     qc.invalidateQueries({ queryKey: ["transactions"] });
     qc.invalidateQueries({ queryKey: ["recent-tx"] });
@@ -205,6 +217,28 @@ const WireTransfer = () => {
         ],
       },
     });
+  };
+
+  // Gate closed: cancel ONLY if the user abandoned it (never after a successful verify)
+  const handleGateOpenChange = (open: boolean) => {
+    if (!open && pendingTxRef.current && !verifiedRef.current) {
+      const id = pendingTxRef.current;
+      // Small delay so a successful verify (which may close the gate first) can flag itself
+      setTimeout(() => {
+        if (verifiedRef.current || pendingTxRef.current !== id) return;
+        (supabase as any)
+          .from("transactions")
+          .update({ status: "cancelled" })
+          .eq("id", id)
+          .then(() => {
+            qc.invalidateQueries({ queryKey: ["transactions"] });
+            qc.invalidateQueries({ queryKey: ["recent-tx"] });
+          });
+        pendingTxRef.current = null;
+        setPendingTxId(null);
+      }, 400);
+    }
+    setGateOpen(open);
   };
 
   return (
@@ -278,20 +312,7 @@ const WireTransfer = () => {
 
       <CodeGate
         open={gateOpen}
-        onOpenChange={(open) => {
-          if (!open && pendingTxId) {
-            (supabase as any)
-              .from("transactions")
-              .update({ status: "cancelled" })
-              .eq("id", pendingTxId)
-              .then(() => {
-                qc.invalidateQueries({ queryKey: ["transactions"] });
-                qc.invalidateQueries({ queryKey: ["recent-tx"] });
-              });
-            setPendingTxId(null);
-          }
-          setGateOpen(open);
-        }}
+        onOpenChange={handleGateOpenChange}
         onVerified={onVerified}
         title="Authorize transfer"
       />
