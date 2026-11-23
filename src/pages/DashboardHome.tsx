@@ -522,6 +522,69 @@ const DashboardHome = () => {
             }
           />
         </div>
+
+        {/* Your card */}
+        <Card className="rounded-3xl border-border/60 p-6 shadow-card">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-semibold">Your card</p>
+            <Button variant="ghost" size="sm" className="h-8 text-xs" asChild>
+              <Link to="/dashboard/cards">Manage</Link>
+            </Button>
+          </div>
+          <div className="mt-4 rounded-2xl bg-gradient-coral p-5 text-white">
+            <div className="flex items-center justify-between text-xs opacity-90">
+              <span>
+                {card?.card_type === "physical" ? "Physical" : "Virtual"} debit
+              </span>
+              <CreditCard className="h-4 w-4" />
+            </div>
+            {(() => {
+              const raw = card?.card_number || (profile as any)?.card_number;
+              const expiry = card?.expiry || (profile as any)?.expiry;
+              const cardName = card?.cardholder_name?.trim() || (firstName ? firstName.toUpperCase() : "");
+              if (cardLoading || profLoading) {
+                return (
+                  <>
+                    <Skeleton className="mt-6 h-5 w-56 bg-white/30" />
+                    <div className="mt-3 flex justify-between text-xs opacity-90">
+                      <Skeleton className="h-3 w-24 bg-white/30" />
+                      <Skeleton className="h-3 w-12 bg-white/30" />
+                    </div>
+                  </>
+                );
+              }
+              const masked = raw
+                ? `•••• •••• •••• ${String(raw).replace(/\s+/g, "").slice(-4)}`
+                : "•••• •••• •••• ————";
+              return (
+                <>
+                  <p className="mt-6 font-normal text-sm tracking-[0.2em]">{masked}</p>
+                  <div className="mt-3 flex justify-between text-xs opacity-90">
+                    <span>{cardName || "—"}</span>
+                    <span>{expiry || "—"}</span>
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+          {(isFrozen ||
+            card?.frozen ||
+            (card?.status && card.status !== "active")) && (
+            <p
+              className="mt-3 flex items-center justify-center gap-1.5 text-xs font-semibold"
+              style={{ color: "#ff8503" }}
+            >
+              <ShieldAlert className="h-3.5 w-3.5" />
+              {isFrozen
+                ? "Account frozen"
+                : card?.status === "blocked"
+                ? "Card blocked"
+                : card?.status === "deleted"
+                ? "Card removed"
+                : "Card frozen"}
+            </p>
+          )}
+        </Card>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-3">
