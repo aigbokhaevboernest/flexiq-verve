@@ -14,9 +14,9 @@ import {
   Landmark,
   Receipt,
   Send,
+  Snowflake,
   TrendingUp,
   Wallet,
-  ShieldAlert,
 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
@@ -124,7 +124,7 @@ const DashboardHome = () => {
     toast("Account unavailable", {
       description: "Your account has been frozen. Please contact support.",
       duration: 5000,
-      icon: "❄️",
+      icon: <Snowflake className="h-4 w-4" style={{ color: "#0B6E99" }} />,
       style: {
         background: "#ffffff",
         color: "#0f172a",
@@ -340,7 +340,11 @@ const DashboardHome = () => {
             backgroundColor: "rgba(167, 232, 255, 0.25)",
           }}
         >
-          <span className="text-xl leading-none shrink-0" aria-hidden>❄️</span>
+          <Snowflake
+            className="h-6 w-6 shrink-0"
+            style={{ color: "#0B6E99" }}
+            aria-hidden
+          />
           <div>
             <p className="text-sm font-semibold" style={{ color: "#0B6E99" }}>
               Account Frozen
@@ -367,15 +371,15 @@ const DashboardHome = () => {
               <div
                 className={`flex h-full flex-col overflow-hidden rounded-3xl shadow-elev ${cardTheme.surface}`}
               >
-                {/* Main content. Tighter vertical spacing on mobile so the footer below is never clipped. */}
-                <div className="min-h-0 flex-1 p-6 pb-4 sm:p-8 sm:pb-6">
+                {/* Main content. Compact spacing so nothing is clipped and there's no dead space. */}
+                <div className="min-h-0 flex-1 p-5 pb-3 sm:p-6 sm:pb-4">
                   {/* Header: icon chip + account name/number, eye toggle on the right */}
                   <div className="flex items-center justify-between gap-4">
-                    <div className="flex min-w-0 items-center gap-4">
+                    <div className="flex min-w-0 items-center gap-3">
                       <span
-                        className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl ${cardTheme.iconChip}`}
+                        className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${cardTheme.iconChip}`}
                       >
-                        <Landmark className="h-6 w-6" />
+                        <Landmark className="h-5 w-5" />
                       </span>
                       <div className="min-w-0">
                         <p className="truncate text-lg font-medium capitalize leading-tight">
@@ -396,7 +400,7 @@ const DashboardHome = () => {
                       type="button"
                       aria-label={hidden ? "Show balance" : "Hide balance"}
                       onClick={() => setHidden((h) => !h)}
-                      className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full transition-smooth ${cardTheme.eyeBtn}`}
+                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-smooth ${cardTheme.eyeBtn}`}
                     >
                       {hidden ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                     </button>
@@ -404,19 +408,19 @@ const DashboardHome = () => {
 
                   {isFrozen && (
                     <span
-                      className="mt-4 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold text-white"
+                      className="mt-3 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold text-white"
                       style={{ backgroundColor: "#ff8503" }}
                     >
-                      <ShieldAlert className="h-3 w-3" />
+                      <Snowflake className="h-3.5 w-3.5" />
                       Account Frozen
                     </span>
                   )}
 
                   {/* Balance */}
-                  <p className={`mt-6 text-base sm:mt-8 ${cardTheme.muted}`}>Available balance</p>
+                  <p className={`mt-4 text-base sm:mt-5 ${cardTheme.muted}`}>Available balance</p>
                   {/* Fixed-height slot: the amount and the hidden bullets share it, so toggling
                       hide/show never changes the card height or moves the controls below. */}
-                  <div className="mt-1 flex h-14 items-center overflow-hidden tabular-nums">
+                  <div className="mt-0.5 flex h-12 items-center overflow-hidden tabular-nums">
                     {!balanceKnown || !currency ? (
                       <Skeleton className={`h-10 w-56 ${cardTheme.skeleton}`} />
                     ) : (
@@ -430,14 +434,14 @@ const DashboardHome = () => {
                     )}
                   </div>
 
-                  <div className={`mt-6 grid grid-cols-4 gap-3 sm:mt-8 ${isFrozen ? "mb-2" : ""}`}>
+                  <div className="mt-4 grid grid-cols-4 gap-2 sm:mt-5 sm:gap-3">
                     {quickActions.map((a) => {
                       const Icon = a.icon;
-                      const cls = `group flex flex-col items-center gap-2 rounded-2xl p-3 text-center transition-smooth ${cardTheme.tile}`;
+                      const cls = `group flex flex-col items-center gap-1.5 rounded-2xl p-2.5 text-center transition-smooth ${cardTheme.tile}`;
                       const inner = (
                         <>
                           <span
-                            className={`flex h-10 w-10 items-center justify-center rounded-xl ${cardTheme.iconChip}`}
+                            className={`flex h-9 w-9 items-center justify-center rounded-xl ${cardTheme.iconChip}`}
                           >
                             <Icon className="h-4 w-4" />
                           </span>
@@ -505,8 +509,8 @@ const DashboardHome = () => {
                   onKeyDown={(e) => {
                     if (e.key === "Enter") goToWallets();
                   }}
-                  className={`flex shrink-0 cursor-pointer items-center justify-center gap-2 px-8 text-sm font-medium leading-none transition-colors ${cardTheme.footer} ${
-                    isFrozen ? "h-10" : "h-14"
+                  className={`flex shrink-0 cursor-pointer items-center justify-center gap-2 px-6 text-sm font-medium leading-none transition-colors ${cardTheme.footer} ${
+                    isFrozen ? "h-9" : "h-11"
                   }`}
                 >
                   <WalletCards className="h-4 w-4 shrink-0" />
@@ -646,7 +650,7 @@ const DashboardHome = () => {
                     style={{ color: statusColor }}
                   >
                     {topInactive ? (
-                      <ShieldAlert className="h-3.5 w-3.5" />
+                      <Snowflake className="h-3.5 w-3.5" />
                     ) : (
                       <span
                         className="h-1.5 w-1.5 rounded-full"
