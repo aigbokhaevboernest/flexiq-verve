@@ -1,10 +1,11 @@
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowDownLeft, ArrowUpRight, Download, FileText, Filter, Search } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, Download, Eye, FileText, Filter, Search } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -19,6 +20,7 @@ const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 const Transactions = () => {
  const { user } = useAuth();
+ const navigate = useNavigate();
  const { data: profile } = useProfile();
  const { data: account } = useAccount();
  const [q, setQ] = useState("");
@@ -57,6 +59,50 @@ const Transactions = () => {
  const totalIn = txs.filter((t: any) => Number(t.amount) > 0).reduce((s: number, t: any) => s + Number(t.amount), 0);
  const totalOut = txs.filter((t: any) => Number(t.amount) < 0).reduce((s: number, t: any) => s + Math.abs(Number(t.amount)), 0);
  const currency = txs[0]?.currency || "USD";
+
+ // Open the existing receipt page (same one used after a transfer) for this transaction
+ const openReceipt = (t: any) => {
+   const amt = Math.abs(Number(t.amount));
+   const key =
+     t.status === "awaiting_code" ? "processing" : t.status === "rejected" ? "failed" : t.status;
+   const completed = key === "completed";
+   const failed = key === "failed" || key === "cancelled";
+   const cur = t.currency || currency;
+   const ref = t.reference || String(t.id).slice(0, 12).toUpperCase();
+   const typeLabel =
+     t.type === "transfer_in" ? "Credit" : t.type === "transfer_out" ? "Debit" : String(t.type || "").replace(/_/g, " ");
+
+   const details = [
+     { label: "Date", value: new Date(t.created_at).toLocaleString() },
+     { label: "Reference", value: ref },
+     { label: "Type", value: typeLabel },
+     t.recipient_name ? { label: "Recipient", value: t.recipient_name } : null,
+     t.recipient_bank ? { label: "Bank", value: t.recipient_bank } : null,
+     t.recipient_account ? { label: "Account", value: t.recipient_account } : null,
+     t.description ? { label: "Description", value: t.description } : null,
+     { label: "Amount", value: formatMoney(amt, cur) },
+     t.converted_amount && t.converted_currency
+       ? { label: "Received", value: formatMoney(Number(t.converted_amount), t.converted_currency) }
+       : null,
+     { label: "Status", value: cap(String(key).replace(/_/g, " ")) },
+   ].filter(Boolean);
+
+   navigate("/dashboard/success", {
+     state: {
+       title: completed ? "Transaction Completed" : failed ? "Transaction Unsuccessful" : "Transaction Pending",
+       message: completed
+         ? "This transaction was completed."
+         : failed
+         ? "This transaction did not go through."
+         : "Pending system verification.",
+       success: completed,
+       pending: !completed && !failed,
+       receipt: true,
+       returnTo: "/dashboard/transactions",
+       details,
+     },
+   });
+ };
 
  const exportCsv = () => {
    const rows = [
@@ -194,6 +240,7 @@ const Transactions = () => {
        </div>
      </div>
 
+     {/* Stats: Credit = green with +, Debit = red with −, Net = signed, neutral (black) */}
      <div className="grid gap-4 sm:grid-cols-3">
        <Card className="rounded-2xl border-border/60 p-5 shadow-card">
          <p className="text-xs uppercase tracking-wider text-muted-foreground">Credit</p>
@@ -210,7 +257,7 @@ const Transactions = () => {
          {txsLoading ? (
            <Skeleton className="mt-2 h-7 w-28" />
          ) : (
-           <p className="mt-2 font-display text-2xl font-bold">
+           <p className="mt-2 font-display text-2xl font-bold text-destructive">
              −{formatMoney(totalOut, currency)}
            </p>
          )}
@@ -220,7 +267,7 @@ const Transactions = () => {
          {txsLoading ? (
            <Skeleton className="mt-2 h-7 w-28" />
          ) : (
-           <p className={`mt-2 font-display text-2xl font-bold ${totalIn - totalOut >= 0 ? "text-success" : "text-destructive"}`}>
+           <p className="mt-2 font-display text-2xl font-bold text-foreground">
              {totalIn - totalOut >= 0 ? "+" : "−"}{formatMoney(Math.abs(totalIn - totalOut), currency)}
            </p>
          )}
@@ -277,15 +324,19 @@ const Transactions = () => {
        <div className="mt-6 overflow-x-auto">
          <table className="w-full min-w-[560px] text-sm table-fixed">
            <colgroup>
-             <col className="w-[55%]" />
+             <col className="w-[48%]" />
              <col className="w-[15%]" />
-             <col className="w-[30%]" />
+             <col className="w-[27%]" />
+             <col className="w-[10%]" />
            </colgroup>
            <thead>
              <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground">
                <th className="pb-3 font-medium">Transaction</th>
                <th className="pb-3 font-medium text-right">Type</th>
                <th className="pb-3 text-right font-medium">Amount</th>
+               <th className="pb-3 text-right font-medium">
+                 <span className="sr-only">Receipt</span>
+               </th>
              </tr>
            </thead>
            <tbody className="divide-y divide-border/60">
@@ -364,13 +415,25 @@ const Transactions = () => {
                      {positive ? "+" : "−"}
                      {formatMoney(Math.abs(Number(t.amount)), t.currency)}
                    </td>
+                   <td className="py-3 text-right">
+                     <Button
+                       type="button"
+                       variant="ghost"
+                       size="icon"
+                       className="h-8 w-8"
+                       aria-label="View receipt"
+                       onClick={() => openReceipt(t)}
+                     >
+                       <Eye className="h-4 w-4" />
+                     </Button>
+                   </td>
                  </tr>
                );
              })}
              {filtered.length === 0 && (
                <tr>
                  <td
-                   colSpan={3}
+                   colSpan={4}
                    className="py-10 text-center text-sm text-muted-foreground"
                  >
                    No transactions match your filters.
