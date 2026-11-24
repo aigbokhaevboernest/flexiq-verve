@@ -1,3 +1,4 @@
+import CardFace, { cardThemes } from "@/components/cards/CardFace";
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -287,18 +288,26 @@ Flexiq Verve Support Team`,
             </AnimatePresence>
           </div>
 
-          {total > 1 && (
-            <div className="flex items-center justify-center gap-2">
-              {cards.map((c: any, i: number) => (
-                <button
-                  key={c.id}
-                  onClick={() => setTopIndex(i)}
-                  aria-label={`Show card ${i + 1}`}
-                  className={`h-2 rounded-full transition-all ${i === topIndex % total ? "w-6 bg-primary" : "w-2 bg-muted"}`}
-                />
-              ))}
-            </div>
-          )}
+         {total > 1 && (
+  <div className="flex items-center justify-center gap-2">
+    {cards.map((c: any, i: number) => {
+      const isActiveDot = i === topIndex % total;
+      return (
+        <button
+          key={c.id}
+          onClick={() => setTopIndex(i)}
+          aria-label={`Show card ${i + 1}`}
+          className={`h-2 rounded-full transition-all ${isActiveDot ? "w-6" : "w-2 bg-muted"}`}
+          style={
+            isActiveDot
+              ? { backgroundColor: cardThemes[i % cardThemes.length].accent }
+              : undefined
+          }
+        />
+      );
+    })}
+  </div>
+)}
 
           {/* Quick actions */}
           <div className="mx-auto grid w-full max-w-[400px] grid-cols-3 gap-3">
