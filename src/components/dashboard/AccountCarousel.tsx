@@ -14,6 +14,7 @@ import {
   LineChart,
   MoreHorizontal,
   ArrowRight,
+  Wallet,
   X,
 } from "lucide-react";
 import FitAmount from "@/components/FitAmount";
@@ -81,6 +82,29 @@ const calcMonthlyInterest = (balance: number) => (balance * SAVINGS_APR) / 12;
 const RETIREMENT_TOTAL_RETURN_RATE = 0.1245;
 const RETIREMENT_YTD_RETURN_RATE = 0.062;
 
+/**
+ * Wallet button shown on the secondary cards only (never on the primary card).
+ * Goes to the add-funds page. Stops the pointer event so tapping it never
+ * starts a card drag.
+ */
+const AddFundsButton = ({ className = "" }: { className?: string }) => {
+  const navigate = useNavigate();
+  return (
+    <button
+      type="button"
+      aria-label="Add funds"
+      onPointerDown={(e) => e.stopPropagation()}
+      onClick={(e) => {
+        e.stopPropagation();
+        navigate("/dashboard/receive");
+      }}
+      className={`flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-white transition-colors hover:bg-white/25 ${className}`}
+    >
+      <Wallet className="h-4 w-4" />
+    </button>
+  );
+};
+
 const StatItem = ({
   icon: Icon,
   label,
@@ -139,7 +163,10 @@ const OpenedAccountCard = ({
                   {meta.title.toUpperCase()}
                 </span>
               </div>
-              <MoreHorizontal className="h-5 w-5 opacity-60" />
+              <div className="flex items-center gap-2">
+                <AddFundsButton />
+                <MoreHorizontal className="h-5 w-5 opacity-60" />
+              </div>
             </div>
             <FitAmount
               variant="card"
@@ -219,6 +246,8 @@ const PlaceholderCard = ({ type, onOpen, isTop }: { type: SecondaryType; onOpen:
       <div className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-white/15 blur-2xl" />
       {isTop ? (
         <>
+          {/* Wallet button: top right, secondary cards only */}
+          <AddFundsButton className="absolute right-5 top-5 z-10" />
           <div className="relative">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold backdrop-blur-sm">
               <Lock className="h-3 w-3" /> Not opened
