@@ -5,7 +5,21 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowDownLeft, ArrowUpRight, Download, Eye, FileText, Filter, Search } from "lucide-react";
+import {
+  AlertCircle,
+  ArrowDownLeft,
+  ArrowUpRight,
+  Ban,
+  CheckCircle2,
+  Clock,
+  Download,
+  Eye,
+  FileText,
+  Filter,
+  Loader2,
+  Search,
+  XCircle,
+} from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -17,6 +31,29 @@ import autoTable from "jspdf-autotable";
 
 const ACCOUNT_TYPES = ["checking", "savings", "retirement"] as const;
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+/** Normalise raw statuses the same way everywhere (table badge + receipt). */
+const normStatus = (raw: string) =>
+  raw === "awaiting_code" ? "processing" : raw === "rejected" ? "failed" : raw;
+
+/** Icon + badge colors per status. Completed and pending keep their look; the rest get their own. */
+const statusMeta = (key: string) => {
+  switch (key) {
+    case "completed":
+      return { Icon: CheckCircle2, spin: false, cls: "border-success/30 bg-success/10 text-success" };
+    case "pending":
+      return { Icon: Clock, spin: false, cls: "border-warning/30 bg-warning/10 text-warning" };
+    case "processing":
+      return { Icon: Loader2, spin: true, cls: "border-blue-500/30 bg-blue-500/10 text-blue-600" };
+    case "cancelled":
+    case "canceled":
+      return { Icon: Ban, spin: false, cls: "border-border bg-muted text-muted-foreground" };
+    case "failed":
+      return { Icon: XCircle, spin: false, cls: "border-destructive/30 bg-destructive/10 text-destructive" };
+    default:
+      return { Icon: AlertCircle, spin: false, cls: "border-border bg-muted text-muted-foreground" };
+  }
+};
 
 const Transactions = () => {
  const { user } = useAuth();
@@ -63,8 +100,7 @@ const Transactions = () => {
  // Open the existing receipt page (same one used after a transfer) for this transaction
  const openReceipt = (t: any) => {
    const amt = Math.abs(Number(t.amount));
-   const key =
-     t.status === "awaiting_code" ? "processing" : t.status === "rejected" ? "failed" : t.status;
+   const key = normStatus(t.status);
    const completed = key === "completed";
    const failed = key === "failed" || key === "cancelled";
    const cur = t.currency || currency;
@@ -97,6 +133,8 @@ const Transactions = () => {
          : "Pending system verification.",
        success: completed,
        pending: !completed && !failed,
+       // Exact status so the receipt can show the matching icon (cancelled, processing, failed...)
+       status: key,
        receipt: true,
        returnTo: "/dashboard/transactions",
        details,
@@ -342,20 +380,8 @@ const Transactions = () => {
            <tbody className="divide-y divide-border/60">
              {filtered.map((t: any) => {
                const positive = Number(t.amount) > 0;
-               const statusKey =
-                 t.status === "awaiting_code"
-                   ? "processing"
-                   : t.status === "rejected"
-                   ? "failed"
-                   : t.status;
-               const statusClass =
-                 statusKey === "completed"
-                   ? "border-success/30 bg-success/10 text-success"
-                   : statusKey === "pending"
-                   ? "border-warning/30 bg-warning/10 text-warning"
-                   : statusKey === "processing"
-                   ? "border-blue-500/30 bg-blue-500/10 text-blue-600"
-                   : "border-destructive/30 bg-destructive/10 text-destructive";
+               const statusKey = normStatus(t.status);
+               const { Icon: StatusIcon, spin, cls: statusClass } = statusMeta(statusKey);
                return (
                  <tr key={t.id} className="align-top">
                    <td className="py-4 pr-3">
@@ -393,8 +419,9 @@ const Transactions = () => {
                          </p>
                          <Badge
                            variant="outline"
-                           className={`mt-2 capitalize ${statusClass}`}
+                           className={`mt-2 gap-1 capitalize ${statusClass}`}
                          >
+                           <StatusIcon className={`h-3 w-3 ${spin ? "animate-spin" : ""}`} />
                            {statusKey.replace(/_/g, " ")}
                          </Badge>
                        </div>
