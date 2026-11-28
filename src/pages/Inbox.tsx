@@ -53,6 +53,10 @@ const activityTitle = (type: string, t?: any) => {
   if (type === "card_created") return "Virtual card created";
   if (type === "loan_disbursement") return "Loan disbursed";
   if (type === "deposit") return "Money added";
+  if (type === "loan") return "Loan";
+  if (type === "kyc" || type === "kyc_verification") return "Identity verification";
+  if (type === "digital_payment") return "Digital payment";
+  if (type === "wallet_deposit_request") return "Wallet fund request";
   return String(type || "Activity").replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase());
 };
 
@@ -250,7 +254,7 @@ const Inbox = () => {
                       </span>
                     )}
                   </div>
-                  {i.body && <p className="mt-0.5 break-words text-sm text-muted-foreground">{i.body}</p>}
+                  {i.body && <p className="mt-0.5 whitespace-pre-line break-words text-sm text-muted-foreground">{i.body}</p>}
                   <p className="mt-1 text-xs text-muted-foreground">{new Date(i.at).toLocaleString()}</p>
                 </div>
               </li>
